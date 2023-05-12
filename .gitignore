@@ -1,0 +1,12 @@
+Backend/node_modules
+Backend/.env
+Backend/logs
+Backend/Uploads
+
+Mobile/node_modules
+Mobile/.env
+Mobile/logs
+
+Web/node_modules
+Web/.env
+Web/logs
