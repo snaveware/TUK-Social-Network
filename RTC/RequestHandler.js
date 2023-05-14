@@ -13,11 +13,12 @@ module.exports = class RequestHandler {
         };
     }
 
-    static sendError(requestId, res, error) {
+    static sendError(req, res, error) {
         Logger.debug("Responding with error");
         Logger.error(
             JSON.stringify({
-                requestId: requestId,
+                requestId: req.requestId,
+                path: req.originalUrl,
                 status: error.status || "default 500",
                 message: error.verbose
                     ? `Request failed: ${error.verbose}`
@@ -27,11 +28,12 @@ module.exports = class RequestHandler {
         return res.status(error.status || 500).json(error.message);
     }
 
-    static sendErrorMessage(requestId, res, status, message, verbose) {
+    static sendErrorMessage(req, res, status, message, verbose) {
         Logger.debug("Responding with error message");
         Logger.error(
             JSON.stringify({
-                requestId: requestId,
+                requestId: req.requestId,
+                path: req.originalUrl,
                 status: status || "default 500",
                 message: verbose
                     ? `Request Failed: ${verbose}`

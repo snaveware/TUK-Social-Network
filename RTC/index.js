@@ -45,7 +45,9 @@ const http = require("http");
 const server = http.createServer(app);
 
 const { Server } = require("socket.io");
-const io = new Server(server);
+const io = new Server(server, {
+    cors: { origin: "*" },
+});
 
 /**
  * Setup Swagger API Documentation if environment is not production
@@ -84,7 +86,7 @@ app.use(logRequests);
  */
 app.get("/", (req, res) => {
     RequestHandler.sendSuccess(
-        req.requestId,
+        req,
         res,
         "Carfast API Server is Up and Running"
     );
@@ -95,59 +97,12 @@ app.get("/", (req, res) => {
  */
 
 /**
- * Other routes are recorded as 404 and 500
- */
-app.get("*", (req, res) => {
-    RequestHandler.sendErrorMessage(
-        req.requestId,
-        res,
-        404,
-        "The GET route you are trying to reach is not available"
-    );
-});
-
-app.post("*", (req, res) => {
-    RequestHandler.sendErrorMessage(
-        req.requestId,
-        res,
-        404,
-        "The POST route you are trying to reach is not available"
-    );
-});
-
-app.put("*", (req, res) => {
-    RequestHandler.sendErrorMessage(
-        req.requestId,
-        res,
-        404,
-        "The PUT route you are trying to reach is not available"
-    );
-});
-app.patch("*", (req, res) => {
-    RequestHandler.sendErrorMessage(
-        req.requestId,
-        res,
-        404,
-        "The PATCH route you are trying to reach is not available"
-    );
-});
-
-app.delete("*", (req, res) => {
-    RequestHandler.sendErrorMessage(
-        req.requestId,
-        res,
-        404,
-        "The DELETE route you are trying to reach is not available"
-    );
-});
-
-/**
  *  Starting the HTTP server
  */
 
 Logger.info("Starting the server...");
 
-app.listen(PORT || 5000, () => {
+server.listen(PORT || 5000, () => {
     if (!PORT) {
         console.log("Server Running on the Default Port 5000");
         return;
@@ -164,6 +119,63 @@ app.listen(PORT || 5000, () => {
 
 io.on("connection", (socket) => {
     console.log("a user connected", socket.id);
+
+    socket.on("message", (data) => {
+        console.log("message: ", socket.id, data);
+    });
+
+    socket.on("disconnect", (data) => {
+        console.log("disconnect", socket.id, data);
+    });
+
+    socket.emit("message", { message: "message from server" });
+});
+
+/**
+ * Other routes are recorded as 404 and 500
+ */
+app.get("*", (req, res) => {
+    RequestHandler.sendErrorMessage(
+        req,
+        res,
+        404,
+        "The GET route you are trying to reach is not available"
+    );
+});
+
+app.post("*", (req, res) => {
+    RequestHandler.sendErrorMessage(
+        req,
+        res,
+        404,
+        "The POST route you are trying to reach is not available"
+    );
+});
+
+app.put("*", (req, res) => {
+    RequestHandler.sendErrorMessage(
+        req,
+        res,
+        404,
+        "The PUT route you are trying to reach is not available"
+    );
+});
+app.patch("*", (req, res) => {
+    RequestHandler.sendErrorMessage(
+        req,
+        res,
+        404,
+        "The PATCH route you are trying to reach is not available"
+    );
+});
+
+app.delete("*", (req, res) => {
+    RequestHandler.sendErrorMessage(
+        req,
+        res,
+        404,
+        "The DELETE route you are trying to reach is not available"
+    );
 });
 
 process.on("SIGINT", (info) => {

@@ -1,30 +1,29 @@
-const Logger = require('../Logger');
+const Logger = require("../Logger");
 
-const uuid4 = require('uuid4');
+const uuid4 = require("uuid4");
 
-function createRequestId(req,res,next){
-
-    Logger.debug('creating request id');
+function createRequestId(req, res, next) {
+    Logger.debug("creating request id");
 
     const requestId = uuid4();
     req.requestId = uuid4();
 
-    next()
+    next();
 }
 
-function logRequests(req,res,next){
-    Logger.debug('Logging Request');
-    
+function logRequests(req, res, next) {
+    Logger.info("Logging Request");
+
     message = {
         requestId: req.requestId,
-        from: req.get('X-Forwarded-For'),
+        from: req.get("X-Forwarded-For"),
         method: req.method,
-        url: req.originalUrl
-    }
+        url: req.originalUrl,
+    };
 
     Logger.debug(JSON.stringify(message));
 
-    next()
+    next();
 }
 
-module.exports = {createRequestId,logRequests}
+module.exports = { createRequestId, logRequests };

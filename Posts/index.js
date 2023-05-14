@@ -78,7 +78,7 @@ app.use(logRequests);
  */
 app.get("/", (req, res) => {
     RequestHandler.sendSuccess(
-        req.requestId,
+        req,
         res,
         "Carfast API Server is Up and Running"
     );
@@ -94,7 +94,7 @@ app.use("/posts", postsRouter);
  */
 app.get("*", (req, res) => {
     RequestHandler.sendErrorMessage(
-        req.requestId,
+        req,
         res,
         404,
         "The GET route you are trying to reach is not available"
@@ -103,7 +103,7 @@ app.get("*", (req, res) => {
 
 app.post("*", (req, res) => {
     RequestHandler.sendErrorMessage(
-        req.requestId,
+        req,
         res,
         404,
         "The POST route you are trying to reach is not available"
@@ -112,7 +112,7 @@ app.post("*", (req, res) => {
 
 app.put("*", (req, res) => {
     RequestHandler.sendErrorMessage(
-        req.requestId,
+        req,
         res,
         404,
         "The PUT route you are trying to reach is not available"
@@ -120,7 +120,7 @@ app.put("*", (req, res) => {
 });
 app.patch("*", (req, res) => {
     RequestHandler.sendErrorMessage(
-        req.requestId,
+        req,
         res,
         404,
         "The PATCH route you are trying to reach is not available"
@@ -129,7 +129,7 @@ app.patch("*", (req, res) => {
 
 app.delete("*", (req, res) => {
     RequestHandler.sendErrorMessage(
-        req.requestId,
+        req,
         res,
         404,
         "The DELETE route you are trying to reach is not available"
