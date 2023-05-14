@@ -1,12 +1,70 @@
-Backend/node_modules
-Backend/.env
-Backend/logs
-Backend/Uploads
+Accounts/node_modules
+Accounts/.env
+Accounts/logs
 
-Mobile/node_modules
-Mobile/.env
-Mobile/logs
+Files/node_modules
+Files/.env
+Files/logs
+Files/Uploads
 
-Web/node_modules
-Web/.env
-Web/logs
+Posts/node_modules
+Posts/.env
+Posts/logs
+
+
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+web/node_modules
+web/.pnp
+web/.pnp.js
+
+# testing
+web/coverage
+
+# next.js
+web/.next/
+web/out/
+
+# production
+web/build
+
+# misc
+web/.DS_Store
+web/*.pem
+
+# debug
+web/npm-debug.log*
+web/yarn-debug.log*
+web/yarn-error.log*
+web/.pnpm-debug.log*
+
+# local env files
+web/.env*.local
+
+# vercel
+web/.vercel
+
+# typescript
+web/*.tsbuildinfo
+web/next-env.d.ts
+
+
+mobile/node_modules/
+mobile/.expo/
+mobile/dist/
+mobile/npm-debug.*
+mobile/*.jks
+mobile/*.p8
+mobile/*.p12
+mobile/*.key
+mobile/*.mobileprovision
+mobile/*.orig.*
+mobile/web-build/
+
+# macOS
+mobile/.DS_Store
+
+# Temporary files created by Metro to check the health of the file watcher
+mobile/.metro-health-check*
+
