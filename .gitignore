@@ -54,21 +54,21 @@ web/*.tsbuildinfo
 web/next-env.d.ts
 
 
-mobile/node_modules/
-mobile/.expo/
-mobile/dist/
-mobile/npm-debug.*
-mobile/*.jks
-mobile/*.p8
-mobile/*.p12
-mobile/*.key
-mobile/*.mobileprovision
-mobile/*.orig.*
-mobile/web-build/
+native/node_modules/
+native/.expo/
+native/dist/
+native/npm-debug.*
+native/*.jks
+native/*.p8
+native/*.p12
+native/*.key
+native/*.nativeprovision
+native/*.orig.*
+native/web-build/
 
 # macOS
-mobile/.DS_Store
+native/.DS_Store
 
 # Temporary files created by Metro to check the health of the file watcher
-mobile/.metro-health-check*
+native/.metro-health-check*
 

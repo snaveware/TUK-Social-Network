@@ -25,10 +25,10 @@ let Config: ConfigKeys = {
 
 if (environment == "development") {
     Config = {
-        ACCOUNTS_API_URL: "http://192.168.1.100:5000",
-        POSTS_API_URL: "http://192.168.1.100:5001",
-        FILES_API_URL: "http://192.168.1.100:5002",
-        RTC_API_URL: "http://192.168.1.100:5003",
+        ACCOUNTS_API_URL: "http://192.168.1.101:5000",
+        POSTS_API_URL: "http://192.168.1.101:5001",
+        FILES_API_URL: "http://192.168.1.101:5002",
+        RTC_API_URL: "http://192.168.1.101:5003",
     };
 }
 

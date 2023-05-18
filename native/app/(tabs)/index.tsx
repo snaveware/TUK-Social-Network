@@ -6,7 +6,6 @@ import socket from "../../Socket";
 import { useEffect } from "react";
 
 export default function TabOneScreen() {
-    // socket.connect();
     useEffect(() => {
         socket.on("connected", () => {
             console.log("socket connected..............");
@@ -23,7 +22,7 @@ export default function TabOneScreen() {
     }, []);
     return (
         <View style={styles.container}>
-            <Text style={styles.title}>Tab One Changed</Text>
+            <Text style={styles.title}>Tab One</Text>
             <View
                 style={styles.separator}
                 lightColor="#eee"

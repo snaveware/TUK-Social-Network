@@ -5,8 +5,7 @@ global.appRoot = resolve(__dirname);
  * Prisma Client Initialization
  */
 
-const { PrismaClient } = require("@prisma/client");
-const prisma = new PrismaClient();
+const { prisma, PrismaClient, initDatabase } = require("./DatabaseInit");
 
 /**
  * Third Party Modules
@@ -46,7 +45,7 @@ try {
  * High Level Declarations and Functions
  */
 const app = express();
-const PORT = process.env.PORT;
+const PORT = Config.PORT;
 
 /**
  * Setup Swagger API Documentation if environment is not production
@@ -147,18 +146,112 @@ app.delete("*", (req, res) => {
  *  starting the server
  */
 
-Logger.info("Starting the server...");
-
-app.listen(PORT || 5000, () => {
-    if (!PORT) {
-        console.log("Server Running on the Default Port 5000");
-        return;
+async function start() {
+    console.log(Config);
+    if (Config.INIT_DB == 1) {
+        Logger.info("Initializing database...");
+        await initDatabase();
+    } else {
+        Logger.info("INIT_DB DIsabled. Proceeding...");
     }
 
-    console.log(`Server Started on Runtime Port ${PORT} ...`);
+    Logger.info("Starting the server...");
 
-    console.log("---all good---");
-});
+    app.listen(PORT || 5000, () => {
+        if (!PORT) {
+            Logger.warn("Server did not get runtime port");
+            return;
+        }
+
+        Logger.info(`Server Started on Runtime Port ${PORT} `);
+
+        console.log("---all good--- Port: ", PORT);
+    });
+}
+
+start();
+
+/**
+ * Testing Prisma
+ */
+
+async function main() {
+    const allUsers = await prisma.user.findMany();
+    console.log("user: ", allUsers);
+
+    const faculties = await prisma.faculty.findMany({
+        include: {
+            schools: {
+                include: {
+                    programmes: true,
+                },
+            },
+        },
+    });
+
+    console.log("faculties: ", faculties[0].schools[0].programmes);
+
+    // const schools = await prisma.school.findMany();
+
+    // console.log("schools: ", schools);
+
+    // const programmes = await prisma.programme.findMany();
+
+    // console.log("programmes: ", programmes);
+
+    // const user = await prisma.account.create({
+    //     data: {
+    //         email: "evans@tukenya.ac.ke",
+    //         phoneNumberVerified: false,
+    //         emailVerified: false,
+    //         role: {
+    //             create: {
+    //                 name: "admin",
+    //                 permissions: ["all"],
+    //                 description: "the description",
+    //             },
+    //         },
+    //         user: {
+    //             create: {
+    //                 firstName: "Evans",
+    //                 lastName: "Munene",
+    //                 profileAvatarId: "avatar1",
+    //                 coverImageId: "cover1",
+    //                 noOfFollower: 20,
+    //                 studentProfileIfIsStudent: {
+    //                     create: {
+    //                         registrationNumber: "scii/00819/2019",
+    //                         class: {
+    //                             create: {
+    //                                 name :"it2019",
+    //                                 abbreviation:"it2019",
+    //                                 yearOfJoining: 2019,
+    //                                 programme: {
+    //                                     create: {
+
+    //                                     }
+    //                                 }
+    //                             }
+    //                         },
+
+    //                     },
+    //                 },
+    //             },
+    //         },
+    //     },
+    // });
+}
+
+// main()
+//     .then(async () => {
+//         await prisma.$disconnect();
+//     })
+
+//     .catch(async (e) => {
+//         console.error(e);
+//         await prisma.$disconnect();
+//         process.exit(1);
+//     });
 
 process.on("SIGINT", (info) => {
     Logger.warn(

@@ -9,3 +9,190 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+model Account {
+  id                  Int      @id @default(autoincrement())
+  email               String   @unique
+  emailVerified       Boolean  @default(false)
+  phoneNumberVerified Boolean  @default(false)
+  password            String
+  roleId              Int
+  role                Role     @relation(fields: [roleId], references: [id])
+  user                User?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@map("accounts")
+}
+
+model Role {
+  id          Int       @id @default(autoincrement())
+  name        String    @unique
+  label       String
+  description String
+  permissions String[]
+  accounts    Account[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("roles")
+}
+
+model User {
+  id                        Int             @id @default(autoincrement())
+  firstName                 String
+  lastName                  String
+  phoneNumber               String?         @unique
+  profileAvatarId           String?         @unique
+  coverImageId              String?         @unique
+  accountId                 Int             @unique
+  bio                       String?
+  account                   Account         @relation(fields: [accountId], references: [id])
+  studentProfileIfIsStudent StudentProfile? @relation(name: "studentProfile")
+  staffProfileIfIsStaff     StaffProfile?   @relation(name: "staffProfile")
+  followedBy                User[]          @relation(name: "follows")
+  follows                   User[]          @relation(name: "follows")
+  blockedBy                 User[]          @relation(name: "blocks")
+  blocks                    User[]          @relation(name: "blocks")
+  noOfFollowers             Int
+  preferences               Preferences?
+  createdAt                 DateTime        @default(now())
+  updatedAt                 DateTime        @updatedAt
+
+  @@map("users")
+}
+
+enum Titles {
+  Prof
+  Dr
+  Mr
+  Ms
+  Mrs
+}
+
+model Preferences {
+  id                   Int      @id @default(autoincrement())
+  getPushNotifications Boolean?
+  theme                Themes   @default(light)
+  user                 User     @relation(fields: [userId], references: [id])
+  userId               Int      @unique
+
+  @@map("preferences")
+}
+
+enum Themes {
+  dark
+  light
+}
+
+model StudentProfile {
+  id                 Int      @id @default(autoincrement())
+  registrationNumber String   @unique
+  userId             Int      @unique
+  user               User     @relation(name: "studentProfile", fields: [userId], references: [id])
+  classId            Int
+  class              Class    @relation(name: "classMember", fields: [classId], references: [id])
+  classIfIsClassRep  Class?   @relation(name: "classRep")
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@map("studentprofiles")
+}
+
+model StaffProfile {
+  id                      Int      @id @default(autoincrement())
+  staffRegistrationNumber String   @unique
+  userId                  Int      @unique
+  position                String   @default("Staff")
+  user                    User     @relation(name: "staffProfile", fields: [userId], references: [id])
+  school                  School?  @relation(name: "staffSchool", fields: [schoolId], references: [id])
+  faculty                 Faculty? @relation(name: "staffFaculty", fields: [facultyId], references: [id])
+  // department         Department? @relation(name: "staffDepartment", fields: [departmentId], references: [id])
+  // departmentIfIsHOD  Department? @relation(name: "HODDepartment")
+  schoolIfIsDirector      School?  @relation(name: "asSchoolDirector")
+  facultyIfIsDean         Faculty? @relation(name: "asFacultyDean")
+  departmentId            Int
+  schoolId                Int?
+  facultyId               Int?
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  @@map("staffprofiles")
+}
+
+model Class {
+  id                  Int              @id @default(autoincrement())
+  name                String           @unique
+  yearOfJoining       Int
+  programmeId         Int
+  programme           Programme        @relation(fields: [programmeId], references: [id])
+  members             StudentProfile[] @relation(name: "classMember")
+  classRepId          Int?             @unique
+  classRepresentative StudentProfile?  @relation(name: "classRep", fields: [classRepId], references: [id])
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+
+  @@map("classes")
+}
+
+model Programme {
+  id           Int      @id @default(autoincrement())
+  name         String   @unique
+  abbreviation String   @unique
+  schoolId     Int
+  school       School   @relation(fields: [schoolId], references: [id])
+  // departmentId  Int
+  // department    Department @relation(fields: [departmentId], references: [id])
+  Class        Class[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("programmes")
+}
+
+// model Department {
+//   id           Int            @id @default(autoincrement())
+//   name         String         @unique
+//   abbreviation String
+//   programmes   Programme[]
+//   schoolId     Int
+//   school       School         @relation(fields: [schoolId], references: [id])
+//   HODId        Int?            @unique
+//   HOD          StaffProfile?   @relation(name: "HODDepartment", fields: [HODId], references: [id])
+//   staffs       StaffProfile[] @relation(name: "staffDepartment")
+//   createdAt    DateTime       @default(now())
+//   updatedAt    DateTime       @updatedAt
+
+//   @@map("departments")
+// }
+
+model School {
+  id           Int            @id @default(autoincrement())
+  name         String         @unique
+  abbreviation String
+  facultyId    Int
+  faculty      Faculty        @relation(fields: [facultyId], references: [id])
+  directorId   Int?           @unique
+  director     StaffProfile?  @relation(name: "asSchoolDirector", fields: [directorId], references: [id])
+  // Department  Department[]
+  staffs       StaffProfile[] @relation(name: "staffSchool")
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  programmes   Programme[]
+
+  @@map("schools")
+}
+
+model Faculty {
+  id              Int            @id @default(autoincrement())
+  name            String         @unique
+  abbreviation    String
+  executiveDeanId Int?           @unique
+  executiveDean   StaffProfile?  @relation(name: "asFacultyDean", fields: [executiveDeanId], references: [id])
+  schools         School[]
+  staffs          StaffProfile[] @relation(name: "staffFaculty")
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@map("faculties")
+}
