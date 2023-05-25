@@ -23,7 +23,7 @@ const fs = require("fs");
 
 const Logger = require("./Logger");
 const RequestHandler = require("./RequestHandler");
-const { authRouter } = require("./routers");
+// const {} = require("./routers");
 const { createRequestId, logRequests } = require("./middlewares");
 const Config = require("./Config");
 
@@ -45,7 +45,15 @@ try {
  * High Level Declarations and Functions
  */
 const app = express();
-const PORT = Config.PORT;
+const PORT = process.env.PORT;
+
+const http = require("http");
+const server = http.createServer(app);
+
+const { Server } = require("socket.io");
+const io = new Server(server, {
+    cors: { origin: "*" },
+});
 
 /**
  * Setup Swagger API Documentation if environment is not production
@@ -93,14 +101,64 @@ app.get("/", (req, res) => {
 /**
  * Routers
  */
-app.use("/auth", authRouter);
+
+/**
+ *  Starting the HTTP server
+ */
+
+/**
+ *  starting the server
+ */
+
+async function start() {
+    console.log(Config);
+    if (Config.INIT_DB == 1) {
+        Logger.info("Initializing database...");
+        await initDatabase();
+    } else {
+        Logger.info("INIT_DB DIsabled. Proceeding...");
+    }
+
+    Logger.info("Starting the server...");
+
+    server.listen(PORT || 5000, () => {
+        if (!PORT) {
+            console.log("Server Running on the Default Port 5000");
+            return;
+        }
+
+        console.log(`Server Started on Runtime Port ${PORT} ...`);
+
+        console.log("---all good---");
+    });
+}
+
+start();
+
+/**
+ * Handling Sockets
+ */
+
+io.on("connection", (socket) => {
+    console.log("a user connected", socket.id);
+
+    socket.on("message", (data) => {
+        console.log("message: ", socket.id, data);
+    });
+
+    socket.on("disconnect", (data) => {
+        console.log("disconnect", socket.id, data);
+    });
+
+    socket.emit("message", { message: "message from server" });
+});
 
 /**
  * Other routes are recorded as 404 and 500
  */
 app.get("*", (req, res) => {
     RequestHandler.sendErrorMessage(
-        req.req,
+        req,
         res,
         404,
         "The GET route you are trying to reach is not available"
@@ -141,117 +199,6 @@ app.delete("*", (req, res) => {
         "The DELETE route you are trying to reach is not available"
     );
 });
-
-/**
- *  starting the server
- */
-
-async function start() {
-    console.log(Config);
-    if (Config.INIT_DB == 1) {
-        Logger.info("Initializing database...");
-        await initDatabase();
-    } else {
-        Logger.info("INIT_DB DIsabled. Proceeding...");
-    }
-
-    Logger.info("Starting the server...");
-
-    app.listen(PORT || 5000, () => {
-        if (!PORT) {
-            Logger.warn("Server did not get runtime port");
-            return;
-        }
-
-        Logger.info(`Server Started on Runtime Port ${PORT} `);
-
-        console.log("---all good--- Port: ", PORT);
-    });
-}
-
-start();
-
-/**
- * Testing Prisma
- */
-
-async function main() {
-    const allUsers = await prisma.user.findMany();
-    console.log("user: ", allUsers);
-
-    const faculties = await prisma.faculty.findMany({
-        include: {
-            schools: {
-                include: {
-                    programmes: true,
-                },
-            },
-        },
-    });
-
-    console.log("faculties: ", faculties[0].schools[0].programmes);
-
-    // const schools = await prisma.school.findMany();
-
-    // console.log("schools: ", schools);
-
-    // const programmes = await prisma.programme.findMany();
-
-    // console.log("programmes: ", programmes);
-
-    // const user = await prisma.account.create({
-    //     data: {
-    //         email: "evans@tukenya.ac.ke",
-    //         phoneNumberVerified: false,
-    //         emailVerified: false,
-    //         role: {
-    //             create: {
-    //                 name: "admin",
-    //                 permissions: ["all"],
-    //                 description: "the description",
-    //             },
-    //         },
-    //         user: {
-    //             create: {
-    //                 firstName: "Evans",
-    //                 lastName: "Munene",
-    //                 profileAvatarId: "avatar1",
-    //                 coverImageId: "cover1",
-    //                 noOfFollower: 20,
-    //                 studentProfileIfIsStudent: {
-    //                     create: {
-    //                         registrationNumber: "scii/00819/2019",
-    //                         class: {
-    //                             create: {
-    //                                 name :"it2019",
-    //                                 abbreviation:"it2019",
-    //                                 yearOfJoining: 2019,
-    //                                 programme: {
-    //                                     create: {
-
-    //                                     }
-    //                                 }
-    //                             }
-    //                         },
-
-    //                     },
-    //                 },
-    //             },
-    //         },
-    //     },
-    // });
-}
-
-// main()
-//     .then(async () => {
-//         await prisma.$disconnect();
-//     })
-
-//     .catch(async (e) => {
-//         console.error(e);
-//         await prisma.$disconnect();
-//         process.exit(1);
-//     });
 
 process.on("SIGINT", (info) => {
     Logger.warn(

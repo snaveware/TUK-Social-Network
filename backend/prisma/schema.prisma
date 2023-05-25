@@ -1,0 +1,317 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                        Int                   @id @default(autoincrement())
+  title                     Titles?
+  firstName                 String
+  lastName                  String
+  phoneNumber               String?               @unique
+  email                     String                @unique
+  profileAvatarId           Int                   @unique
+  coverImageId              Int                   @unique
+  profileAvatar             File?                 @relation(name: "coverImage", fields: [profileAvatarId], references: [id])
+  coverImage                File?                 @relation(name: "profileImage", fields: [coverImageId], references: [id])
+  accountId                 Int                   @unique
+  bio                       String?
+  roleId                    Int                   @unique
+  role                      Role?
+  studentProfileIfIsStudent StudentProfile?       @relation(name: "studentProfile")
+  staffProfileIfIsStaff     StaffProfile?         @relation(name: "staffProfile")
+  followedBy                User[]                @relation(name: "follows")
+  follows                   User[]                @relation(name: "follows")
+  blockedBy                 User[]                @relation(name: "blocks")
+  blocks                    User[]                @relation(name: "blocks")
+  noOfFollowers             Int
+  preferences               Preferences?
+  status                    AccountStatus         @default(inactive)
+  createdAt                 DateTime              @default(now())
+  updatedAt                 DateTime              @updatedAt
+  chats                     Chat[]                @relation(name: "memberChats")
+  groupsIfAdmin             Chat[]                @relation(name: "groupAdmin")
+  sentMessages              Message[]             @relation(name: "sender")
+  receivedMessage           Message[]             @relation(name: "recipient")
+  readMessages              Message[]             @relation(name: "readMessages")
+  isOnline                  Boolean
+  filesOwned                File[]                @relation(name: "fileOwner")
+  allowedFiles              File[]                @relation(name: "allowedFileViewers")
+  ownedPosts                Post[]                @relation(name: "ownedPosts")
+  repostedPosts             Post[]                @relation(name: "postReposters")
+  likedPosts                Post[]                @relation(name: "postLikers")
+  taggedPosts               Post[]                @relation(name: "taggedPosts")
+  sharedPosts               Post[]                @relation(name: "sharedPosts")
+  UserChatPreferences       UserChatPreferences[]
+
+  @@map("users")
+}
+
+enum AccountStatus {
+  active
+  inactive
+  locked
+  deleted
+}
+
+model Role {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  label       String
+  description String
+  permissions String[]
+  userId      Int      @unique
+  users       User     @relation(fields: [userId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("roles")
+}
+
+enum Titles {
+  Prof
+  Dr
+  Mr
+  Ms
+  Mrs
+}
+
+model Preferences {
+  id                   Int      @id @default(autoincrement())
+  getPushNotifications Boolean?
+  theme                Themes   @default(light)
+  user                 User     @relation(fields: [userId], references: [id])
+  userId               Int      @unique
+
+  @@map("preferences")
+}
+
+enum Themes {
+  dark
+  light
+}
+
+model StudentProfile {
+  id                 Int      @id @default(autoincrement())
+  registrationNumber String   @unique
+  userId             Int      @unique
+  user               User     @relation(name: "studentProfile", fields: [userId], references: [id])
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@map("studentprofiles")
+}
+
+model StaffProfile {
+  id                      Int      @id @default(autoincrement())
+  staffRegistrationNumber String   @unique
+  userId                  Int      @unique
+  position                String   @default("Staff")
+  user                    User     @relation(name: "staffProfile", fields: [userId], references: [id])
+  school                  School?  @relation(name: "staffSchool", fields: [schoolId], references: [id])
+  faculty                 Faculty? @relation(name: "staffFaculty", fields: [facultyId], references: [id])
+  schoolIfIsDirector      School?  @relation(name: "asSchoolDirector")
+  facultyIfIsDean         Faculty? @relation(name: "asFacultyDean")
+  departmentId            Int
+  schoolId                Int?
+  facultyId               Int?
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  @@map("staffprofiles")
+}
+
+model Programme {
+  id           Int      @id @default(autoincrement())
+  name         String   @unique
+  abbreviation String   @unique
+  schoolId     Int
+  school       School   @relation(fields: [schoolId], references: [id])
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("programmes")
+}
+
+model School {
+  id           Int            @id @default(autoincrement())
+  name         String         @unique
+  abbreviation String
+  facultyId    Int
+  faculty      Faculty        @relation(fields: [facultyId], references: [id])
+  directorId   Int?           @unique
+  director     StaffProfile?  @relation(name: "asSchoolDirector", fields: [directorId], references: [id])
+  staffs       StaffProfile[] @relation(name: "staffSchool")
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  programmes   Programme[]
+  File         File?          @relation(fields: [fileId], references: [id])
+  fileId       Int?
+
+  @@map("schools")
+}
+
+model Faculty {
+  id              Int            @id @default(autoincrement())
+  name            String         @unique
+  abbreviation    String
+  executiveDeanId Int?           @unique
+  executiveDean   StaffProfile?  @relation(name: "asFacultyDean", fields: [executiveDeanId], references: [id])
+  schools         School[]
+  staffs          StaffProfile[] @relation(name: "staffFaculty")
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  File            File?          @relation(fields: [fileId], references: [id])
+  fileId          Int?
+
+  @@map("faculties")
+}
+
+// RTC
+
+model Chat {
+  id                  Int                   @id @default(autoincrement())
+  name                String
+  profileAvatar       File                  @relation(name: "chatProfile", fields: [profileId], references: [id])
+  members             User[]                @relation(name: "memberChats")
+  admin               User?                 @relation(name: "groupAdmin", fields: [userId], references: [id])
+  userId              Int
+  allowedViewFiles    File[]                @relation(name: "fileAllowedChats")
+  messages            Message[]
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+  profileId           Int
+  UserChatPreferences UserChatPreferences[]
+
+  @@map("chats")
+}
+
+model Message {
+  id           Int           @id @default(autoincrement())
+  chat         Chat          @relation(fields: [chatId], references: [id])
+  sender       User          @relation(name: "sender", fields: [senderId], references: [id])
+  recipient    User          @relation(name: "recipient", fields: [recipientId], references: [id])
+  senderId     Int
+  recipientId  Int
+  message      String
+  readBy       User[]        @relation(name: "readMessages")
+  status       MessageStatus @default(pending)
+  replyingTo   Message?      @relation(name: "replies", fields: [replyingToId], references: [id])
+  chatId       Int
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  replies      Message[]     @relation(name: "replies")
+  replyingToId Int?
+  linkedPost   Post?         @relation(fields: [postId], references: [id])
+  postId       Int           @unique
+  linkedPoll   Poll?         @relation(fields: [pollId], references: [id])
+  pollId       Int           @unique
+
+  @@map("messages")
+}
+
+enum MessageStatus {
+  pending
+  sent
+  delivered
+  read
+  deleted
+}
+
+model UserChatPreferences {
+  id                Int             @id @default(autoincrement())
+  user              User            @relation(fields: [userId], references: [id])
+  chat              Chat            @relation(fields: [chatId], references: [id])
+  backgroundType    BackgroundTypes @default(default)
+  backgroundColor   String
+  backgroundImage   File?           @relation(fields: [backgroundImageId], references: [id])
+  isChatMuted       Boolean
+  isChatPinned      Boolean
+  pinPosition       Int
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  userId            Int
+  chatId            Int
+  backgroundImageId Int?            @unique
+}
+
+enum BackgroundTypes {
+  default
+  solid
+  image
+}
+
+// Posts
+model Post {
+  id           Int       @id @default(autoincrement())
+  files        File[]
+  caption      String
+  ownerId      Int
+  owner        User      @relation(name: "ownedPosts", fields: [ownerId], references: [id])
+  reposters    User[]    @relation(name: "postReposters")
+  likers       User[]    @relation(name: "postLikers")
+  sharedTo     User[]    @relation(name: "sharedPosts")
+  taggedUsers  User[]    @relation(name: "taggedPosts")
+  noOfRequests Int
+  noOfLikes    Int
+  noOfComments Int
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  Message      Message[]
+  type         PostTypes @default(social)
+  linkedPoll   Poll?     @relation(fields: [pollId], references: [id])
+  pollId       Int?      @unique
+}
+
+enum PostTypes {
+  social
+  event
+  sellable
+  poll
+}
+
+model Poll {
+  id            Int      @id @default(autoincrement())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  linkedPost    Post?
+  linkedMessage Message?
+  question      String
+  options       String[]
+  results       Json
+}
+
+// Files
+
+model File {
+  id                                  Int                  @id @default(autoincrement())
+  userIfProfileAvatar                 User[]               @relation(name: "coverImage")
+  userIfCoverImage                    User[]               @relation(name: "profileImage")
+  owner                               User                 @relation(name: "fileOwner", fields: [ownerId], references: [id])
+  chatIfProfile                       Chat[]               @relation(name: "chatProfile")
+  ownerId                             Int
+  visibility                          FileVisibility       @default(private)
+  allowedViewers                      User[]               @relation(name: "allowedFileViewers")
+  allowedViewerChats                  Chat[]               @relation(name: "fileAllowedChats")
+  allowedViewerSchools                School[]
+  allowedViewerFaculties              Faculty[]
+  noOfRequests                        Int
+  createdAt                           DateTime             @default(now())
+  updatedAt                           DateTime             @updatedAt
+  Post                                Post?                @relation(fields: [postId], references: [id])
+  postId                              Int?
+  UserChatPreferencesIfChatBackground UserChatPreferences?
+}
+
+enum FileVisibility {
+  public
+  private
+  protected
+}

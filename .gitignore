@@ -1,19 +1,8 @@
-Accounts/node_modules
-Accounts/.env
-Accounts/logs
 
-Files/node_modules
-Files/.env
-Files/logs
-Files/Uploads
-
-Posts/node_modules
-Posts/.env
-Posts/logs
-
-RTC/node_modules
-RTC/.env
-RTC/logs
+backend/node_modules
+backend/.env
+backend/logs
+backend/Files/Uploads
 
 
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
