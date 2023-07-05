@@ -15,10 +15,11 @@ model User {
   title                     Titles?
   firstName                 String
   lastName                  String
+  username                  String                @unique
   phoneNumber               String?               @unique
   email                     String                @unique
-  profileAvatarId           Int                   @unique
-  coverImageId              Int                   @unique
+  profileAvatarId           Int?                  @unique
+  coverImageId              Int?                  @unique
   profileAvatar             File?                 @relation(name: "coverImage", fields: [profileAvatarId], references: [id])
   coverImage                File?                 @relation(name: "profileImage", fields: [coverImageId], references: [id])
   accountId                 Int                   @unique
@@ -50,8 +51,20 @@ model User {
   taggedPosts               Post[]                @relation(name: "taggedPosts")
   sharedPosts               Post[]                @relation(name: "sharedPosts")
   UserChatPreferences       UserChatPreferences[]
+  notifications             Notification[]
+  savedFiles                File[]                @relation(name: "userFileSaved")
+  savedPosts                Post[]                @relation(name: "userPostsSaved")
 
   @@map("users")
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  user      User     @relation(fields: [userId], references: [id])
+  message   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  userId    Int
 }
 
 enum AccountStatus {
@@ -84,16 +97,43 @@ enum Titles {
 }
 
 model Preferences {
-  id                   Int      @id @default(autoincrement())
-  getPushNotifications Boolean?
-  theme                Themes   @default(light)
-  user                 User     @relation(fields: [userId], references: [id])
-  userId               Int      @unique
+  id                    Int              @id @default(autoincrement())
+  getPushNotifications  Boolean          @default(true)
+  theme                 Themes           @default(system)
+  user                  User             @relation(fields: [userId], references: [id])
+  userId                Int              @unique
+  makeEmailPublic       Boolean          @default(false)
+  makePhoneNumberPublic Boolean          @default(false)
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+  favoriteColor         String
+  defaultAudience       defaultAudiences @default(public)
+  otherAudience         Json
 
   @@map("preferences")
 }
 
+enum defaultAudiences {
+  public
+  followers
+  myclass
+  myschool
+  myfaculty
+  other
+}
+
+enum colors {
+  orange
+  green
+  pink
+  purple
+  blue
+  teal
+  red
+}
+
 enum Themes {
+  system
   dark
   light
 }
@@ -188,31 +228,40 @@ model Chat {
   createdAt           DateTime              @default(now())
   updatedAt           DateTime              @updatedAt
   profileId           Int
+  visibility          ChatVisibilities      @default(private)
+  description         String
   UserChatPreferences UserChatPreferences[]
 
   @@map("chats")
 }
 
+enum ChatVisibilities {
+  public
+  private
+}
+
 model Message {
-  id           Int           @id @default(autoincrement())
-  chat         Chat          @relation(fields: [chatId], references: [id])
-  sender       User          @relation(name: "sender", fields: [senderId], references: [id])
-  recipient    User          @relation(name: "recipient", fields: [recipientId], references: [id])
-  senderId     Int
-  recipientId  Int
-  message      String
-  readBy       User[]        @relation(name: "readMessages")
-  status       MessageStatus @default(pending)
-  replyingTo   Message?      @relation(name: "replies", fields: [replyingToId], references: [id])
-  chatId       Int
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  replies      Message[]     @relation(name: "replies")
-  replyingToId Int?
-  linkedPost   Post?         @relation(fields: [postId], references: [id])
-  postId       Int           @unique
-  linkedPoll   Poll?         @relation(fields: [pollId], references: [id])
-  pollId       Int           @unique
+  id             Int           @id @default(autoincrement())
+  chat           Chat          @relation(fields: [chatId], references: [id])
+  sender         User          @relation(name: "sender", fields: [senderId], references: [id])
+  recipient      User          @relation(name: "recipient", fields: [recipientId], references: [id])
+  senderId       Int
+  recipientId    Int
+  message        String
+  readBy         User[]        @relation(name: "readMessages")
+  status         MessageStatus @default(pending)
+  replyingTo     Message?      @relation(name: "replies", fields: [replyingToId], references: [id])
+  chatId         Int
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  replies        Message[]     @relation(name: "replies")
+  replyingToId   Int?
+  linkedPost     Post?         @relation(fields: [postId], references: [id])
+  postId         Int           @unique
+  linkedPoll     Poll?         @relation(fields: [pollId], references: [id])
+  pollId         Int           @unique
+  attachedFile   File          @relation(fields: [attachedFileId], references: [id])
+  attachedFileId Int
 
   @@map("messages")
 }
@@ -240,6 +289,8 @@ model UserChatPreferences {
   userId            Int
   chatId            Int
   backgroundImageId Int?            @unique
+
+  @@map("userchatpreferences")
 }
 
 enum BackgroundTypes {
@@ -250,24 +301,42 @@ enum BackgroundTypes {
 
 // Posts
 model Post {
-  id           Int       @id @default(autoincrement())
+  id           Int            @id @default(autoincrement())
   files        File[]
   caption      String
   ownerId      Int
-  owner        User      @relation(name: "ownedPosts", fields: [ownerId], references: [id])
-  reposters    User[]    @relation(name: "postReposters")
-  likers       User[]    @relation(name: "postLikers")
-  sharedTo     User[]    @relation(name: "sharedPosts")
-  taggedUsers  User[]    @relation(name: "taggedPosts")
+  owner        User           @relation(name: "ownedPosts", fields: [ownerId], references: [id])
+  reposters    User[]         @relation(name: "postReposters")
+  likers       User[]         @relation(name: "postLikers")
+  sharedTo     User[]         @relation(name: "sharedPosts")
+  taggedUsers  User[]         @relation(name: "taggedPosts")
   noOfRequests Int
   noOfLikes    Int
   noOfComments Int
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
   Message      Message[]
-  type         PostTypes @default(social)
-  linkedPoll   Poll?     @relation(fields: [pollId], references: [id])
-  pollId       Int?      @unique
+  type         PostTypes      @default(social)
+  linkedPoll   Poll?          @relation(fields: [pollId], references: [id])
+  pollId       Int?           @unique
+  savedBy      User[]         @relation(name: "userPostsSaved")
+  comments     Comment[]
+  visbility    PostVisibility @default(public)
+  status       PostStatus     @default(draft)
+
+  @@map("posts")
+}
+
+enum PostVisibility {
+  public
+  friends
+  faculty
+  school
+}
+
+enum PostStatus {
+  draft
+  published
 }
 
 enum PostTypes {
@@ -286,9 +355,44 @@ model Poll {
   question      String
   options       String[]
   results       Json
+
+  @@map("polls")
+}
+
+model Comment {
+  id        Int         @id @default(autoincrement())
+  message   String
+  post      Post        @relation(fields: [postId], references: [id])
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  postId    Int
+  type      CommentType @default(normal)
+  replies   Comment[]   @relation(name: "commentReply")
+  aReplyFor Comment?    @relation(name: "commentReply", fields: [commentId], references: [id])
+  commentId Int?
+
+  @@map("comments")
+}
+
+enum CommentType {
+  normal
+  reply
 }
 
 // Files
+
+model Folder {
+  id           Int      @id @default(autoincrement())
+  name         String
+  parentFolder Folder?  @relation(name: "parentChildFolder", fields: [folderId], references: [id])
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  childFolders Folder[] @relation(name: "parentChildFolder")
+  folderId     Int
+  files        File[]
+
+  @@map("folders")
+}
 
 model File {
   id                                  Int                  @id @default(autoincrement())
@@ -308,6 +412,12 @@ model File {
   Post                                Post?                @relation(fields: [postId], references: [id])
   postId                              Int?
   UserChatPreferencesIfChatBackground UserChatPreferences?
+  messagesAttachedTo                  Message[]
+  savedBy                             User[]               @relation(name: "userFileSaved")
+  folder                              Folder?              @relation(fields: [folderId], references: [id])
+  folderId                            Int?
+
+  @@map("files")
 }
 
 enum FileVisibility {

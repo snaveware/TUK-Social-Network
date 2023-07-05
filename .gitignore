@@ -5,55 +5,17 @@ backend/logs
 backend/Files/Uploads
 
 
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
-# dependencies
-web/node_modules
-web/.pnp
-web/.pnp.js
-
-# testing
-web/coverage
-
-# next.js
-web/.next/
-web/out/
-
-# production
-web/build
-
-# misc
-web/.DS_Store
-web/*.pem
-
-# debug
-web/npm-debug.log*
-web/yarn-debug.log*
-web/yarn-error.log*
-web/.pnpm-debug.log*
-
-# local env files
-web/.env*.local
-
-# vercel
-web/.vercel
-
-# typescript
-web/*.tsbuildinfo
-web/next-env.d.ts
-
-
-native/node_modules/
-native/.expo/
-native/dist/
-native/npm-debug.*
-native/*.jks
-native/*.p8
-native/*.p12
-native/*.key
-native/*.nativeprovision
-native/*.orig.*
-native/web-build/
+frontend/node_modules/
+frontend/.expo/
+frontend/dist/
+frontend/npm-debug.*
+frontend/*.jks
+frontend/*.p8
+frontend/*.p12
+frontend/*.key
+frontend/*.nativeprovision
+frontend/*.orig.*
+frontend/web-build/
 
 # macOS
 native/.DS_Store
