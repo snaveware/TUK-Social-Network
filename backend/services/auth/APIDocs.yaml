@@ -1,0 +1,240 @@
+tags:
+  - name: Auth
+    description: All Authentication Routes
+
+paths:
+  /auth/sendemailcode:
+    post:
+      tags:
+        - Auth
+      summary: Send email verification code
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SendEmailCodeRequest"
+      responses:
+        200:
+          description: Email verification code sent successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SendEmailCodeResponse"
+        400:
+          description: Bad request
+        500:
+          description: Internal server error
+  /auth/login:
+    post:
+      tags:
+        - Auth
+      summary: Email login using OTP Code
+      description: Performs two-step authentication using the OTP code and verification token.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        200:
+          description: Successful authentication
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+        206:
+          description: Successful, but you need to setup the account
+        400:
+          description: Invalid OTP code or verification token
+        401:
+          description: Access denied - corrupted or expired token
+        403:
+          description: Access Forbidden - inactive account
+        500:
+          description: Internal server error
+  /auth/refreshtoken:
+    post:
+      tags:
+        - Auth
+      summary: Refresh Access Token
+      description: Refreshes the access token using a refresh token.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefreshTokenInput"
+      responses:
+        200:
+          description: Successful token refresh
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RefreshTokenResponse"
+        400:
+          description: Invalid refresh token
+        401:
+          description: Access Denied - Token expired or corrupted
+        403:
+          description: Forbidden - inactive account
+        500:
+          description: Internal server error
+  /auth/student-setup:
+    post:
+      summary: Create a student account and complete setup
+      tags:
+        - Auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                firstName:
+                  type: string
+                  example: Jane
+                lastName:
+                  type: string
+                  example: Doe
+                registrationNumber:
+                  type: string
+                  example: SCII/00819/2019
+                classCode:
+                  type: string
+                  example: SCII/2019
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+        "400":
+          description: Bad Request
+        "500":
+          description: Internal Server Error
+  /auth/setup-staff:
+    post:
+      summary: Create a staff account and complete setup
+      tags:
+        - Auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                firstName:
+                  type: string
+                  example: John
+                lastName:
+                  type: string
+                  example: Doe
+                employeeId:
+                  type: string
+                  example: TUK/001
+                title:
+                  type: string
+                  enum:
+                    - Prof
+                    - Dr
+                    - Mr
+                    - Ms
+                    - Mrs
+                  example: Mr
+                schoolId:
+                  type: integer
+                  example: 1
+                position:
+                  type: string
+                  example: Academic Staff
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+        "400":
+          description: Bad Request
+        "500":
+          description: Internal Server Error
+
+components:
+  schemas:
+    SendEmailCodeRequest:
+      type: object
+      properties:
+        email:
+          type: string
+      required:
+        - email
+      example:
+        email: "work.evans020@gmail.com"
+    SendEmailCodeResponse:
+      type: object
+      properties:
+        verificationToken:
+          type: string
+        expiresAt:
+          type: string
+        message:
+          type: string
+        action:
+          type: string
+          enum: [TWO_STEP_AUTHENTICATION, RESET_PASSWORD]
+      example:
+        verificationToken: "your-verification-token"
+        expiresAt: "2023-06-01T12:00:00Z"
+        action: TWO_STEP_AUTHENTICATION
+        message: "Two-step authentication is required. A code has been sent to your email. Proceed with the verification process."
+    LoginRequest:
+      type: object
+      properties:
+        OTPCode:
+          type: string
+        verificationToken:
+          type: string
+      required:
+        - OTPCode
+        - verificationToken
+      example:
+        OTPCode: "123456"
+        verificationToken: "your-verification-token"
+    LoginResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+        user:
+          type: object
+          description: should be a complete user object
+      example:
+        accessToken: "your-new-access-token"
+        refreshToken: "your-new-refresh-token"
+        user: {}
+    RefreshTokenInput:
+      type: object
+      properties:
+        refreshToken:
+          type: string
+      required:
+        - refreshToken
+      example:
+        refreshToken: "your-refresh-token-here"
+    RefreshTokenResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+      example:
+        accessToken: "your-new-access-token"
+        refreshToken: "your-new-refresh-token"

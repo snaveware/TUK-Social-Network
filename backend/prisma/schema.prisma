@@ -12,29 +12,25 @@ datasource db {
 
 model User {
   id                        Int                   @id @default(autoincrement())
-  title                     Titles?
-  firstName                 String
-  lastName                  String
-  username                  String                @unique
-  phoneNumber               String?               @unique
+  firstName                 String?
+  lastName                  String?
   email                     String                @unique
+  bio                       String?
+  roleName                  String
+  status                    AccountStatus         @default(inactive)
+  role                      Role                  @relation(fields: [roleName], references: [name])
   profileAvatarId           Int?                  @unique
   coverImageId              Int?                  @unique
   profileAvatar             File?                 @relation(name: "coverImage", fields: [profileAvatarId], references: [id])
   coverImage                File?                 @relation(name: "profileImage", fields: [coverImageId], references: [id])
-  accountId                 Int                   @unique
-  bio                       String?
-  roleId                    Int                   @unique
-  role                      Role?
   studentProfileIfIsStudent StudentProfile?       @relation(name: "studentProfile")
   staffProfileIfIsStaff     StaffProfile?         @relation(name: "staffProfile")
   followedBy                User[]                @relation(name: "follows")
   follows                   User[]                @relation(name: "follows")
   blockedBy                 User[]                @relation(name: "blocks")
   blocks                    User[]                @relation(name: "blocks")
-  noOfFollowers             Int
+  noOfFollowers             Int                   @default(0)
   preferences               Preferences?
-  status                    AccountStatus         @default(inactive)
   createdAt                 DateTime              @default(now())
   updatedAt                 DateTime              @updatedAt
   chats                     Chat[]                @relation(name: "memberChats")
@@ -42,7 +38,7 @@ model User {
   sentMessages              Message[]             @relation(name: "sender")
   receivedMessage           Message[]             @relation(name: "recipient")
   readMessages              Message[]             @relation(name: "readMessages")
-  isOnline                  Boolean
+  isOnline                  Boolean               @default(false)
   filesOwned                File[]                @relation(name: "fileOwner")
   allowedFiles              File[]                @relation(name: "allowedFileViewers")
   ownedPosts                Post[]                @relation(name: "ownedPosts")
@@ -65,6 +61,8 @@ model Notification {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   userId    Int
+
+  @@map("notifications")
 }
 
 enum AccountStatus {
@@ -75,51 +73,45 @@ enum AccountStatus {
 }
 
 model Role {
-  id          Int      @id @default(autoincrement())
-  name        String   @unique
+  name        String   @id
   label       String
   description String
+  level       Int
   permissions String[]
-  userId      Int      @unique
-  users       User     @relation(fields: [userId], references: [id])
+  users       User[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  chat        Chat     @relation(fields: [chatId], references: [id])
+  chatId      Int
 
   @@map("roles")
 }
 
-enum Titles {
-  Prof
-  Dr
-  Mr
-  Ms
-  Mrs
-}
-
 model Preferences {
-  id                    Int              @id @default(autoincrement())
-  getPushNotifications  Boolean          @default(true)
-  theme                 Themes           @default(system)
-  user                  User             @relation(fields: [userId], references: [id])
-  userId                Int              @unique
-  makeEmailPublic       Boolean          @default(false)
-  makePhoneNumberPublic Boolean          @default(false)
-  createdAt             DateTime         @default(now())
-  updatedAt             DateTime         @updatedAt
-  favoriteColor         String
-  defaultAudience       defaultAudiences @default(public)
-  otherAudience         Json
+  id                              Int              @id @default(autoincrement())
+  getMessagePushNotifications     Boolean          @default(true)
+  getTaggingPushNotifications     Boolean          @default(true)
+  getPostSharingPushNotifications Boolean          @default(true)
+  getFileSharedPushNotifications  Boolean          @default(true)
+  appearance                      Appearances      @default(automatic)
+  user                            User             @relation(fields: [userId], references: [id])
+  userId                          Int              @unique
+  makeEmailPublic                 Boolean          @default(false)
+  createdAt                       DateTime         @default(now())
+  updatedAt                       DateTime         @updatedAt
+  favoriteColor                   String
+  defaultAudience                 defaultAudiences @default(public)
 
   @@map("preferences")
 }
 
 enum defaultAudiences {
   public
+  private
   followers
   myclass
   myschool
   myfaculty
-  other
 }
 
 enum colors {
@@ -132,40 +124,63 @@ enum colors {
   red
 }
 
-enum Themes {
-  system
+enum Appearances {
+  automatic
   dark
   light
 }
 
 model StudentProfile {
-  id                 Int      @id @default(autoincrement())
-  registrationNumber String   @unique
-  userId             Int      @unique
-  user               User     @relation(name: "studentProfile", fields: [userId], references: [id])
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  userId              Int      @id
+  registrationNumber  String   @unique
+  user                User     @relation(name: "studentProfile", fields: [userId], references: [id])
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  class               Class    @relation(fields: [classCode], references: [classCode])
+  schoolIfIsSchoolRep School?
+  schoolId            Int?
+  classCode           String
 
   @@map("studentprofiles")
 }
 
 model StaffProfile {
-  id                      Int      @id @default(autoincrement())
+  userId                  Int      @id
   staffRegistrationNumber String   @unique
-  userId                  Int      @unique
+  title                   Titles
   position                String   @default("Staff")
-  user                    User     @relation(name: "staffProfile", fields: [userId], references: [id])
+  user                    User     @relation(name: "staffProfile", fields: [userId], references: [id], onDelete: Cascade)
   school                  School?  @relation(name: "staffSchool", fields: [schoolId], references: [id])
   faculty                 Faculty? @relation(name: "staffFaculty", fields: [facultyId], references: [id])
   schoolIfIsDirector      School?  @relation(name: "asSchoolDirector")
   facultyIfIsDean         Faculty? @relation(name: "asFacultyDean")
-  departmentId            Int
   schoolId                Int?
   facultyId               Int?
   createdAt               DateTime @default(now())
   updatedAt               DateTime @updatedAt
 
   @@map("staffprofiles")
+}
+
+enum Titles {
+  Prof
+  Dr
+  Mr
+  Ms
+  Mrs
+}
+
+model Class {
+  classCode   String           @id
+  programmeId Int
+  programme   Programme        @relation(fields: [programmeId], references: [id])
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  students    StudentProfile[]
+  chat        Chat             @relation(fields: [chatId], references: [id])
+  chatId      Int
+
+  @@map("classes")
 }
 
 model Programme {
@@ -176,24 +191,29 @@ model Programme {
   school       School   @relation(fields: [schoolId], references: [id])
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+  classes      Class[]
 
   @@map("programmes")
 }
 
 model School {
-  id           Int            @id @default(autoincrement())
-  name         String         @unique
-  abbreviation String
-  facultyId    Int
-  faculty      Faculty        @relation(fields: [facultyId], references: [id])
-  directorId   Int?           @unique
-  director     StaffProfile?  @relation(name: "asSchoolDirector", fields: [directorId], references: [id])
-  staffs       StaffProfile[] @relation(name: "staffSchool")
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
-  programmes   Programme[]
-  File         File?          @relation(fields: [fileId], references: [id])
-  fileId       Int?
+  id                   Int             @id @default(autoincrement())
+  name                 String          @unique
+  abbreviation         String
+  facultyId            Int
+  faculty              Faculty         @relation(fields: [facultyId], references: [id])
+  directorId           Int?            @unique
+  director             StaffProfile?   @relation(name: "asSchoolDirector", fields: [directorId], references: [userId])
+  staffs               StaffProfile[]  @relation(name: "staffSchool")
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
+  programmes           Programme[]
+  File                 File?           @relation(fields: [fileId], references: [id])
+  fileId               Int?
+  SchoolRepresentative StudentProfile? @relation(fields: [studentProfileId], references: [userId])
+  studentProfileId     Int?            @unique
+  chat                 Chat            @relation(fields: [chatId], references: [id])
+  chatId               Int
 
   @@map("schools")
 }
@@ -203,7 +223,7 @@ model Faculty {
   name            String         @unique
   abbreviation    String
   executiveDeanId Int?           @unique
-  executiveDean   StaffProfile?  @relation(name: "asFacultyDean", fields: [executiveDeanId], references: [id])
+  executiveDean   StaffProfile?  @relation(name: "asFacultyDean", fields: [executiveDeanId], references: [userId])
   schools         School[]
   staffs          StaffProfile[] @relation(name: "staffFaculty")
   createdAt       DateTime       @default(now())
@@ -215,29 +235,35 @@ model Faculty {
 }
 
 // RTC
-
 model Chat {
   id                  Int                   @id @default(autoincrement())
   name                String
-  profileAvatar       File                  @relation(name: "chatProfile", fields: [profileId], references: [id])
+  description         String
+  chatType            ChatTypes
+  profileAvatarId     Int?
+  profileAvatar       File?                 @relation(name: "chatProfile", fields: [profileAvatarId], references: [id])
   members             User[]                @relation(name: "memberChats")
+  userId              Int?
   admin               User?                 @relation(name: "groupAdmin", fields: [userId], references: [id])
-  userId              Int
   allowedViewFiles    File[]                @relation(name: "fileAllowedChats")
   messages            Message[]
+  UserChatPreferences UserChatPreferences[]
+  classIfClassChat    Class[]
+  roleIfRoleChat      Role[]
+  schoolIfSchoolChat  School[]
   createdAt           DateTime              @default(now())
   updatedAt           DateTime              @updatedAt
-  profileId           Int
-  visibility          ChatVisibilities      @default(private)
-  description         String
-  UserChatPreferences UserChatPreferences[]
 
   @@map("chats")
 }
 
-enum ChatVisibilities {
-  public
+enum ChatTypes {
+  class
+  role
+  school
+  group
   private
+  public
 }
 
 model Message {
