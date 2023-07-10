@@ -50,8 +50,21 @@ model User {
   notifications             Notification[]
   savedFiles                File[]                @relation(name: "userFileSaved")
   savedPosts                Post[]                @relation(name: "userPostsSaved")
+  refreshTokens             RefreshToken[]
+  OTPCode                   String?
 
   @@map("users")
+}
+
+model RefreshToken {
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@id([userId, token])
+  @@map("refreshtokens")
 }
 
 model Notification {
@@ -82,7 +95,7 @@ model Role {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   chat        Chat     @relation(fields: [chatId], references: [id])
-  chatId      Int
+  chatId      Int      @unique
 
   @@map("roles")
 }
@@ -136,10 +149,10 @@ model StudentProfile {
   user                User     @relation(name: "studentProfile", fields: [userId], references: [id])
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
-  class               Class    @relation(fields: [classCode], references: [classCode])
+  class               Class    @relation(fields: [classId], references: [id])
   schoolIfIsSchoolRep School?
   schoolId            Int?
-  classCode           String
+  classId             Int
 
   @@map("studentprofiles")
 }
@@ -171,15 +184,17 @@ enum Titles {
 }
 
 model Class {
-  classCode   String           @id
+  id          Int              @id @default(autoincrement())
   programmeId Int
+  year        Int
   programme   Programme        @relation(fields: [programmeId], references: [id])
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
   students    StudentProfile[]
   chat        Chat             @relation(fields: [chatId], references: [id])
-  chatId      Int
+  chatId      Int              @unique
 
+  @@unique([programmeId, year])
   @@map("classes")
 }
 
@@ -213,7 +228,7 @@ model School {
   SchoolRepresentative StudentProfile? @relation(fields: [studentProfileId], references: [userId])
   studentProfileId     Int?            @unique
   chat                 Chat            @relation(fields: [chatId], references: [id])
-  chatId               Int
+  chatId               Int             @unique
 
   @@map("schools")
 }
@@ -243,14 +258,14 @@ model Chat {
   profileAvatarId     Int?
   profileAvatar       File?                 @relation(name: "chatProfile", fields: [profileAvatarId], references: [id])
   members             User[]                @relation(name: "memberChats")
-  userId              Int?
-  admin               User?                 @relation(name: "groupAdmin", fields: [userId], references: [id])
+  adminId             Int?
+  admin               User?                 @relation(name: "groupAdmin", fields: [adminId], references: [id])
   allowedViewFiles    File[]                @relation(name: "fileAllowedChats")
   messages            Message[]
   UserChatPreferences UserChatPreferences[]
-  classIfClassChat    Class[]
-  roleIfRoleChat      Role[]
-  schoolIfSchoolChat  School[]
+  classIfClassChat    Class?
+  roleIfRoleChat      Role?
+  schoolIfSchoolChat  School?
   createdAt           DateTime              @default(now())
   updatedAt           DateTime              @updatedAt
 

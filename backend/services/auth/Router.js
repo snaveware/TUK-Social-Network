@@ -7,7 +7,7 @@ router.post("/login", AuthController.login);
 
 router.post("/refreshtoken", AuthController.refreshToken);
 
-router.post("/setup-student", AuthController.studentSetup);
+router.post("/student-setup", AuthController.studentSetup);
 
 router.post("/setup-staff", AuthController.staffSetup);
 

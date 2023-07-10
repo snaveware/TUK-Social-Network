@@ -104,6 +104,7 @@ if (Config.NODE_ENV === "development" || Config.NODE_ENV === "testing") {
       const preferences = await prisma.preferences.findMany();
       const faculties = await prisma.faculty.findMany();
       const schools = await prisma.school.findMany();
+      const programmes = await prisma.programme.findMany();
       const classes = await prisma.class.findMany();
       const files = await prisma.file.findMany();
 
@@ -118,6 +119,7 @@ if (Config.NODE_ENV === "development" || Config.NODE_ENV === "testing") {
         preferences,
         faculties,
         schools,
+        programmes,
         classes,
         files,
       };
@@ -139,6 +141,9 @@ app.get("/", (req, res) => {
 /**
  * Routers
  */
+
+const { AuthRouter } = require("./services/auth");
+app.use("/auth", AuthRouter);
 
 /**
  *  starting the server

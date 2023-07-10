@@ -16,7 +16,7 @@ module.exports = class AuthController {
 
       console.log("-------Send Email Code validated: ", validated);
 
-      const user = await prisma.user.findFirst({
+      let user = await prisma.user.findFirst({
         where: {
           email: { equals: validated.email },
         },
@@ -26,35 +26,48 @@ module.exports = class AuthController {
         },
       });
 
+      /**
+       * First determine if user is student or staff. The set role
+       */
+
+      const role = "staff";
+
+      if (!user) {
+        user = await prisma.user.create({
+          data: {
+            email: validated.email,
+            role: {
+              connect: {
+                name: role,
+              },
+            },
+          },
+        });
+      }
+
       console.log("send email user: ", user);
 
       const code = uuid().substring(0, 6).toUpperCase();
 
-      if (user) {
-        await prisma.user.update({
-          where: {
-            id: user.id,
-          },
-          data: {
-            OTPCode: code,
-          },
-        });
+      await prisma.user.update({
+        where: {
+          id: user.id,
+        },
+        data: {
+          OTPCode: code,
+        },
+      });
 
-        const mailOptions = {
-          to: validated.email,
-          subject: "Confirmation Code",
-          message: `Your Confirmation code is <b>${code}</b> Do not share with anyone`,
-        };
-        Mail.sendEmail(mailOptions);
-      } else {
-        Logger.warn(
-          `Attempt to send verification code to email ${validated.email} that does note exist`
-        );
-      }
+      const mailOptions = {
+        to: validated.email,
+        subject: "Confirmation Code",
+        message: `Your Confirmation code is <b>${code}</b> Do not share with anyone`,
+      };
+      Mail.sendEmail(mailOptions);
 
       const verificationToken = jwt.sign(
         {
-          userId: user ? user.id : randomInt(1000),
+          userId: user.id,
           type: "VERIFICATION",
         },
         Config.SECRET,
@@ -98,6 +111,7 @@ module.exports = class AuthController {
         error.action = "RESEND_CODE";
         throw error;
       }
+
       if (tokenExtractions.type !== "VERIFICATION") {
         Logger.warn(`Attempt to verify using ${tokenExtractions.type} token`);
         RequestHandler.throwError(400, "Invalid Token")();
@@ -109,9 +123,9 @@ module.exports = class AuthController {
         },
         include: {
           role: true,
-          celebrityProfile: true,
+          studentProfileIfIsStudent: true,
+          staffProfileIfIsStaff: true,
           preferences: true,
-          refreshTokens: true,
         },
       });
 
@@ -120,27 +134,9 @@ module.exports = class AuthController {
       if (!user) {
         RequestHandler.throwError(
           400,
-          "Email or password is invalid",
+          "Email is invalid",
           "User with email was not found",
           "LOGIN"
-        )();
-      }
-
-      if (user.status.toLowerCase() == "pending") {
-        RequestHandler.throwError(
-          403,
-          "Account is pending activation",
-          null,
-          "WAIT"
-        )();
-      }
-
-      if (user.status.toLowerCase() == "locked") {
-        RequestHandler.throwError(
-          403,
-          "Your Account is locked",
-          null,
-          "CONTACT_SUPPORT"
         )();
       }
 
@@ -153,8 +149,40 @@ module.exports = class AuthController {
         )();
       }
 
-      delete user.password;
-      delete user.refreshTokens;
+      if (user.status.toLowerCase() == "inactive") {
+        const verificationToken = jwt.sign(
+          {
+            userId: user.id,
+            type: "VERIFICATION",
+            codeVerified: true,
+            role: user.roleName,
+          },
+          Config.SECRET,
+          { expiresIn: Config.VERIFICATION_TOKEN_LIFETIME * 2 }
+        );
+        RequestHandler.sendSuccess(
+          req,
+          res,
+          {
+            verificationToken,
+            message:
+              "Account Has been created and verified successfully, Now go ahead and tell us more about you",
+          },
+
+          206
+        );
+        return;
+      }
+
+      if (user.status.toLowerCase() == "locked") {
+        RequestHandler.throwError(
+          403,
+          "Your Account is locked",
+          null,
+          "CONTACT_SUPPORT"
+        )();
+      }
+
       delete user.OTPCode;
 
       const accessToken = jwt.sign(
@@ -181,7 +209,6 @@ module.exports = class AuthController {
         },
         data: {
           OTPCode: null,
-          forcePasswordChange: false,
         },
       });
 
@@ -317,7 +344,376 @@ module.exports = class AuthController {
     }
   }
 
-  static studentSetup(req, res) {}
+  static async studentSetup(req, res) {
+    Logger.info("Student Setup initiated");
+    try {
+      const validated = await AuthValidator.validateStudentSetup(req.body);
 
-  static staffSetup(req, res) {}
+      console.log("-------Student Setup validated: ", validated);
+
+      let tokenExtractions;
+
+      try {
+        tokenExtractions = jwt.verify(
+          validated.verificationToken,
+          Config.SECRET
+        );
+      } catch (error) {
+        error.status = 401;
+        error.message = "Your code has expired, Please Resend";
+        error.action = "RESEND_CODE";
+        throw error;
+      }
+
+      if (tokenExtractions.type !== "VERIFICATION") {
+        Logger.warn(`Attempt to verify using ${tokenExtractions.type} token`);
+        RequestHandler.throwError(400, "Invalid Token")();
+      }
+
+      if (!tokenExtractions.codeVerified) {
+        Logger.warn(
+          `Attempt to setup account for user with id ${tokenExtractions.userId} using unverified token `
+        );
+        RequestHandler.throwError(400, "Invalid Token")();
+      }
+
+      let user = await prisma.user.findUnique({
+        where: {
+          id: tokenExtractions.userId,
+        },
+        include: {
+          role: true,
+          studentProfileIfIsStudent: true,
+
+          preferences: true,
+        },
+      });
+
+      console.log("Two Step user: ", user);
+
+      if (!user) {
+        RequestHandler.throwError(
+          400,
+          "Email is invalid",
+          "User with email was not found",
+          "SEND_EMAIL_CODE"
+        )();
+      }
+
+      if (user.status.toLowerCase() == "locked") {
+        RequestHandler.throwError(
+          403,
+          "Your Account is locked",
+          null,
+          "CONTACT_SUPPORT"
+        )();
+      }
+
+      if (user.roleName != "student") {
+        RequestHandler.throwError(
+          403,
+          "Your Account is not registered as a student",
+          null,
+          "CONTACT_SUPPORT"
+        )();
+      }
+
+      delete user.OTPCode;
+
+      const accessToken = jwt.sign(
+        {
+          userId: user.id,
+          type: "ACCESS",
+        },
+        Config.SECRET,
+        { expiresIn: Config.ACCESS_TOKEN_LIFETIME }
+      );
+
+      const refreshToken = jwt.sign(
+        {
+          userId: user.id,
+          type: "REFRESH",
+        },
+        Config.SECRET,
+        { expiresIn: Config.REFRESH_TOKEN_LIFETIME }
+      );
+
+      const programme = await prisma.programme.findUnique({
+        where: {
+          id: validated.programmeId,
+        },
+      });
+
+      if (!programme) {
+        RequestHandler.throwError(
+          400,
+          "The programme could not be found",
+          null,
+          "CONTACT_SUPPORT"
+        )();
+      }
+
+      let studentClass = await prisma.class.findFirst({
+        where: {
+          programmeId: validated.programmeId,
+          year: validated.year,
+        },
+      });
+
+      if (!studentClass) {
+        studentClass = await prisma.class.create({
+          data: {
+            year: validated.year,
+            programme: {
+              connect: {
+                id: programme.id,
+              },
+            },
+            chat: {
+              create: {
+                name: `${programme.abbreviation} ${validated.year}`,
+                chatType: "class",
+                description: `Group chat for ${programme.abbreviation} Class of ${validated.year}`,
+                admin: {
+                  connect: {
+                    id: user.id,
+                  },
+                },
+              },
+            },
+          },
+        });
+      }
+
+      console.log("student class: ", studentClass);
+
+      const studentProfile = await prisma.studentProfile.create({
+        data: {
+          user: {
+            connect: {
+              id: user.id,
+            },
+          },
+          registrationNumber: validated.registrationNumber,
+          class: {
+            connect: {
+              id: studentClass.id,
+            },
+          },
+        },
+      });
+
+      await prisma.user.update({
+        where: {
+          id: user.id,
+        },
+        data: {
+          status: "active",
+          OTPCode: null,
+          firstName: validated.firstName,
+          lastName: validated.lastName,
+          studentProfileIfIsStudent: {
+            connect: {
+              userId: studentProfile.userId,
+            },
+          },
+        },
+        include: {
+          role: true,
+          studentProfileIfIsStudent: true,
+
+          preferences: true,
+        },
+      });
+
+      await prisma.refreshToken.create({
+        data: {
+          userId: user.id,
+          token: refreshToken,
+        },
+      });
+
+      res.set("Authorization", `Bearer ${accessToken}`);
+      res.set("Refresh", refreshToken);
+
+      RequestHandler.sendSuccess(req, res, {
+        user,
+        accessToken,
+        refreshToken,
+      });
+    } catch (error) {
+      console.log("Login Error: ", error);
+      RequestHandler.sendError(req, res, error);
+    }
+  }
+
+  static async staffSetup(req, res) {
+    Logger.info("Staff Setup initiated");
+    try {
+      const validated = await AuthValidator.validateStaffSetup(req.body);
+
+      console.log("-------Staff Setup validated: ", validated);
+
+      let tokenExtractions;
+
+      try {
+        tokenExtractions = jwt.verify(
+          validated.verificationToken,
+          Config.SECRET
+        );
+      } catch (error) {
+        error.status = 401;
+        error.message = "Your code has expired, Please Resend";
+        error.action = "RESEND_CODE";
+        throw error;
+      }
+
+      if (tokenExtractions.type !== "VERIFICATION") {
+        Logger.warn(`Attempt to verify using ${tokenExtractions.type} token`);
+        RequestHandler.throwError(400, "Invalid Token")();
+      }
+
+      if (!tokenExtractions.codeVerified) {
+        Logger.warn(
+          `Attempt to setup account for user(staff) with id ${tokenExtractions.userId} using unverified token `
+        );
+        RequestHandler.throwError(400, "Invalid Token")();
+      }
+
+      let user = await prisma.user.findUnique({
+        where: {
+          id: tokenExtractions.userId,
+        },
+        include: {
+          role: true,
+          staffProfileIfIsStaff: true,
+          preferences: true,
+        },
+      });
+
+      console.log("Two Step user: ", user);
+
+      if (!user) {
+        RequestHandler.throwError(
+          400,
+          "Email is invalid",
+          "User with email was not found",
+          "SEND_EMAIL_CODE"
+        )();
+      }
+
+      if (user.status.toLowerCase() == "locked") {
+        RequestHandler.throwError(
+          403,
+          "Your Account is locked",
+          null,
+          "CONTACT_SUPPORT"
+        )();
+      }
+
+      if (user.roleName != "staff") {
+        RequestHandler.throwError(
+          403,
+          "Your Account is not registered as a staff",
+          null,
+          "CONTACT_SUPPORT"
+        )();
+      }
+
+      delete user.OTPCode;
+
+      const accessToken = jwt.sign(
+        {
+          userId: user.id,
+          type: "ACCESS",
+        },
+        Config.SECRET,
+        { expiresIn: Config.ACCESS_TOKEN_LIFETIME }
+      );
+
+      const refreshToken = jwt.sign(
+        {
+          userId: user.id,
+          type: "REFRESH",
+        },
+        Config.SECRET,
+        { expiresIn: Config.REFRESH_TOKEN_LIFETIME }
+      );
+
+      const school = await prisma.school.findUnique({
+        where: {
+          id: validated.schoolId,
+        },
+      });
+
+      if (!school) {
+        RequestHandler.throwError(
+          400,
+          "The school could not be found",
+          null,
+          "CONTACT_SUPPORT"
+        )();
+      }
+
+      const staffProfile = await prisma.staffProfile.create({
+        data: {
+          user: {
+            connect: {
+              id: user.id,
+            },
+          },
+          staffRegistrationNumber: validated.employeeId,
+          title: validated.title,
+          position: validated.position,
+          school: {
+            connect: {
+              id: validated.schoolId,
+            },
+          },
+        },
+      });
+
+      await prisma.user.update({
+        where: {
+          id: user.id,
+        },
+        data: {
+          status: "active",
+          OTPCode: null,
+          firstName: validated.firstName,
+          lastName: validated.lastName,
+          staffProfileIfIsStaff: {
+            connect: {
+              userId: staffProfile.userId,
+            },
+          },
+        },
+        include: {
+          role: true,
+          studentProfileIfIsStudent: true,
+          staffProfileIfIsStaff: true,
+          preferences: true,
+        },
+      });
+
+      await prisma.refreshToken.create({
+        data: {
+          userId: user.id,
+          token: refreshToken,
+        },
+      });
+
+      res.set("Authorization", `Bearer ${accessToken}`);
+      res.set("Refresh", refreshToken);
+
+      RequestHandler.sendSuccess(req, res, {
+        user,
+        accessToken,
+        refreshToken,
+      });
+    } catch (error) {
+      console.log("Login Error: ", error);
+      RequestHandler.sendError(req, res, error);
+    }
+  }
 };

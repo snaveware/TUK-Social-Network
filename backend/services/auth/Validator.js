@@ -110,4 +110,152 @@ module.exports = class AuthValidator {
       throw error;
     }
   }
+
+  static async validateStaffSetup(values) {
+    Logger.info("Validating Token Refresh");
+
+    const schema = Joi.object({
+      firstName: Joi.string()
+        .label("First Name")
+        .example("John")
+        .required()
+        .messages({
+          "any.required": "{#label} is required",
+          "string.empty": "{#label} cannot be empty",
+        }),
+
+      lastName: Joi.string()
+        .label("Last Name")
+        .example("Doe")
+        .required()
+        .messages({
+          "any.required": "{#label} is required",
+          "string.empty": "{#label} cannot be empty",
+        }),
+
+      employeeId: Joi.string()
+        .label("Employee ID")
+        .example("TUK/001")
+        .required()
+        .messages({
+          "any.required": "{#label} is required",
+          "string.empty": "{#label} cannot be empty",
+        }),
+
+      title: Joi.string()
+        .valid("Prof", "Dr", "Mr", "Ms", "Mrs")
+        .label("Title")
+        .example("Mr")
+        .required()
+        .messages({
+          "any.required": "{#label} is required",
+          "any.only":
+            "{#label} must be one of the following: Prof, Dr, Mr, Ms, Mrs",
+          "string.empty": "{#label} cannot be empty",
+        }),
+
+      schoolId: Joi.number()
+        .integer()
+        .label("School ID")
+        .example(1)
+        .required()
+        .messages({
+          "any.required": "{#label} is required",
+          "number.base": "{#label} must be a number",
+          "number.integer": "{#label} must be an integer",
+          "number.empty": "{#label} cannot be empty",
+        }),
+
+      position: Joi.string()
+        .label("Position")
+        .example("Academic Staff")
+        .required()
+        .messages({
+          "any.required": "{#label} is required",
+          "string.empty": "{#label} cannot be empty",
+        }),
+
+      verificationToken: Joi.string()
+        .label("Verification Token")
+        .example("your-new-verification-token")
+        .required()
+        .messages({
+          "any.required": "{#label} is required",
+          "string.empty": "{#label} cannot be empty",
+        }),
+    });
+    try {
+      const validated = await schema.validateAsync(values);
+      return validated;
+    } catch (error) {
+      console.log("auth Token Refresh validation error: ", error);
+      error.status = 400;
+      throw error;
+    }
+  }
+
+  static async validateStudentSetup(values) {
+    Logger.info("Validating Token Refresh");
+
+    const schema = Joi.object({
+      firstName: Joi.string()
+        .label("First Name")
+        .example("Jane")
+        .required()
+        .messages({
+          "any.required": "{#label} is required",
+          "string.empty": "{#label} cannot be empty",
+        }),
+
+      lastName: Joi.string()
+        .label("Last Name")
+        .example("Doe")
+        .required()
+        .messages({
+          "any.required": "{#label} is required",
+          "string.empty": "{#label} cannot be empty",
+        }),
+
+      registrationNumber: Joi.string()
+        .label("Registration Number")
+        .example("SCII/00819/2019")
+        .required()
+        .messages({
+          "any.required": "{#label} is required",
+          "string.empty": "{#label} cannot be empty",
+        }),
+
+      programmeId: Joi.number()
+        .label("Programme Id")
+        .min(0)
+        .required()
+        .messages({
+          "any.required": "{#label} is required",
+          "number.min": "{#label} cannot be less than 1",
+        }),
+
+      year: Joi.number().label("Programme Id").min(2000).required().messages({
+        "any.required": "{#label} is required",
+        "number.min": "{#label} cannot be less than 2000",
+      }),
+
+      verificationToken: Joi.string()
+        .label("Verification Token")
+        .example("your-new-verification-token")
+        .required()
+        .messages({
+          "any.required": "{#label} is required",
+          "string.empty": "{#label} cannot be empty",
+        }),
+    });
+
+    try {
+      const validated = await schema.validateAsync(values);
+      return validated;
+    } catch (error) {
+      console.log("auth Token Refresh validation error: ", error);
+      error.status = 400;
+      throw error;
+    }
+  }
 };

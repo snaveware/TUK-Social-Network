@@ -46,6 +46,10 @@ paths:
                 $ref: "#/components/schemas/LoginResponse"
         206:
           description: Successful, but you need to setup the account
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponseAccountSetup"
         400:
           description: Invalid OTP code or verification token
         401:
@@ -102,9 +106,15 @@ paths:
                 registrationNumber:
                   type: string
                   example: SCII/00819/2019
-                classCode:
+                programmeId:
+                  type: integer
+                  example: 1
+                year:
+                  type: integer
+                  example: 2019
+                verificationToken:
                   type: string
-                  example: SCII/2019
+                  example: "your-new-verification-token"
       responses:
         "200":
           description: Success
@@ -152,6 +162,9 @@ paths:
                 position:
                   type: string
                   example: Academic Staff
+                verificationToken:
+                  type: string
+                  example: "your-new-verification-token"
       responses:
         "200":
           description: Success
@@ -219,6 +232,13 @@ components:
         accessToken: "your-new-access-token"
         refreshToken: "your-new-refresh-token"
         user: {}
+    LoginResponseAccountSetup:
+      type: object
+      properties:
+        verificationToken:
+          type: string
+      example:
+        verificationToken: "your-new-verification-token"
     RefreshTokenInput:
       type: object
       properties:
