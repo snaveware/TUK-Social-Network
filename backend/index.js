@@ -2,12 +2,6 @@ const { resolve } = require("path");
 global.appRoot = resolve(__dirname);
 
 /**
- * Prisma Client Initialization
- */
-
-const { prisma, PrismaClient, initDatabase } = require("./DatabaseInit");
-
-/**
  * Third Party Modules
  */
 const express = require("express");
@@ -16,6 +10,12 @@ const cors = require("cors");
 const swaggerUI = require("swagger-ui-express");
 const swaggerJsDoc = require("swagger-jsdoc");
 const fs = require("fs");
+
+/**
+ * Prisma Client Initialization
+ */
+
+const { prisma, PrismaClient, initDatabase } = require("./DatabaseInit");
 
 /**
  * Custom Modules

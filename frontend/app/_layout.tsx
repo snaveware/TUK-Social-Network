@@ -7,7 +7,7 @@ import {
 } from "@react-navigation/native";
 import { useFonts } from "expo-font";
 import { SplashScreen, Stack, useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { createContext, useEffect, useState } from "react";
 import { useColorScheme } from "react-native";
 import DefaultAppTheme, {
   AppThemeContext,
@@ -17,6 +17,7 @@ import DefaultAppTheme, {
 } from "../Theme";
 
 import { Appearance } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -27,6 +28,20 @@ export const unstable_settings = {
   // Ensure that reloading on `/modal` keeps a back button present.
   initialRouteName: "(tabs)",
 };
+
+export interface AuthContextInterface {
+  user?: any;
+  setUser: any;
+  isLoggedIn: boolean;
+  setIsLoggedIn: any;
+}
+
+const defaultAuthContext: AuthContextInterface = {
+  isLoggedIn: false,
+  setUser: () => {},
+  setIsLoggedIn: () => {},
+};
+export const AuthContext = createContext(defaultAuthContext);
 
 export default function RootLayout() {
   const [loaded, error] = useFonts({
@@ -60,18 +75,44 @@ function RootLayoutNav() {
     }
   });
 
+  const [user, setUser] = useState({});
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
+
+  useEffect(() => {
+    restoreStoredUser();
+  }, []);
+
+  async function restoreStoredUser() {
+    const storedUser = await AsyncStorage.getItem("user");
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+      setIsLoggedIn(true);
+    } else {
+      setIsLoggedIn(false);
+    }
+  }
+
   return (
     <>
-      <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-        <AppThemeContext.Provider value={{ theme, setTheme }}>
-          <Stack>
-            <Stack.Screen name="LoginEmail" options={{ headerShown: false }} />
-            <Stack.Screen name="LoginCode" options={{ headerShown: false }} />
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="modal" options={{ presentation: "modal" }} />
-          </Stack>
-        </AppThemeContext.Provider>
-      </ThemeProvider>
+      <AuthContext.Provider
+        value={{ user, setUser, isLoggedIn, setIsLoggedIn }}
+      >
+        <ThemeProvider
+          value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
+        >
+          <AppThemeContext.Provider value={{ theme, setTheme }}>
+            <Stack>
+              <Stack.Screen
+                name="LoginEmail"
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen name="LoginCode" options={{ headerShown: false }} />
+              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+              <Stack.Screen name="modal" options={{ presentation: "modal" }} />
+            </Stack>
+          </AppThemeContext.Provider>
+        </ThemeProvider>
+      </AuthContext.Provider>
     </>
   );
 }
