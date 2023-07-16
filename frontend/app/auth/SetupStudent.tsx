@@ -47,13 +47,6 @@ export default function SetupStudent() {
     { id: string; title: string }[] | undefined
   >();
 
-  const [open, setOpen] = useState(false);
-  const [value, setValue] = useState(null);
-  const [items, setItems] = useState([
-    { label: "Apple", value: "apple" },
-    { label: "Banana", value: "banana" },
-  ]);
-
   useEffect(() => {
     if (isLoggedIn) {
       router.push("/(tabs)");
@@ -118,7 +111,6 @@ export default function SetupStudent() {
           "refreshToken",
           JSON.stringify(results.data.refreshToken)
         );
-
         router.push("/(tabs)");
       } else {
         setErrors({

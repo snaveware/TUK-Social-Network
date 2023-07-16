@@ -103,7 +103,7 @@ export default StyleSheet.create({
     marginHorizontal: 10,
   },
   inputContainer: {
-    marginVertical: 5,
-    paddingVertical: 5,
+    marginVertical: 2,
+    paddingVertical: 2,
   },
 });

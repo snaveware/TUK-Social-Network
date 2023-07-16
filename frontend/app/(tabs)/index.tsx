@@ -43,11 +43,11 @@ export default function HomeTabScreen() {
 
   useEffect(() => {
     verifyLogin();
-    console.log("login use effect...............");
   }, [isLoggedIn]);
 
   async function verifyLogin() {
     const user = await AsyncStorage.getItem("user");
+    console.log("login use effect...............", user);
     if (!user) {
       setIsLoggedIn(false);
       setUser(null);
