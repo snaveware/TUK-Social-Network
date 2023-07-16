@@ -5,16 +5,21 @@ const RequestHandler = require("../../RequestHandler");
 module.exports = class AuthValidator {
   static async validateSendEmailCode(values) {
     Logger.info("Validating Send Email Code");
-    const loginSchema = Joi.object({
-      email: Joi.string().required().label("Email").email().messages({
-        "string.base": "Email must be a string",
-        "any.required": "Email is required",
-        "string.email": "Must be a valid email address",
-      }),
+    const schema = Joi.object({
+      email: Joi.string()
+        .required()
+        .label("Email")
+        .email()
+        .lowercase()
+        .messages({
+          "string.base": "Email must be a string",
+          "any.required": "Email is required",
+          "string.email": "Must be a valid email address",
+        }),
     });
 
     try {
-      const validated = await loginSchema.validateAsync(values);
+      const validated = await schema.validateAsync(values);
       return validated;
     } catch (error) {
       console.log("Send Email Code validation error: ", error);
@@ -58,6 +63,9 @@ module.exports = class AuthValidator {
     }
   }
 
+  /**
+   * Also login
+   */
   static async validateTwoStep(values) {
     Logger.info("Validating Two Step");
     const loginSchema = Joi.object({
@@ -234,9 +242,9 @@ module.exports = class AuthValidator {
           "number.min": "{#label} cannot be less than 1",
         }),
 
-      year: Joi.number().label("Programme Id").min(2000).required().messages({
+      year: Joi.number().label("Programme Id").min(2013).required().messages({
         "any.required": "{#label} is required",
-        "number.min": "{#label} cannot be less than 2000",
+        "number.min": "{#label} cannot be less than 2013",
       }),
 
       verificationToken: Joi.string()

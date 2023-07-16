@@ -106,7 +106,7 @@ module.exports = class AuthController {
           Config.SECRET
         );
       } catch (error) {
-        error.status = 401;
+        error.status = 403;
         error.message = "Your code has expired, Please Resend";
         error.action = "RESEND_CODE";
         throw error;
@@ -142,7 +142,7 @@ module.exports = class AuthController {
 
       if (user.OTPCode != validated.OTPCode) {
         RequestHandler.throwError(
-          401,
+          403,
           "Invalid Confirmation Code",
           "OTP Code did not match",
           "CORRECT_INPUT"
@@ -158,12 +158,13 @@ module.exports = class AuthController {
             role: user.roleName,
           },
           Config.SECRET,
-          { expiresIn: Config.VERIFICATION_TOKEN_LIFETIME * 2 }
+          { expiresIn: Config.VERIFICATION_TOKEN_LIFETIME * 10 }
         );
         RequestHandler.sendSuccess(
           req,
           res,
           {
+            roleName: user.roleName,
             verificationToken,
             message:
               "Account Has been created and verified successfully, Now go ahead and tell us more about you",
@@ -253,7 +254,7 @@ module.exports = class AuthController {
       try {
         tokenExtractions = jwt.verify(validated.refreshToken, Config.SECRET);
       } catch (error) {
-        error.status = 401;
+        error.status = 403;
         error.message = "Your token  is expired, Please Login again";
         error.action = "LOGIN";
         throw error;
@@ -359,7 +360,7 @@ module.exports = class AuthController {
           Config.SECRET
         );
       } catch (error) {
-        error.status = 401;
+        error.status = 403;
         error.message = "Your code has expired, Please Resend";
         error.action = "RESEND_CODE";
         throw error;
@@ -562,7 +563,7 @@ module.exports = class AuthController {
           Config.SECRET
         );
       } catch (error) {
-        error.status = 401;
+        error.status = 403;
         error.message = "Your code has expired, Please Resend";
         error.action = "RESEND_CODE";
         throw error;

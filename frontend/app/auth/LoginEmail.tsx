@@ -1,27 +1,26 @@
-import GlobalStyles from "../GlobalStyles";
-import {
-  KeyboardAvoidingView,
-  Image,
-  StyleSheet,
-  Platform,
-} from "react-native";
-import { Text, View, TextInput } from "../components/Themed";
+import GlobalStyles from "../../GlobalStyles";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Image, StyleSheet, Platform } from "react-native";
+import { Text, View, TextInput } from "../../components/Themed";
 import { useEffect, useState, useContext } from "react";
 import { Link, useRouter } from "expo-router";
-import { AuthContext } from "./_layout";
-import DefaultAppTheme from "../Theme";
-import Button from "../components/Button";
-import Utils from "../Utils";
-import Config from "../Config";
-const AdaptiveIcon = require("../assets/images/favicon-lg.png");
-import { BodyRequestMethods } from "../Utils";
+import { AuthContext } from "../_layout";
+import DefaultAppTheme, { AppThemeContext } from "../../Theme";
+import Button from "../../components/Button";
+import Utils from "../../Utils";
+import Config from "../../Config";
+const AdaptiveIcon = require("../../assets/images/favicon-lg.png");
+import { BodyRequestMethods } from "../../Utils";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 
 export default function LoginEmailScreen({ navigation }: any) {
   const router = useRouter();
   const [loading, setLoading] = useState<boolean>(false);
   const { isLoggedIn } = useContext(AuthContext);
-  const [email, setEmail] = useState<string>();
+  const [email, setEmail] = useState<string>("evansmwenda006@gmail.com");
   const [errors, setErrors] = useState<any>({});
+  const { theme } = useContext(AppThemeContext);
 
   useEffect(() => {
     if (isLoggedIn) {
@@ -46,16 +45,19 @@ export default function LoginEmailScreen({ navigation }: any) {
         body: { email: email },
       });
       console.log("Send Email Results: ", results);
-      if (results.verificationToken) {
+      if (results.success) {
         router.push({
-          pathname: "/LoginCode",
+          pathname: "/auth/LoginCode",
           params: {
-            verificationToken: results.verificationToken,
-            expiresAt: results.expiresAt,
+            verificationToken: results.data.verificationToken,
+            expiresAt: results.data.expiresAt,
+            email: email,
           },
         });
       } else {
-        console.log("Sending Email Failed");
+        setErrors({
+          global: results.message,
+        });
       }
       setLoading(false);
     } catch (error) {
@@ -78,22 +80,31 @@ export default function LoginEmailScreen({ navigation }: any) {
   }
 
   return (
-    <View style={styles.fullView}>
-      <KeyboardAvoidingView
+    <SafeAreaView
+      style={[styles.fullView, { backgroundColor: theme.background }]}
+    >
+      <KeyboardAwareScrollView
         style={[styles["pt-25"], styles.keyboardAvoidingView]}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         <View style={[styles.LogoContainer]}>
           <Image source={AdaptiveIcon} style={styles.logo} />
         </View>
 
-        <Text style={styles.label}>University Email</Text>
-        <TextInput
-          value={email}
-          placeholder="Eg. guest@tukenya.ac.ke"
-          onChangeText={(value) => setEmail(value)}
-          style={styles.input}
-        />
+        {errors.global && (
+          <Text style={[styles.error, styles.errorBorder]}>
+            {errors.global}
+          </Text>
+        )}
+
+        <View style={[styles.inputContainer]}>
+          <Text style={[styles.label, styles.paddingV]}>University Email</Text>
+          <TextInput
+            value={email}
+            placeholder="Eg. guest@tukenya.ac.ke"
+            onChangeText={(value) => setEmail(value)}
+            style={[styles.input, styles.paddingV]}
+          />
+        </View>
 
         <Text style={styles.error}>{errors.email}</Text>
         <View style={styles.primaryBtnContainer}>
@@ -103,8 +114,8 @@ export default function LoginEmailScreen({ navigation }: any) {
             style={{ paddingHorizontal: 50 }}
           />
         </View>
-      </KeyboardAvoidingView>
-    </View>
+      </KeyboardAwareScrollView>
+    </SafeAreaView>
   );
 }
 

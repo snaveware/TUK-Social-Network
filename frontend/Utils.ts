@@ -118,4 +118,11 @@ export default class Utils {
       return response;
     });
   }
+
+  static async isLoggedIn() {
+    const user = await AsyncStorage.getItem("user");
+    if (user) {
+      return true;
+    }
+  }
 }

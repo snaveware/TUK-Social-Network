@@ -18,6 +18,7 @@ import DefaultAppTheme, {
 
 import { Appearance } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { AutocompleteDropdownContextProvider } from "react-native-autocomplete-dropdown";
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -100,17 +101,35 @@ function RootLayoutNav() {
         <ThemeProvider
           value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
         >
-          <AppThemeContext.Provider value={{ theme, setTheme }}>
-            <Stack>
-              <Stack.Screen
-                name="LoginEmail"
-                options={{ headerShown: false }}
-              />
-              <Stack.Screen name="LoginCode" options={{ headerShown: false }} />
-              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-              <Stack.Screen name="modal" options={{ presentation: "modal" }} />
-            </Stack>
-          </AppThemeContext.Provider>
+          <AutocompleteDropdownContextProvider>
+            <AppThemeContext.Provider value={{ theme, setTheme }}>
+              <Stack>
+                <Stack.Screen
+                  name="auth/LoginEmail"
+                  options={{ headerShown: false }}
+                />
+                <Stack.Screen
+                  name="auth/LoginCode"
+                  options={{ headerShown: false }}
+                />
+
+                <Stack.Screen
+                  name="auth/SetupStudent"
+                  options={{ headerShown: false }}
+                />
+                <Stack.Screen
+                  name="auth/SetupStaff"
+                  options={{ headerShown: false }}
+                />
+
+                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                <Stack.Screen
+                  name="modal"
+                  options={{ presentation: "modal" }}
+                />
+              </Stack>
+            </AppThemeContext.Provider>
+          </AutocompleteDropdownContextProvider>
         </ThemeProvider>
       </AuthContext.Provider>
     </>

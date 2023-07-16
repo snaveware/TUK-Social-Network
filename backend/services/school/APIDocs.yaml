@@ -1,0 +1,50 @@
+tags:
+  - name: Schools
+    description: All  Routes For Schools
+
+paths:
+  /schools:
+    get:
+      tags:
+        - Schools
+      summary: Get schools by search string
+      parameters:
+        - in: query
+          name: searchString
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                      format: int64
+                    name:
+                      type: string
+                    abbreviation:
+                      type: string
+                    facultyId:
+                      type: integer
+                    directorId:
+                      type: integer
+                    fileId:
+                      type: integer
+                    studentProfileId:
+                      type: integer
+                    createdAt:
+                      type: string
+                      format: date-time
+                    updatedAt:
+                      type: string
+                      format: date-time
+                    chatId:
+                      type: integer
+        "500":
+          description: Internal Server Error

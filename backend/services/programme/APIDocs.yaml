@@ -1,0 +1,39 @@
+tags:
+  - name: Programmes
+    description: All  Routes For Programmes
+
+paths:
+  /programmes:
+    get:
+      tags: [Programmes]
+      summary: Get programmes by search string
+      parameters:
+        - in: query
+          name: searchString
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                      format: int64
+                    name:
+                      type: string
+                    abbreviation:
+                      type: string
+                    schoolId:
+                      type: integer
+                    createdAt:
+                      type: string
+                      format: date-time
+                    updatedAt:
+                      type: string
+                      format: date-time

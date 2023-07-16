@@ -66,7 +66,7 @@ if (Config.NODE_ENV === "development" || Config.NODE_ENV === "testing") {
       info: {
         title: "starmeet",
         version: "1.0.0",
-        description: "API endpoints starmeet system",
+        description: "API endpoints TUK Social Network",
       },
     },
 
@@ -145,6 +145,11 @@ app.get("/", (req, res) => {
 const { AuthRouter } = require("./services/auth");
 app.use("/auth", AuthRouter);
 
+const { SchoolsRouter } = require("./services/school");
+app.use("/schools", SchoolsRouter);
+
+const { ProgrammesRouter } = require("./services/programme");
+app.use("/programmes", ProgrammesRouter);
 /**
  *  starting the server
  */

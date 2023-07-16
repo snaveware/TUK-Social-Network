@@ -58,7 +58,12 @@ module.exports = class RequestHandler {
     delete error.verbose;
     return res
       .status(error.status || 500)
-      .json({ success: false, message: error.message, action: error.action });
+      .json({
+        success: false,
+        message: error.message,
+        action: error.action,
+        status: error.status || 500,
+      });
   }
 
   static sendErrorMessage(req, res, status, message, verbose) {
@@ -73,7 +78,9 @@ module.exports = class RequestHandler {
           : `Request failed: ${message}`,
       })
     );
-    return res.status(status || 500).json(message);
+    return res
+      .status(status || 500)
+      .json({ success: false, message, status: status || 500 });
   }
 
   static sendSuccess(req, res, data, status) {
@@ -85,6 +92,8 @@ module.exports = class RequestHandler {
         message: "Request completed successfully",
       })
     );
-    return res.status(status || 200).json(data);
+    return res
+      .status(status || 200)
+      .json({ success: true, data, status: status || 200 });
   }
 };
