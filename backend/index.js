@@ -41,6 +41,20 @@ try {
   process.emit("SIGINT", { reason: "Failed to create logs folder" });
 }
 
+/** uploads folder */
+
+const uploadsFolderName = global.appRoot + "/uploads/";
+
+try {
+  if (!fs.existsSync(uploadsFolderName)) {
+    fs.mkdirSync(uploadsFolderName);
+  }
+} catch (err) {
+  console.error(err);
+  Logger.error(err);
+  process.emit("SIGINT", { reason: "Failed to create uploads folder folder" });
+}
+
 /**
  * High Level Declarations and Functions
  */
@@ -106,6 +120,7 @@ if (Config.NODE_ENV === "development" || Config.NODE_ENV === "testing") {
       const schools = await prisma.school.findMany();
       const programmes = await prisma.programme.findMany();
       const classes = await prisma.class.findMany();
+      const folders = await prisma.folder.findMany();
       const files = await prisma.file.findMany();
 
       return {
@@ -121,6 +136,7 @@ if (Config.NODE_ENV === "development" || Config.NODE_ENV === "testing") {
         schools,
         programmes,
         classes,
+        folders,
         files,
       };
     };
@@ -150,6 +166,10 @@ app.use("/schools", SchoolsRouter);
 
 const { ProgrammesRouter } = require("./services/programme");
 app.use("/programmes", ProgrammesRouter);
+
+const { FilesRouter } = require("./services/files");
+app.use("/files", FilesRouter);
+
 /**
  *  starting the server
  */

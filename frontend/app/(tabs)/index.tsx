@@ -29,6 +29,7 @@ export default function HomeTabScreen() {
 
   useEffect(() => {
     if (!navigationState?.key) return;
+
     socket.on("connected", () => {
       console.log("socket connected..............");
       socket.emit("message", { message: "message from mobile client" });

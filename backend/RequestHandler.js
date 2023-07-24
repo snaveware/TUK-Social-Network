@@ -56,14 +56,12 @@ module.exports = class RequestHandler {
       })
     );
     delete error.verbose;
-    return res
-      .status(error.status || 500)
-      .json({
-        success: false,
-        message: error.message,
-        action: error.action,
-        status: error.status || 500,
-      });
+    return res.status(error.status || 500).json({
+      success: false,
+      message: error.message,
+      action: error.action,
+      status: error.status || 500,
+    });
   }
 
   static sendErrorMessage(req, res, status, message, verbose) {
@@ -95,5 +93,18 @@ module.exports = class RequestHandler {
     return res
       .status(status || 200)
       .json({ success: true, data, status: status || 200 });
+  }
+
+  static sendFile(req, res, path, status) {
+    Logger.debug("Responding with file");
+    Logger.debug(
+      JSON.stringify({
+        requestId: req.requestId,
+        status: status ? status : "default 200",
+        message: "Request completed successfully",
+      })
+    );
+
+    return res.status(status || 200).sendFile(path);
   }
 };

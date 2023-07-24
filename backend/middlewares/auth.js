@@ -2,51 +2,121 @@ const RequestHandler = require("../RequestHandler");
 const Logger = require("../Logger");
 const { verify } = require("jsonwebtoken");
 const { Config } = require("../configs");
+const { prisma } = require("../DatabaseInit");
 
 async function authenticate(req) {
-  Logger.info("Extracting bearer token");
+  Logger.info("extracting bearer token");
   let bearerToken = req.headers.authorization;
 
-  if (!bearerToken) {
+  const queryAccessToken = req.query.t;
+
+  if (!bearerToken && !queryAccessToken) {
     RequestHandler.throwError(401, "You must provide an access token")();
   }
 
-  bearerToken = bearerToken.trim();
+  let token;
 
-  if (!bearerToken.startsWith("Bearer ")) {
-    RequestHandler.throwError(400, "Wrong configuration of the access token")();
+  if (bearerToken) {
+    bearerToken = bearerToken.trim();
+
+    if (!bearerToken.startsWith("Bearer ")) {
+      RequestHandler.throwError(
+        400,
+        "Wrong configuration of the access token"
+      )();
+    }
+    token = bearerToken.split(" ").pop();
+  } else if (queryAccessToken) {
+    token = queryAccessToken.trim();
   }
 
-  const token = bearerToken.split(" ").pop();
-
-  Logger.info("Verifying access token");
+  if (!token) {
+    RequestHandler.throwError(400, "Unable to extract token")();
+  }
 
   try {
-    const extracted = verify(token, Config.JWT_ACCESS_SECRET);
+    let extracted;
+    try {
+      Logger.info("verifying access token");
+      extracted = verify(token, Config.SECRET);
+    } catch (error) {
+      error.message = "Acess token expired";
+      error.status = 401;
+      error.action = "REFRESH";
+      // console.log("Access token extraction failed");
+      throw error;
+    }
+
+    // console.log("extracted in token: ", extracted);
+
+    if (extracted.type != "ACCESS") {
+      RequestHandler.throwError(
+        401,
+        "Invalid access token",
+        `attempt to authorize with ${extracted.type} token`,
+        "REFRESH"
+      )();
+      Logger.warn(`attempt to authorize with ${extracted.type} token`);
+    }
 
     /**
-     * TODO : GET Authenticated user using Prisma Client
+     * ensure no auth object exists in request
      */
+    delete req.auth;
+
+    req.auth = await prisma.user.findFirst({
+      where: {
+        id: extracted.userId,
+        status: "active",
+      },
+      include: {
+        role: true,
+        preferences: true,
+        rootFolder: true,
+      },
+    });
+
+    console.log("authenticated user: ", req.auth);
 
     if (!req.auth) {
       RequestHandler.throwError(
         401,
         "Invalid access token",
-        "account not found"
+        "account not found",
+        "LOGIN"
       )();
     }
   } catch (error) {
-    RequestHandler.throwError(401, "Invalid access token")();
+    throw error;
   }
 }
 
-async function authMiddleware(req, res, next) {
+async function AuthMiddleware(req, res, next) {
   try {
     await authenticate(req);
     next();
   } catch (error) {
-    RequestHandler.sendError(req.requestId, res, error);
+    Logger.warn(
+      `authentication failed in authentication middleware. error: ${error}`
+    );
+    RequestHandler.sendError(req, res, error);
   }
 }
 
-module.exports = { authMiddleware };
+async function OptionalAuthMiddleware(req, res, next) {
+  try {
+    const bearerToken = req.headers.authorization;
+    const queryAccessToken = req.query.t;
+    if (bearerToken || queryAccessToken) {
+      await authenticate(req);
+    }
+    next();
+  } catch (error) {
+    Logger.warn(
+      `authentication failed in optional authentication middleware. error: ${error}`
+    );
+    RequestHandler.sendError(req, res, error);
+  }
+}
+
+module.exports = { AuthMiddleware, OptionalAuthMiddleware };

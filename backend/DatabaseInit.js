@@ -4,13 +4,16 @@ const Logger = require("./Logger");
 const { UniversityData, Roles, Config } = require("./configs");
 
 async function initDatabase() {
-  await prisma.user.deleteMany();
-  await prisma.role.deleteMany();
-  await prisma.programme.deleteMany();
-  await prisma.school.deleteMany();
-  await prisma.chat.deleteMany();
+  // await prisma.studentProfile.deleteMany();
+  // await prisma.staffProfile.deleteMany();
+  // await prisma.user.deleteMany();
+  // await prisma.role.deleteMany();
+  // await prisma.class.deleteMany();
+  // await prisma.programme.deleteMany();
+  // await prisma.school.deleteMany();
+  // await prisma.chat.deleteMany();
 
-  await prisma.faculty.deleteMany();
+  // await prisma.faculty.deleteMany();
 
   // return;
 
@@ -67,8 +70,18 @@ async function createRoles() {
 }
 
 async function createRootUser() {
+  const rootFolder = await prisma.folder.create({
+    data: {
+      name: Config.ADMIN.email,
+      path: "",
+    },
+  });
+
   await prisma.user.create({
-    data: Config.ADMIN,
+    data: {
+      ...Config.ADMIN,
+      rootFolderId: rootFolder.id,
+    },
   });
 }
 

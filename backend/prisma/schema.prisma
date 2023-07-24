@@ -52,6 +52,9 @@ model User {
   savedPosts                Post[]                @relation(name: "userPostsSaved")
   refreshTokens             RefreshToken[]
   OTPCode                   String?
+  rootFolderId              Int                   @unique
+  rootFolder                Folder                @relation(fields: [rootFolderId], references: [id])
+  sharedFolders             Folder[]              @relation(name: "allowedFolderViewers")
 
   @@map("users")
 }
@@ -146,7 +149,7 @@ enum Appearances {
 model StudentProfile {
   userId              Int      @id
   registrationNumber  String   @unique
-  user                User     @relation(name: "studentProfile", fields: [userId], references: [id])
+  user                User     @relation(name: "studentProfile", fields: [userId], references: [id], onDelete: Cascade)
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
   class               Class    @relation(fields: [classId], references: [id])
@@ -223,12 +226,12 @@ model School {
   createdAt            DateTime        @default(now())
   updatedAt            DateTime        @updatedAt
   programmes           Programme[]
-  File                 File?           @relation(fields: [fileId], references: [id])
-  fileId               Int?
+  sharedFiles          File[]
   SchoolRepresentative StudentProfile? @relation(fields: [studentProfileId], references: [userId])
   studentProfileId     Int?            @unique
   chat                 Chat            @relation(fields: [chatId], references: [id])
   chatId               Int             @unique
+  sharedFolders        Folder[]
 
   @@map("schools")
 }
@@ -243,8 +246,8 @@ model Faculty {
   staffs          StaffProfile[] @relation(name: "staffFaculty")
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
-  File            File?          @relation(fields: [fileId], references: [id])
-  fileId          Int?
+  sharedFiles     File[]
+  sharedFolders   Folder[]
 
   @@map("faculties")
 }
@@ -255,7 +258,7 @@ model Chat {
   name                String
   description         String
   chatType            ChatTypes
-  profileAvatarId     Int?
+  profileAvatarId     Int?                  @unique
   profileAvatar       File?                 @relation(name: "chatProfile", fields: [profileAvatarId], references: [id])
   members             User[]                @relation(name: "memberChats")
   adminId             Int?
@@ -268,6 +271,8 @@ model Chat {
   schoolIfSchoolChat  School?
   createdAt           DateTime              @default(now())
   updatedAt           DateTime              @updatedAt
+  // Folder              Folder?               @relation(fields: [folderId], references: [id])
+  sharedFolders       Folder[]              @relation(name: "folderAllowedChats")
 
   @@map("chats")
 }
@@ -317,8 +322,8 @@ enum MessageStatus {
 
 model UserChatPreferences {
   id                Int             @id @default(autoincrement())
-  user              User            @relation(fields: [userId], references: [id])
-  chat              Chat            @relation(fields: [chatId], references: [id])
+  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chat              Chat            @relation(fields: [chatId], references: [id], onDelete: Cascade)
   backgroundType    BackgroundTypes @default(default)
   backgroundColor   String
   backgroundImage   File?           @relation(fields: [backgroundImageId], references: [id])
@@ -423,31 +428,41 @@ enum CommentType {
 // Files
 
 model Folder {
-  id           Int      @id @default(autoincrement())
-  name         String
-  parentFolder Folder?  @relation(name: "parentChildFolder", fields: [folderId], references: [id])
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  childFolders Folder[] @relation(name: "parentChildFolder")
-  folderId     Int
-  files        File[]
+  id                     Int            @id @default(autoincrement())
+  name                   String
+  path                   String
+  parentFolder           Folder?        @relation(name: "parentChildFolder", fields: [parentFolderId], references: [id])
+  createdAt              DateTime       @default(now())
+  updatedAt              DateTime       @updatedAt
+  childFolders           Folder[]       @relation(name: "parentChildFolder")
+  parentFolderId         Int?
+  files                  File[]
+  owner                  User?
+  userId                 Int?
+  visibility             FileVisibility @default(private)
+  allowedViewers         User[]         @relation(name: "allowedFolderViewers")
+  allowedViewerChats     Chat[]         @relation(name: "folderAllowedChats")
+  allowedViewerSchools   School[]
+  allowedViewerFaculties Faculty[]
 
   @@map("folders")
 }
 
 model File {
   id                                  Int                  @id @default(autoincrement())
-  userIfProfileAvatar                 User[]               @relation(name: "coverImage")
-  userIfCoverImage                    User[]               @relation(name: "profileImage")
-  owner                               User                 @relation(name: "fileOwner", fields: [ownerId], references: [id])
-  chatIfProfile                       Chat[]               @relation(name: "chatProfile")
+  name                                String
+  path                                String
+  userIfProfileAvatar                 User?                @relation(name: "coverImage")
+  userIfCoverImage                    User?                @relation(name: "profileImage")
   ownerId                             Int
+  owner                               User                 @relation(name: "fileOwner", fields: [ownerId], references: [id])
+  chatIfProfile                       Chat?                @relation(name: "chatProfile")
   visibility                          FileVisibility       @default(private)
   allowedViewers                      User[]               @relation(name: "allowedFileViewers")
   allowedViewerChats                  Chat[]               @relation(name: "fileAllowedChats")
   allowedViewerSchools                School[]
   allowedViewerFaculties              Faculty[]
-  noOfRequests                        Int
+  noOfRequests                        Int                  @default(0)
   createdAt                           DateTime             @default(now())
   updatedAt                           DateTime             @updatedAt
   Post                                Post?                @relation(fields: [postId], references: [id])

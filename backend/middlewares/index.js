@@ -5,6 +5,13 @@
 
 const { createRequestId, logRequests } = require("./utils");
 
-const { authMiddleware } = require("./auth");
+const { AuthMiddleware, OptionalAuthMiddleware } = require("./auth");
+const { fileUploadFunction } = require("./fileUpload");
 
-module.exports = { createRequestId, logRequests, authMiddleware };
+module.exports = {
+  createRequestId,
+  logRequests,
+  AuthMiddleware,
+  OptionalAuthMiddleware,
+  fileUploadFunction,
+};

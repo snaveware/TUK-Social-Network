@@ -16,6 +16,8 @@ import DefaultAppTheme, {
   ThemeLight,
 } from "../Theme";
 
+import GlobalStyles from "../GlobalStyles";
+import { StyleSheet } from "react-native";
 import { Appearance } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AutocompleteDropdownContextProvider } from "react-native-autocomplete-dropdown";
@@ -124,9 +126,11 @@ function RootLayoutNav() {
 
                 <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
                 <Stack.Screen
-                  name="modal"
+                  name="Notifications"
                   options={{ presentation: "modal" }}
                 />
+
+                <Stack.Screen name="posts/New" />
               </Stack>
             </AppThemeContext.Provider>
           </AutocompleteDropdownContextProvider>
@@ -135,3 +139,7 @@ function RootLayoutNav() {
     </>
   );
 }
+
+const styles = StyleSheet.create({
+  ...GlobalStyles,
+});

@@ -30,7 +30,7 @@ module.exports = class AuthController {
        * First determine if user is student or staff. The set role
        */
 
-      const role = "staff";
+      const role = "student";
 
       if (!user) {
         user = await prisma.user.create({
@@ -39,6 +39,12 @@ module.exports = class AuthController {
             role: {
               connect: {
                 name: role,
+              },
+            },
+            rootFolder: {
+              create: {
+                name: validated.email,
+                path: "",
               },
             },
           },
@@ -126,6 +132,7 @@ module.exports = class AuthController {
           studentProfileIfIsStudent: true,
           staffProfileIfIsStaff: true,
           preferences: true,
+          rootFolder: true,
         },
       });
 
@@ -522,7 +529,7 @@ module.exports = class AuthController {
         include: {
           role: true,
           studentProfileIfIsStudent: true,
-
+          rootFolder: true,
           preferences: true,
         },
       });
@@ -694,6 +701,7 @@ module.exports = class AuthController {
           studentProfileIfIsStudent: true,
           staffProfileIfIsStaff: true,
           preferences: true,
+          rootFolder: true,
         },
       });
 

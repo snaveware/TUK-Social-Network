@@ -1,0 +1,148 @@
+tags:
+  - name: Files
+    description: All File Routes
+
+paths:
+  /files:
+    post:
+      tags: [Files]
+      security:
+        - BearerAuth: []
+      summary: Upload a file to a specific folder.
+      description: |
+        This endpoint allows users to upload a single file to a specific folder.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                folderId:
+                  type: number
+      responses:
+        "200":
+          description: File uploaded successfully.
+        "400":
+          description: Bad request. Missing folderId or file.
+        "404":
+          description: Folder not found. The specified folderId does not exist.
+        "500":
+          description: Internal server error. Something went wrong on the server side.
+    get:
+      security:
+        - BearerAuth: []
+      tags: [Files]
+      summary: Get file by ID.
+      description: |
+        This endpoint allows users to fetch a file by its ID.
+      parameters:
+        - name: fid
+          in: query
+          description: The ID of the file to fetch.
+          required: true
+          schema:
+          type: number
+        - name: t
+          in: query
+          description: Access token (optional).
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: File fetched successfully.
+        "400":
+          description: Bad request. Missing file ID.
+        "401":
+          description: Unauthorized. Invalid access token.
+        "403":
+          description: Forbidden. Access to the requested file is forbidden.
+        "404":
+          description: File not found. The specified file ID does not exist.
+        "500":
+          description: Internal server error. Something went wrong on the server side.
+
+  /files/folder:
+    post:
+      tags: [Files]
+      security:
+        - BearerAuth: []
+      summary: Create a new folder.
+      description: This endpoint allows users to create a new folder.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                parentFolderId:
+                  type: number
+                  description: The ID of the parent folder (optional).
+                folderName:
+                  type: string
+                  description: The name of the new folder to be created.
+              required:
+                - folderName
+                - parentFolderId
+      responses:
+        "200":
+          description: Folder created successfully.
+        "400":
+          description: Bad request. Missing folder name.
+        "404":
+          description: Parent folder not found. The specified parentFolderId does not exist.
+        "500":
+          description: Internal server error. Something went wrong on the server side.
+    get:
+      tags: [Files]
+      summary: Get subfolders and files in a folder.
+      description: |
+        This endpoint allows users to fetch subfolders and files within a specified folder.
+      parameters:
+        - name: fid
+          in: query
+          description: The ID of the folder to fetch. (Optional, if not provided, returns the root folder for the user.)
+          required: false
+          schema:
+            type: string
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Folders and files fetched successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  folders:
+                    type: array
+                    items:
+                      type: object
+                      description: Folders
+                  files:
+                    type: array
+                    items:
+                      type: object
+                      description: Files
+        "400":
+          description: Bad request. Invalid folder ID.
+        "401":
+          description: Unauthorized. Invalid access token.
+        "403":
+          description: Forbidden. Access to the requested folder is forbidden.
+        "404":
+          description: Folder not found. The specified folder ID does not exist.
+        "500":
+          description: Internal server error. Something went wrong on the server side.
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
