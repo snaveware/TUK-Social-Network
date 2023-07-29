@@ -170,6 +170,10 @@ app.use("/programmes", ProgrammesRouter);
 const { FilesRouter } = require("./services/files");
 app.use("/files", FilesRouter);
 
+const { PostsRouter } = require("./services/posts");
+
+app.use("/posts", PostsRouter);
+
 /**
  *  starting the server
  */

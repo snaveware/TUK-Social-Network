@@ -356,9 +356,9 @@ model Post {
   likers       User[]         @relation(name: "postLikers")
   sharedTo     User[]         @relation(name: "sharedPosts")
   taggedUsers  User[]         @relation(name: "taggedPosts")
-  noOfRequests Int
-  noOfLikes    Int
-  noOfComments Int
+  noOfRequests Int            @default(0)
+  noOfLikes    Int            @default(0)
+  noOfComments Int            @default(0)
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
   Message      Message[]
@@ -367,8 +367,7 @@ model Post {
   pollId       Int?           @unique
   savedBy      User[]         @relation(name: "userPostsSaved")
   comments     Comment[]
-  visbility    PostVisibility @default(public)
-  status       PostStatus     @default(draft)
+  visibility   PostVisibility @default(public)
 
   @@map("posts")
 }
@@ -378,11 +377,6 @@ enum PostVisibility {
   friends
   faculty
   school
-}
-
-enum PostStatus {
-  draft
-  published
 }
 
 enum PostTypes {

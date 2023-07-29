@@ -1,0 +1,325 @@
+tags:
+  - name: Posts
+    description: All Posts Routes
+
+paths:
+  /posts:
+    post:
+      security:
+        - BearerAuth: []
+      summary: Create a new post
+      tags:
+        - Posts
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                files:
+                  type: array
+                  items:
+                    type: number
+                  description: An array of file id associated with the post
+                caption:
+                  type: string
+                  maxLength: 256
+                  description: The caption for the post (maximum 256 characters)
+                type:
+                  type: string
+                  enum: [social, event, sellable, poll]
+                  description: The type of the post
+                visibility:
+                  type: string
+                  enum: [public, friends, faculty, school]
+                  description: The visibility of the post
+      responses:
+        "201":
+          description: Created - The post has been successfully created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ManyPost"
+        "400":
+          description: Bad Request - The request is invalid or missing some required data.
+        "401":
+          description: Unauthorized - The user must authenticate to create a post.
+        "500":
+          description: Internal Server Error - An unexpected error occurred.
+    get:
+      security:
+        - BearerAuth: []
+      summary: Get paginated posts
+      tags:
+        - Posts
+      parameters:
+        - name: page
+          in: query
+          description: The page number to retrieve
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK - Returns an array of paginated posts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ManyPost"
+        "400":
+          description: Bad Request - The request is invalid (e.g., invalid page number)
+        "500":
+          description: Internal Server Error - An unexpected error occurred
+
+  /posts/{postId}:
+    get:
+      security:
+        - BearerAuth: []
+      summary: Get a post by ID
+      tags:
+        - Posts
+      parameters:
+        - name: postId
+          in: path
+          description: The ID of the post to retrieve
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK - Returns the post with the specified ID
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Post"
+        "400":
+          description: Bad Request - The postId parameter is not a valid number
+        "404":
+          description: Not Found - The specified post was not found
+        "500":
+          description: Internal Server Error - An unexpected error occurred
+
+components:
+  schemas:
+    ManyPost:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        caption:
+          type: string
+          maxLength: 256
+          description: The caption for the post (maximum 256 characters)
+          example: "Post description"
+        ownerId:
+          type: integer
+          format: int64
+          example: 1,
+        owner:
+          type: object
+          properties:
+            id:
+              type: number
+            firstName:
+              type: string
+            lastName:
+              type: string
+            profileAvatarId:
+              type: string
+        noOfRequests:
+          type: integer
+          description: The number of requests for this post
+          example: 20
+        noOfLikes:
+          type: integer
+          description: The number of likes this post has received
+          example: 30
+        noOfComments:
+          type: integer
+          description: The number of comments on this post
+          example: 20
+        createdAt:
+          type: string
+          format: date-time
+          description: The date and time when the post was created
+          example: "date"
+        updatedAt:
+          type: string
+          format: date-time
+          description: The date and time when the post was last updated
+        type:
+          type: string
+          enum: [social, event, sellable, poll]
+          description: The type of the post
+          default: social
+        linkedPollId:
+          type: integer
+          description: The ID of the linked poll (if it's a poll post)
+        visibility:
+          type: string
+          enum: [public, friends, faculty, school]
+          description: The visibility of the post
+          default: public
+    Post:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        caption:
+          type: string
+          maxLength: 256
+          description: The caption for the post (maximum 256 characters)
+        ownerId:
+          type: integer
+          format: int64
+        createdAt:
+          type: string
+          format: date-time
+          description: The date and time when the post was created
+        updatedAt:
+          type: string
+          format: date-time
+          description: The date and time when the post was last updated
+        type:
+          type: string
+          enum: [social, event, sellable, poll]
+          description: The type of the post
+        linkedPollId:
+          type: integer
+          description: The ID of the linked poll (if it's a poll post)
+        visibility:
+          type: string
+          enum: [public, friends, faculty, school]
+          description: The visibility of the post
+        files:
+          type: array
+          items:
+            $ref: "#/components/schemas/File"
+          description: An array of files associated with the post
+        comments:
+          type: array
+          items:
+            $ref: "#/components/schemas/Comment"
+          description: An array of comments associated with the post
+        likers:
+          type: array
+          items:
+            schema:
+              type: object
+          example: []
+
+          description: An array of users who liked this post
+        noOfRequests:
+          type: integer
+          description: The number of requests for this post
+        noOfLikes:
+          type: integer
+          description: The number of likes this post has received
+        noOfComments:
+          type: integer
+          description: The number of comments on this post
+        filesCount:
+          type: integer
+          description: The count of files associated with the post
+        commentsCount:
+          type: integer
+          description: The count of comments associated with the post
+        likersCount:
+          type: integer
+          description: The count of users who liked this post
+    Comment:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        message:
+          type: string
+        postId:
+          type: integer
+          format: int64
+        type:
+          type: string
+          enum: [normal, reply]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        replies:
+          type: array
+          items:
+            $ref: "#/components/schemas/Comment"
+        aReplyFor:
+          $ref: "#/components/schemas/Comment"
+      required:
+        - id
+        - message
+        - type
+      description: Comment object
+
+    File:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        type:
+          type: string
+          enum: [video, image, pdf, word]
+        path:
+          type: string
+        ownerId:
+          type: integer
+          format: int64
+        visibility:
+          type: string
+          enum: [public, private, protected]
+        allowedViewers:
+          type: array
+          items:
+            schema:
+              type: object
+              example: {}
+        noOfRequests:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        Post:
+          $ref: "#/components/schemas/Post"
+      required:
+        - id
+        - name
+        - type
+        - path
+        - ownerId
+        - visibility
+      description: File object
+
+    CommentType:
+      type: string
+      enum: [normal, reply]
+      description: The type of the comment
+
+    FileTypes:
+      type: string
+      enum: [video, image, pdf, word]
+      description: The type of the file
+
+    FileVisibility:
+      type: string
+      enum: [public, private, protected]
+      description: The visibility of the file

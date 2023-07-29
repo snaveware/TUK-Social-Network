@@ -20,4 +20,5 @@ module.exports = {
   SECRET: process.env.SECRET,
   ACCESS_TOKEN_LIFETIME: 3600,
   REFRESH_TOKEN_LIFETIME: 86400,
+  POSTS_PER_PAGE: 30,
 };
