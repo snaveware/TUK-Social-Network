@@ -14,6 +14,8 @@ async function authenticate(req) {
     RequestHandler.throwError(401, "You must provide an access token")();
   }
 
+  console.log("bearar & query: ", bearerToken, queryAccessToken);
+
   let token;
 
   if (bearerToken) {
@@ -30,6 +32,8 @@ async function authenticate(req) {
     token = queryAccessToken.trim();
   }
 
+  console.log("token: ", token);
+
   if (!token) {
     RequestHandler.throwError(400, "Unable to extract token")();
   }
@@ -43,11 +47,11 @@ async function authenticate(req) {
       error.message = "Acess token expired";
       error.status = 401;
       error.action = "REFRESH";
-      // console.log("Access token extraction failed");
+      console.log("Access token extraction failed");
       throw error;
     }
 
-    // console.log("extracted in token: ", extracted);
+    console.log("extracted in token: ", extracted);
 
     if (extracted.type != "ACCESS") {
       RequestHandler.throwError(

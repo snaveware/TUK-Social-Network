@@ -14,6 +14,8 @@ const AdaptiveIcon = require("../../assets/images/favicon-lg.png");
 import { BodyRequestMethods } from "../../Utils";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AutocompleteDropdown } from "react-native-autocomplete-dropdown";
+import FontAwesome from "@expo/vector-icons/FontAwesome";
+import SelectDropdown from "react-native-select-dropdown";
 
 export interface ProgrammeItem {
   id: number;
@@ -103,14 +105,8 @@ export default function SetupStudent() {
         setUser(results.data.user);
         setIsLoggedIn(true);
         await AsyncStorage.setItem("user", JSON.stringify(results.data.user));
-        await AsyncStorage.setItem(
-          "accessToken",
-          JSON.stringify(results.data.accessToken)
-        );
-        await AsyncStorage.setItem(
-          "refreshToken",
-          JSON.stringify(results.data.refreshToken)
-        );
+        await AsyncStorage.setItem("accessToken", results.data.accessToken);
+        await AsyncStorage.setItem("refreshToken", results.data.refreshToken);
         router.push("/(tabs)");
       } else {
         setErrors({
@@ -265,39 +261,125 @@ export default function SetupStudent() {
 
         <View style={[styles.inputContainer]}>
           <Text style={styles.label}>Select Your Course</Text>
-          <AutocompleteDropdown
-            containerStyle={{ backgroundColor: theme.background }}
-            inputContainerStyle={{
-              backgroundColor: theme.background,
-              borderStyle: "solid",
-              borderColor: theme.border,
-              borderWidth: 0.5,
-              borderRadius: 5,
-            }}
-            textInputProps={{ style: { color: theme.foreground } }}
-            suggestionsListTextStyle={{
-              color: theme.foregroundMuted,
-            }}
-            suggestionsListContainerStyle={{
-              backgroundColor: theme.background,
-              borderStyle: "solid",
-              borderWidth: 0.5,
-              borderColor: theme.border,
-            }}
-            clearOnFocus={false}
-            closeOnBlur={true}
-            closeOnSubmit={false}
-            initialValue={{ id: programmes?.[0].id }}
-            onSelectItem={(item) => {
-              setUservalues((prevValues: StudentUserValues) => {
-                return {
-                  ...prevValues,
-                  programmeId: item ? parseInt(item.id) : undefined,
-                };
-              });
-            }}
-            dataSet={programmes}
-          />
+          {Platform.OS !== "web" && (
+            <AutocompleteDropdown
+              containerStyle={{ backgroundColor: theme.background }}
+              inputContainerStyle={{
+                backgroundColor: theme.background,
+                borderStyle: "solid",
+                borderColor: theme.border,
+                borderWidth: 0.5,
+                borderRadius: 5,
+              }}
+              textInputProps={{ style: { color: theme.foreground } }}
+              suggestionsListTextStyle={{
+                color: theme.foregroundMuted,
+              }}
+              suggestionsListContainerStyle={{
+                backgroundColor: theme.background,
+                borderStyle: "solid",
+                borderWidth: 0.5,
+                borderColor: theme.border,
+              }}
+              clearOnFocus={false}
+              closeOnBlur={true}
+              closeOnSubmit={false}
+              initialValue={{ id: programmes?.[0].id }}
+              onSelectItem={(item) => {
+                console.log("selected items: ", item);
+                setUservalues((prevValues: StudentUserValues) => {
+                  return {
+                    ...prevValues,
+                    programmeId: item ? parseInt(item.id) : undefined,
+                  };
+                });
+              }}
+              dataSet={programmes}
+            />
+          )}
+          {Platform.OS === "web" && programmes && programmes.length > 0 && (
+            <SelectDropdown
+              search={true}
+              data={programmes}
+              onSelect={(selectedItem, index) => {
+                setUservalues((prevValues: StudentUserValues) => {
+                  return {
+                    ...prevValues,
+                    programmeId: selectedItem
+                      ? parseInt(selectedItem.id)
+                      : undefined,
+                  };
+                });
+              }}
+              renderDropdownIcon={() => {
+                return (
+                  <FontAwesome
+                    name="chevron-down"
+                    size={20}
+                    style={{ paddingRight: 5 }}
+                    color={theme.primaryForeground}
+                  />
+                );
+              }}
+              buttonTextAfterSelection={(selectedItem, index) => {
+                console.log("selected item: ", selectedItem);
+                return selectedItem.title;
+              }}
+              rowTextForSelection={(item, index) => {
+                return item.title;
+              }}
+              buttonStyle={[
+                {
+                  backgroundColor: theme.background,
+                  borderWidth: 1,
+                  borderColor: theme.border,
+                  borderRadius: 5,
+                  width: "100%",
+                  maxWidth: "100%",
+                  marginTop: 5,
+                },
+              ]}
+              buttonTextStyle={[
+                {
+                  color: theme.foreground,
+                  textTransform: "capitalize",
+                  textAlign: "left",
+                },
+              ]}
+              rowStyle={{
+                backgroundColor: theme.background,
+                borderWidth: 1,
+                borderColor: theme.border,
+                borderBottomColor: theme.border,
+              }}
+              rowTextStyle={[
+                {
+                  color: theme.foreground,
+                  textTransform: "capitalize",
+                  textAlign: "left",
+                  paddingVertical: 3,
+                },
+              ]}
+              dropdownStyle={{
+                backgroundColor: theme.background,
+              }}
+              searchInputStyle={{
+                backgroundColor: theme.background,
+                width: "100%",
+                borderWidth: 0,
+                marginBottom: 5,
+                marginLeft: 0,
+                display: "flex",
+                justifyContent: "flex-start",
+              }}
+              searchInputTxtStyle={{
+                color: theme.foreground,
+                paddingHorizontal: 5,
+
+                borderBottomWidth: 0,
+              }}
+            />
+          )}
           <Text style={styles.error}>{errors.programmeId}</Text>
         </View>
 

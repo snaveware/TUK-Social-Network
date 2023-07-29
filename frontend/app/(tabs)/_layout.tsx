@@ -35,7 +35,7 @@ export default function TabLayout() {
           title: "Posts",
           tabBarIcon: ({ color }) => <TabBarIcon name="home" color={color} />,
           headerRight: () => (
-            <View style={[styles.flexRow]}>
+            <View style={[styles.flexRow, { backgroundColor: "transparent" }]}>
               <Link href="/Notifications" asChild>
                 <Pressable>
                   {({ pressed }) => (

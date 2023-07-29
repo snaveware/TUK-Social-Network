@@ -11,9 +11,20 @@ const fileUploadMulter = Multer({
     },
 
     filename: (req, file, cb) => {
-      const extension = file.originalname.split(".").pop();
-      console.log("File", extension, file, file.originalname);
-      const filename = `${file.originalname}`;
+      console.log("file middleware multer:  ", file);
+      let extension;
+      let filename;
+      if (file.originalname) {
+        extension = file.originalname.split(".").pop();
+        console.log("File", extension, file, file.originalname);
+        filename = `${file.originalname}`;
+      } else {
+        extension = file.mimetype.split("/").pop();
+        filename = `${uuid()}.${extension}`;
+      }
+
+      console.log("filename: ", filename);
+
       cb(null, filename);
     },
   }),
@@ -26,7 +37,6 @@ const profilesUploadMulter = Multer({
     destination: (req, file, cb) => {
       cb(null, localDestination);
     },
-
     filename: (req, file, cb) => {
       const extension = file.originalname.split(".").pop();
       // console.log(extension, file, file.originalname);

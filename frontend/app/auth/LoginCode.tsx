@@ -78,14 +78,8 @@ export default function LoginCodeScreen({ navigation }: any) {
         setUser(results.data.user);
         setIsLoggedIn(true);
         await AsyncStorage.setItem("user", JSON.stringify(results.data.user));
-        await AsyncStorage.setItem(
-          "accessToken",
-          JSON.stringify(results.data.accessToken)
-        );
-        await AsyncStorage.setItem(
-          "refreshToken",
-          JSON.stringify(results.data.refreshToken)
-        );
+        await AsyncStorage.setItem("accessToken", results.data.accessToken);
+        await AsyncStorage.setItem("refreshToken", results.data.refreshToken);
 
         router.push("/(tabs)");
       } else {

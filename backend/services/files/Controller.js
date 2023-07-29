@@ -1,10 +1,12 @@
 const { prisma } = require("../../DatabaseInit");
 const Logger = require("../../Logger");
 const RequestHandler = require("../../RequestHandler");
+const Utils = require("../../Utils");
 const FilesValidator = require("./Validator");
 module.exports = class FilesController {
   static async uploadFile(req, res) {
     try {
+      console.log("request body: ", req.body, "file: ", req.file);
       Logger.info(
         JSON.stringify({
           action: "uploading file",
@@ -39,6 +41,7 @@ module.exports = class FilesController {
         data: {
           name: req.file.filename,
           path: `${folder.path}/${fileUpload.filename}`,
+          type: Utils.getFileTypeFromMimeType(fileUpload.mimetype),
           owner: {
             connect: {
               id: req.auth.id,

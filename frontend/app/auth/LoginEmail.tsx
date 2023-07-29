@@ -18,7 +18,7 @@ export default function LoginEmailScreen({ navigation }: any) {
   const router = useRouter();
   const [loading, setLoading] = useState<boolean>(false);
   const { isLoggedIn } = useContext(AuthContext);
-  const [email, setEmail] = useState<string>("evansmwenda006@gmail.com");
+  const [email, setEmail] = useState<string>("work.evans020@gmail.com");
   const [errors, setErrors] = useState<any>({});
   const { theme } = useContext(AppThemeContext);
 

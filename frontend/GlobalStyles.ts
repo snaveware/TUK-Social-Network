@@ -8,7 +8,7 @@ export default StyleSheet.create({
   },
   keyboardAvoidingView: {
     flex: 1,
-    paddingHorizontal: 30,
+    paddingHorizontal: 20,
   },
   LogoContainer: {
     display: "flex",
@@ -26,10 +26,13 @@ export default StyleSheet.create({
   "pt-25": {
     paddingTop: 25,
   },
+  "pt-20": {
+    paddingTop: 20,
+  },
   fullView: {
     flex: 1,
-    width: Utils.isFromMedium() ? "30%" : "100%",
     margin: "auto",
+    width: "100%",
   },
   label: {
     fontWeight: "600",

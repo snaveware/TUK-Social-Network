@@ -451,6 +451,7 @@ model Folder {
 model File {
   id                                  Int                  @id @default(autoincrement())
   name                                String
+  type                                FileTypes
   path                                String
   userIfProfileAvatar                 User?                @relation(name: "coverImage")
   userIfCoverImage                    User?                @relation(name: "profileImage")
@@ -474,6 +475,13 @@ model File {
   folderId                            Int?
 
   @@map("files")
+}
+
+enum FileTypes {
+  video
+  image
+  pdf
+  word
 }
 
 enum FileVisibility {
