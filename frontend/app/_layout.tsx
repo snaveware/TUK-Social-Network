@@ -21,6 +21,7 @@ import { StyleSheet } from "react-native";
 import { Appearance } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AutocompleteDropdownContextProvider } from "react-native-autocomplete-dropdown";
+import { StatusBar } from "expo-status-bar";
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -105,6 +106,8 @@ function RootLayoutNav() {
         >
           <AutocompleteDropdownContextProvider>
             <AppThemeContext.Provider value={{ theme, setTheme }}>
+              <StatusBar style={"auto"} />
+
               <Stack>
                 <Stack.Screen
                   name="auth/LoginEmail"

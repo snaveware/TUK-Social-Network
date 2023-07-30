@@ -43,7 +43,8 @@
     "react-native-video": "^5.2.1",
     "react-native-web": "~0.18.10",
     "socket.io-client": "^4.6.1",
-    "expo-document-picker": "~11.2.2"
+    "expo-document-picker": "~11.2.2",
+    "expo-dev-client": "~2.2.1"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
