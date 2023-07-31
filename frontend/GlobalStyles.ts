@@ -61,6 +61,7 @@ export default StyleSheet.create({
   error: {
     color: DefaultAppTheme.destructive,
     textTransform: "capitalize",
+    paddingVertical: 3,
   },
   errorBorder: {
     borderWidth: 0.5,

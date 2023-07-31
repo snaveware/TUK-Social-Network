@@ -65,7 +65,7 @@ export default class Utils {
         await AsyncStorage.removeItem("accessToken");
         await AsyncStorage.removeItem("refreshToken");
         await AsyncStorage.removeItem("user");
-        location.pathname = "/auth/login";
+        // location.pathname = "/auth/login";
         return;
       }
 
@@ -86,7 +86,7 @@ export default class Utils {
         /**
          * unlikely. Means that the new tokens do not work
          */
-        location.pathname = "/auth/login";
+        // location.pathname = "/auth/login";
       }
 
       return await mainRequestResponse.json();
@@ -176,7 +176,7 @@ export default class Utils {
       description: "To Everyone",
     },
     {
-      name: "followers",
+      name: "friends",
       label: "Followers",
       description: "Only to Followers",
     },
@@ -217,7 +217,7 @@ export default class Utils {
   }
 
   static generateUniqueString() {
-    const randomString = Math.random().toString(36).substr(2, 10);
+    const randomString = Math.random().toString(36).substring(2, 10);
     const timestamp = Date.now().toString(36);
     return randomString + timestamp;
   }
@@ -290,5 +290,26 @@ export default class Utils {
     };
 
     return mimeToTypeMap[mimeType] || null;
+  }
+
+  static getTimeDifference(fromDate: string) {
+    const givenDate = new Date(fromDate);
+    const now = new Date();
+    const differenceInSeconds = Math.floor(
+      (now.getTime() - givenDate.getTime()) / 1000
+    );
+
+    if (differenceInSeconds < 60) {
+      return "now";
+    } else if (differenceInSeconds < 3600) {
+      const minutes = Math.floor(differenceInSeconds / 60);
+      return minutes + "m";
+    } else if (differenceInSeconds < 86400) {
+      const hours = Math.floor(differenceInSeconds / 3600);
+      return hours + "h";
+    } else {
+      const days = Math.floor(differenceInSeconds / 86400);
+      return days + "d";
+    }
   }
 }

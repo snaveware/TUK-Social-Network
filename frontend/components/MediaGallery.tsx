@@ -11,6 +11,7 @@ import GlobalStyles from "../GlobalStyles";
 import { Video, AVPlaybackStatus, ResizeMode } from "expo-av";
 import Config from "../Config";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Feather } from "@expo/vector-icons";
 
 export interface GalleryItem {
   uri: string;
@@ -53,6 +54,20 @@ const MediaGallery = ({
     setScreenWidth(window.width);
   });
 
+  const videoRef = useRef<Video>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+
+  const handleVideoToggle = async () => {
+    if (videoRef.current) {
+      if (isPlaying) {
+        await videoRef.current.pauseAsync();
+      } else {
+        await videoRef.current.playAsync();
+      }
+      setIsPlaying(!isPlaying);
+    }
+  };
+
   const renderItems = () => {
     return items.map((item, index) => (
       <View key={index} style={[styles.itemContainer, { width: SCREEN_WIDTH }]}>
@@ -68,21 +83,39 @@ const MediaGallery = ({
         )}
 
         {item.type == "video" && (
-          <Video
-            source={{
-              uri: item.id
-                ? `${Config.API_URL}/files/?fid=${item.id}&t=${token}`
-                : item.uri,
-            }}
-            style={{
-              width: "100%",
-              height: 500,
-              backgroundColor: theme.secondary,
-            }}
-            useNativeControls
-            resizeMode={ResizeMode.COVER}
-            shouldPlay={true}
-          />
+          <TouchableOpacity activeOpacity={1} onPress={handleVideoToggle}>
+            <Video
+              source={{
+                uri: item.id
+                  ? `${Config.API_URL}/files/?fid=${item.id}&t=${token}`
+                  : item.uri,
+              }}
+              style={{
+                width: "100%",
+                height: 500,
+                backgroundColor: theme.secondary,
+              }}
+              resizeMode={ResizeMode.COVER}
+              ref={videoRef}
+              isLooping={true}
+              shouldPlay={isPlaying}
+              useNativeControls={false}
+            />
+            {!isPlaying && (
+              <View style={[styles.playButton]}>
+                <Feather
+                  name="play-circle"
+                  size={50}
+                  color={theme.foreground}
+                  style={{
+                    shadowColor: theme.background,
+                    shadowOpacity: 0.6,
+                    shadowOffset: { width: 0, height: 4 },
+                  }}
+                />
+              </View>
+            )}
+          </TouchableOpacity>
         )}
       </View>
     ));
@@ -330,5 +363,10 @@ const styles = StyleSheet.create({
   },
   video: {
     flex: 1,
+  },
+  playButton: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: "center",
+    alignItems: "center",
   },
 });

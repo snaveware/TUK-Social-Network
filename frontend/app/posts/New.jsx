@@ -47,21 +47,113 @@ export default function NewPostPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const { isLoggedIn } = useContext(AuthContext);
-  const [post, setPost] = useState({
-    caption: "",
-    visibility: "public",
-    files: [],
-  });
+  const [post, setPost] = useState({});
   const [errors, setErrors] = useState({});
   const { theme } = useContext(AppThemeContext);
   const [activeFileIndex, setActiveFileIndex] = useState(0);
   const [files, setFiles] = useState([]);
-
+  const { user } = useContext(AuthContext);
   const navigation = useNavigation();
 
+  const [loadPostStorage, setLoadPostStorage] = useState(true);
+  const [loadFilesStorage, setLoadFilesStorage] = useState(true);
+
+  // AsyncStorage.removeItem("incomplete-post");
+  // AsyncStorage.removeItem("incomplete-files");
+
   useEffect(() => {
-    console.log("files change: ", files);
+    if (Object.keys(post).length > 0) {
+      console.log("post change: ", post);
+      AsyncStorage.setItem("incomplete-post", JSON.stringify(post));
+    } else {
+      if (loadPostStorage) {
+        setLoadPostStorage(false);
+        loadPostFromStorage();
+      }
+    }
+  }, [post]);
+
+  useEffect(() => {
+    if (files.length > 0) {
+      console.log("files change: ", files);
+      AsyncStorage.setItem("incomplete-files", JSON.stringify(files));
+    } else {
+      if (loadFilesStorage) {
+        loadFilesFromStorage();
+        setLoadFilesStorage(false);
+      }
+    }
   }, [files]);
+
+  useEffect(() => {
+    navigation.setOptions({
+      title: "New Post",
+      headerRight: () => {
+        return (
+          <View
+            style={[
+              styles.flexRow,
+              styles.flexCenter,
+              { paddingRight: Platform.OS == "web" ? 10 : 0 },
+            ]}
+          >
+            <Button
+              onPress={onSubmit}
+              text="Post"
+              style={{
+                paddingHorizontal: 15,
+                paddingVertical: 5,
+                marginVertical: "auto",
+              }}
+            />
+          </View>
+        );
+      },
+    });
+  }, [post, files]);
+
+  async function loadPostFromStorage() {
+    try {
+      let post = await AsyncStorage.getItem("incomplete-post");
+
+      if (post) {
+        console.log("setting post", post);
+        post = JSON.parse(post);
+        setPost(post);
+        console.log("from storage: ", "post: ", post);
+      } else {
+        console.log("setting default post");
+        setPost({
+          type: "social",
+          visibility: "public",
+          caption: "New post message",
+          files: [],
+        });
+      }
+    } catch (error) {
+      console.log(
+        "Error restoring posts from storage in new post page: ",
+        error
+      );
+    }
+  }
+
+  async function loadFilesFromStorage() {
+    try {
+      let files = await AsyncStorage.getItem("incomplete-files");
+
+      if (files) {
+        files = JSON.parse(files);
+        setFiles(files);
+      }
+      console.log("from storage: ", "files: ", files);
+    } catch (error) {
+      console.log(
+        "Error restoring files from storage in new post page: ",
+        error
+      );
+    }
+  }
 
   const pickImage = async () => {
     if (Platform.OS == "web") {
@@ -80,7 +172,7 @@ export default function NewPostPage() {
       asset.mimeType = attr.mimeType;
 
       setFiles((prevValues) => {
-        const sameFile = false;
+        let sameFile = false;
         let i = 0;
         while (!sameFile && i < prevValues.length) {
           if (
@@ -93,7 +185,7 @@ export default function NewPostPage() {
         }
 
         if (sameFile) {
-          return prevValues;
+          return [...prevValues];
         } else {
           uploadFile(asset);
           return [...prevValues, asset];
@@ -136,7 +228,7 @@ export default function NewPostPage() {
         }
 
         if (sameFile) {
-          return prevValues;
+          return [...prevValues];
         } else {
           uploadFile(asset);
           return [...prevValues, asset];
@@ -186,60 +278,53 @@ export default function NewPostPage() {
         });
       } else {
         console.log("Error uploading file: ", results.message);
+        setErrors({
+          global: results.message,
+        });
       }
     } catch (error) {
       console.log("Netowork Error UPloading file: ", error);
+      setErrors({
+        global: error.message,
+      });
     }
   };
 
-  useLayoutEffect(() => {
-    navigation.setOptions({
-      title: "New Post",
-      headerRight: () => {
-        return (
-          <View
-            style={[
-              styles.flexRow,
-              styles.flexCenter,
-              { paddingRight: Platform.OS == "web" ? 10 : 0 },
-            ]}
-          >
-            <Button
-              onPress={onSubmit}
-              text="Post"
-              style={{
-                paddingHorizontal: 15,
-                paddingVertical: 5,
-                marginVertical: "auto",
-              }}
-            />
-          </View>
-        );
-      },
-    });
-  }, []);
-
   async function onSubmit() {
+    console.log("...post submitting...");
     if (loading) return;
     setLoading(true);
 
+    console.log("...post submitting...", post, files);
+
     if (!isInputValid()) {
       setLoading(false);
+      console.log("input invalid");
       return;
     }
 
     try {
+      let filesIds = files.map((file) => {
+        return file.id;
+      });
       const URL = `${Config.API_URL}/posts`;
       const results = await Utils.makeBodyRequest({
         URL,
         method: BodyRequestMethods.POST,
-        body: { ...post },
+        body: { ...post, files: filesIds },
       });
+
       console.log("create post results: ", results);
       if (results.success) {
-        // router.push({
-        //   pathname: "/(tabs)",
-        // });
+        router.push({
+          pathname: "/(tabs)",
+        });
+        await AsyncStorage.removeItem("incomplete-post");
+        await AsyncStorage.removeItem("incomplete-files");
+        setPost({});
+        setFiles([]);
+
+        console.log("successful post");
       } else {
         setErrors({
           global: results.message,
@@ -255,10 +340,15 @@ export default function NewPostPage() {
   function isInputValid() {
     const theErrors = {};
     let hasErrors = false;
-    // if (!email || email.trim() === "") {
-    //   theErrors.email = "Email is Required";
-    //   hasErrors = true;
-    // }
+    if (!post.caption) {
+      theErrors.caption = "Please accompany your post with a message";
+      hasErrors = true;
+    }
+
+    if (files.length < 1) {
+      theErrors.files = "Please accompany your post with at least an image";
+      hasErrors = true;
+    }
 
     setErrors(theErrors);
 
@@ -275,8 +365,12 @@ export default function NewPostPage() {
           ]}
         >
           <Avatar
-            text="JB"
-            imageSource="https://www.snaveware.com/evans-profile.png"
+            text={user ? `${user.firstName[0]}${user.lastName[0]}` : ""}
+            imageSource={
+              user?.profileAvatarId
+                ? `${Config.API_URL}/files?fid=${user.profileAvatarId}`
+                : undefined
+            }
           />
           <View style={[styles.flexCols, { marginLeft: 10 }]}>
             <View
@@ -291,7 +385,7 @@ export default function NewPostPage() {
               <Text
                 style={{ paddingLeft: 5, fontSize: 20, fontWeight: "bold" }}
               >
-                Evans Munene
+                {user?.firstName} {user?.lastName}
               </Text>
             </View>
             <View
@@ -319,9 +413,16 @@ export default function NewPostPage() {
                   );
                 }}
                 data={Utils.postTypes}
-                defaultValue={Utils.postTypes[0]}
+                defaultValue={post?.type || Utils.postTypes[0]}
+                sele
                 onSelect={(selectedItem, index) => {
-                  console.log(selectedItem, index);
+                  console.log("type selected: ", selectedItem);
+                  setPost((prevValues) => {
+                    return {
+                      ...prevValues,
+                      type: selectedItem.name,
+                    };
+                  });
                 }}
                 buttonTextAfterSelection={(selectedItem, index) => {
                   return selectedItem.label;
@@ -411,9 +512,15 @@ export default function NewPostPage() {
                     );
                   }}
                   data={Utils.postVisibilities}
-                  defaultValue={Utils.postVisibilities[0]}
+                  defaultValue={post?.visibility || Utils.postVisibilities[0]}
                   onSelect={(selectedItem, index) => {
-                    console.log(selectedItem, index);
+                    console.log("visibility selected: ", selectedItem);
+                    setPost((prevValues) => {
+                      return {
+                        ...prevValues,
+                        visibility: selectedItem.name,
+                      };
+                    });
                   }}
                   buttonTextAfterSelection={(selectedItem, index) => {
                     return selectedItem.label;
@@ -473,7 +580,6 @@ export default function NewPostPage() {
                 style={[
                   styles.flexRow,
                   styles.flexCenter,
-
                   {
                     marginLeft: 5,
                     backgroundColor: theme.backgroundMuted,
@@ -499,18 +605,27 @@ export default function NewPostPage() {
               {errors.global}
             </Text>
           )}
-          <Text style={styles.error}>{errors.caption}</Text>
+          {errors.caption && (
+            <Text style={[styles.error, styles.errorBorder]}>
+              {errors.caption}
+            </Text>
+          )}
+          {errors.files && (
+            <Text style={[styles.error, styles.errorBorder]}>
+              {errors.files}
+            </Text>
+          )}
           <TextInput
             value={post.caption}
             multiline={true}
             // autoFocus={true}
             textAlignVertical="top"
             placeholder="What do you have in mind?"
-            onChangeText={(value) => {
-              setPost((prevValuest) => {
+            onChangeText={(text) => {
+              setPost((prevValues) => {
                 return {
                   ...prevValues,
-                  caption: value,
+                  caption: text && text.trim() !== "" ? text : undefined,
                 };
               });
             }}
@@ -565,44 +680,46 @@ export default function NewPostPage() {
           },
         ]}
       >
-        <View
-          style={[
-            styles.flexRow,
-            styles.flexCenter,
-            {
-              paddingHorizontal: 10,
-              paddingVertical: 8,
-              borderRadius: 5,
-              backgroundColor: theme.backgroundMuted,
-              borderStyle: "dashed",
-              borderWidth: 1,
-              borderColor: theme.primary,
-              opacity: 0.6,
-              width: "80%",
-              marginHorizontal: "auto",
-            },
-          ]}
-        >
-          <Entypo name="video" size={30} color={theme.foreground} />
-          <TouchableOpacity
+        {files.length < 5 && (
+          <View
             style={[
+              styles.flexRow,
+              styles.flexCenter,
               {
-                padding: 8,
-                marginHorizontal: 10,
+                paddingHorizontal: 10,
+                paddingVertical: 8,
                 borderRadius: 5,
-                backgroundColor: "transparent",
+                backgroundColor: theme.backgroundMuted,
                 borderStyle: "dashed",
                 borderWidth: 1,
                 borderColor: theme.primary,
+                opacity: 0.6,
+                width: "80%",
+                marginHorizontal: "auto",
               },
             ]}
-            onPress={pickImage}
           >
-            <AntDesign name="plus" size={30} color={theme.foreground} />
-          </TouchableOpacity>
+            <Entypo name="video" size={30} color={theme.foreground} />
+            <TouchableOpacity
+              style={[
+                {
+                  padding: 8,
+                  marginHorizontal: 10,
+                  borderRadius: 5,
+                  backgroundColor: "transparent",
+                  borderStyle: "dashed",
+                  borderWidth: 1,
+                  borderColor: theme.primary,
+                },
+              ]}
+              onPress={pickImage}
+            >
+              <AntDesign name="plus" size={30} color={theme.foreground} />
+            </TouchableOpacity>
 
-          <Entypo name="image-inverted" size={30} color={theme.foreground} />
-        </View>
+            <Entypo name="image-inverted" size={30} color={theme.foreground} />
+          </View>
+        )}
         <View
           style={[
             styles.flexRow,

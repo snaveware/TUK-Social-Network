@@ -101,7 +101,116 @@ paths:
           description: Not Found - The specified post was not found
         "500":
           description: Internal Server Error - An unexpected error occurred
-
+  /posts/{postId}/like:
+    post:
+      tags:
+        - Posts
+      security:
+        - BearerAuth: []
+      summary: Like a post
+      description: Allows users to like a post with a specific postId.
+      parameters:
+        - name: postId
+          in: path
+          description: The ID of the post to like.
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: Successfully liked the post.
+        "400":
+          description: Invalid postId. Must be a number.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        "404":
+          description: Post not found.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        "409":
+          description: Post already liked by the user.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        "500":
+          description: Internal Server Error.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+  /posts/{postId}/unlike:
+    post:
+      tags:
+        - Posts
+      security:
+        - BearerAuth: []
+      summary: unLike a post
+      description: Allows users to unlike a post with a specific postId.
+      parameters:
+        - name: postId
+          in: path
+          description: The ID of the post to unlike.
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: Successfully unliked the post.
+        "400":
+          description: Invalid postId. Must be a number.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        "404":
+          description: Post not found.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        "409":
+          description: Post not liked by the user.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        "500":
+          description: Internal Server Error.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
 components:
   schemas:
     ManyPost:

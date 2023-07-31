@@ -79,6 +79,8 @@ function RootLayoutNav() {
     }
   });
 
+  const router = useRouter();
+
   const [user, setUser] = useState({});
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
 
@@ -93,6 +95,7 @@ function RootLayoutNav() {
       setIsLoggedIn(true);
     } else {
       setIsLoggedIn(false);
+      router.push("/auth/LoginEmail");
     }
   }
 

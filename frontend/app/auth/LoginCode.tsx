@@ -99,7 +99,7 @@ export default function LoginCodeScreen({ navigation }: any) {
     const theErrors: any = {};
     let hasErrors = false;
     if (!code || code.trim() === "") {
-      theErrors.email = "Your Code is Required";
+      theErrors.code = "Your Code is Required";
       hasErrors = true;
     }
 
@@ -194,7 +194,7 @@ export default function LoginCodeScreen({ navigation }: any) {
           />
         </View>
 
-        <Text style={styles.error}>{errors.email}</Text>
+        <Text style={styles.error}>{errors.code}</Text>
         <View style={styles.primaryBtnContainer}>
           <Button
             onPress={login}

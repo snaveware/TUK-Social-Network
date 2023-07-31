@@ -347,27 +347,25 @@ enum BackgroundTypes {
 
 // Posts
 model Post {
-  id           Int            @id @default(autoincrement())
-  files        File[]
-  caption      String
-  ownerId      Int
-  owner        User           @relation(name: "ownedPosts", fields: [ownerId], references: [id])
-  reposters    User[]         @relation(name: "postReposters")
-  likers       User[]         @relation(name: "postLikers")
-  sharedTo     User[]         @relation(name: "sharedPosts")
-  taggedUsers  User[]         @relation(name: "taggedPosts")
-  noOfRequests Int            @default(0)
-  noOfLikes    Int            @default(0)
-  noOfComments Int            @default(0)
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
-  Message      Message[]
-  type         PostTypes      @default(social)
-  linkedPoll   Poll?          @relation(fields: [pollId], references: [id])
-  pollId       Int?           @unique
-  savedBy      User[]         @relation(name: "userPostsSaved")
-  comments     Comment[]
-  visibility   PostVisibility @default(public)
+  id               Int            @id @default(autoincrement())
+  files            File[]
+  caption          String
+  ownerId          Int
+  owner            User           @relation(name: "ownedPosts", fields: [ownerId], references: [id])
+  reposters        User[]         @relation(name: "postReposters")
+  likers           User[]         @relation(name: "postLikers")
+  sharedTo         User[]         @relation(name: "sharedPosts")
+  taggedUsers      User[]         @relation(name: "taggedPosts")
+  noOfRequests     Int            @default(0)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  linkedtoMessages Message[]
+  type             PostTypes      @default(social)
+  linkedPoll       Poll?          @relation(fields: [pollId], references: [id])
+  pollId           Int?           @unique
+  savedBy          User[]         @relation(name: "userPostsSaved")
+  comments         Comment[]
+  visibility       PostVisibility @default(public)
 
   @@map("posts")
 }

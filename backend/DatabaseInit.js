@@ -4,6 +4,7 @@ const Logger = require("./Logger");
 const { UniversityData, Roles, Config } = require("./configs");
 
 async function initDatabase() {
+  // await prisma.post.deleteMany();
   // await prisma.file.deleteMany();
   // await prisma.folder.deleteMany();
   // await prisma.studentProfile.deleteMany();
