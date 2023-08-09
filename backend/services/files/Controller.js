@@ -165,6 +165,57 @@ module.exports = class FilesController {
     }
   }
 
+  static async getFileObject(req, res) {
+    try {
+      Logger.info(
+        JSON.stringify({
+          action: "getting file",
+          userId: req.auth.id,
+          folder: req.query.fid,
+        })
+      );
+      const fileId = Number(req.params.fileId);
+
+      if (!fileId) {
+        Logger.error(
+          JSON.stringify({
+            action: "get file",
+            file: fileId,
+            user: req.auth.id,
+            message: "File id not provided",
+          })
+        );
+        RequestHandler.throwError(400, "File Id is Required")();
+      }
+
+      /**
+       * Todo: check whether user has access to file
+       */
+
+      const file = await prisma.file.findUnique({
+        where: {
+          id: fileId,
+        },
+      });
+
+      if (!file) {
+        Logger.error(
+          JSON.stringify({
+            action: "get file",
+            file: fileId,
+            user: req.auth.id,
+          })
+        );
+        RequestHandler.throwError(404, "File not found")();
+      }
+
+      RequestHandler.sendSuccess(req, res, file);
+    } catch (error) {
+      console.log("Error getting File Object: ", error);
+      RequestHandler.sendError(req, res, error);
+    }
+  }
+
   static async getFolder(req, res) {
     try {
       Logger.info(

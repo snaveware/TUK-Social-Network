@@ -138,7 +138,9 @@ const MediaGallery = ({
         onMomentumScrollEnd={(event) => {
           const offsetX = event.nativeEvent.contentOffset.x;
           const index = Math.round(offsetX / SCREEN_WIDTH);
-          setActiveIndex(index);
+          if (setActiveIndex) {
+            setActiveIndex(index);
+          }
         }}
       >
         {token && renderItems()}
@@ -175,6 +177,20 @@ export const WebMediaGallery = ({
     getToken();
   }, []);
 
+  const videoRef = useRef<Video>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+
+  const handleVideoToggle = async () => {
+    if (videoRef.current) {
+      if (isPlaying) {
+        await videoRef.current.pauseAsync();
+      } else {
+        await videoRef.current.playAsync();
+      }
+      setIsPlaying(!isPlaying);
+    }
+  };
+
   const getToken = async () => {
     const token = await AsyncStorage.getItem("accessToken");
     setToken(token || undefined);
@@ -187,7 +203,9 @@ export const WebMediaGallery = ({
         x: nextIndex * SCREEN_WIDTH,
         animated: true,
       });
-      setActiveIndex?.(nextIndex);
+      if (setActiveIndex) {
+        setActiveIndex?.(nextIndex);
+      }
     }
   };
 
@@ -209,6 +227,7 @@ export const WebMediaGallery = ({
         style={[
           styles.itemContainer,
           {
+            flex: 1,
             width: SCREEN_WIDTH,
             display: "flex",
             flexDirection: "row",
@@ -236,21 +255,39 @@ export const WebMediaGallery = ({
 
         {(item.type === "video" ||
           item?.file?.type.split("/")[0] === "video") && (
-          <Video
-            source={{
-              uri: item.id
-                ? `${Config.API_URL}/files/?fid=${item.id}&t=${token}`
-                : item.uri,
-            }}
-            style={{
-              flex: 1,
-              minWidth: 500,
-              minHeight: 500,
-            }}
-            useNativeControls
-            resizeMode={ResizeMode.COVER}
-            shouldPlay
-          />
+          <TouchableOpacity activeOpacity={1} onPress={handleVideoToggle}>
+            <Video
+              source={{
+                uri: item.id
+                  ? `${Config.API_URL}/files/?fid=${item.id}&t=${token}`
+                  : item.uri,
+              }}
+              style={{
+                flex: 1,
+                minWidth: 500,
+                minHeight: 500,
+              }}
+              resizeMode={ResizeMode.COVER}
+              ref={videoRef}
+              isLooping={true}
+              shouldPlay={isPlaying}
+              useNativeControls={false}
+            />
+            {!isPlaying && (
+              <View style={[styles.playButton]}>
+                <Feather
+                  name="play-circle"
+                  size={50}
+                  color={theme.foreground}
+                  style={{
+                    shadowColor: theme.background,
+                    shadowOpacity: 0.6,
+                    shadowOffset: { width: 0, height: 4 },
+                  }}
+                />
+              </View>
+            )}
+          </TouchableOpacity>
         )}
       </View>
     ));

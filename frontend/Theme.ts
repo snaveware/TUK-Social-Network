@@ -46,7 +46,7 @@ export const ThemeDark: ThemeContext = {
   foregroundMuted: "#007272",
   backgroundMuted: "#2D2D2D",
   border: "#2D2D2D",
-  accent: "#C6A767",
+  accent: "#252566",
   accentForeground: "#FFFFFF",
   destructive: "#C66D67",
 };

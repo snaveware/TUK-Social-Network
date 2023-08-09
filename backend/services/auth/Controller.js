@@ -4,7 +4,7 @@ const { Config } = require("../../configs");
 const AuthValidator = require("./Validator");
 const { prisma } = require("../../DatabaseInit");
 const jwt = require("jsonwebtoken");
-const { v4: uuid } = require("uuid");
+const { v4: uuid, validate } = require("uuid");
 const { Mail } = require("../mail");
 const { randomInt } = require("crypto");
 
@@ -30,7 +30,7 @@ module.exports = class AuthController {
        * First determine if user is student or staff. The set role
        */
 
-      const role = "student";
+      const role = "staff";
 
       if (!user) {
         user = await prisma.user.create({
@@ -133,6 +133,20 @@ module.exports = class AuthController {
           staffProfileIfIsStaff: true,
           preferences: true,
           rootFolder: true,
+          _count: true,
+          followedBy: {
+            where: {
+              id: req.auth.id,
+            },
+            select: {
+              firstName: true,
+              lastName: true,
+              profileAvatarId: true,
+              studentProfileIfIsStudent: true,
+              staffProfileIfIsStaff: true,
+              id: true,
+            },
+          },
         },
       });
 
@@ -385,6 +399,19 @@ module.exports = class AuthController {
         RequestHandler.throwError(400, "Invalid Token")();
       }
 
+      let studentWithsameRegistration = await prisma.studentProfile.findUnique({
+        where: {
+          registrationNumber: validated.registrationNumber,
+        },
+      });
+
+      if (studentWithsameRegistration) {
+        RequestHandler.throwError(
+          400,
+          "A student with the same registration Number is already registered"
+        )();
+      }
+
       let user = await prisma.user.findUnique({
         where: {
           id: tokenExtractions.userId,
@@ -392,7 +419,6 @@ module.exports = class AuthController {
         include: {
           role: true,
           studentProfileIfIsStudent: true,
-
           preferences: true,
         },
       });
@@ -529,8 +555,23 @@ module.exports = class AuthController {
         include: {
           role: true,
           studentProfileIfIsStudent: true,
-          rootFolder: true,
+          staffProfileIfIsStaff: true,
           preferences: true,
+          rootFolder: true,
+          _count: true,
+          followedBy: {
+            where: {
+              id: req.auth.id,
+            },
+            select: {
+              firstName: true,
+              lastName: true,
+              profileAvatarId: true,
+              studentProfileIfIsStudent: true,
+              staffProfileIfIsStaff: true,
+              id: true,
+            },
+          },
         },
       });
 
@@ -586,6 +627,19 @@ module.exports = class AuthController {
           `Attempt to setup account for user(staff) with id ${tokenExtractions.userId} using unverified token `
         );
         RequestHandler.throwError(400, "Invalid Token")();
+      }
+
+      const staffWithSameEmployeeId = await prisma.staffProfile.findUnique({
+        where: {
+          staffRegistrationNumber: validated.employeeId,
+        },
+      });
+
+      if (staffWithSameEmployeeId) {
+        RequestHandler.throwError(
+          400,
+          "A staff with the same employee ID is already registered"
+        )();
       }
 
       let user = await prisma.user.findUnique({
@@ -702,6 +756,20 @@ module.exports = class AuthController {
           staffProfileIfIsStaff: true,
           preferences: true,
           rootFolder: true,
+          _count: true,
+          followedBy: {
+            where: {
+              id: req.auth.id,
+            },
+            select: {
+              firstName: true,
+              lastName: true,
+              profileAvatarId: true,
+              studentProfileIfIsStudent: true,
+              staffProfileIfIsStaff: true,
+              id: true,
+            },
+          },
         },
       });
 
@@ -721,7 +789,228 @@ module.exports = class AuthController {
         refreshToken,
       });
     } catch (error) {
-      console.log("Login Error: ", error);
+      console.log("staff setup Error: ", error);
+      RequestHandler.sendError(req, res, error);
+    }
+  }
+
+  static async getUser(req, res) {
+    try {
+      const userId = Number(req.params.userId) || req.auth.id;
+
+      let user = await prisma.user.findUnique({
+        where: {
+          id: userId,
+        },
+
+        include: {
+          role: true,
+          studentProfileIfIsStudent: true,
+          staffProfileIfIsStaff: true,
+          preferences: true,
+          rootFolder: true,
+          _count: true,
+          followedBy: {
+            where: {
+              id: req.auth.id,
+            },
+            select: {
+              firstName: true,
+              lastName: true,
+              profileAvatarId: true,
+              studentProfileIfIsStudent: true,
+              staffProfileIfIsStaff: true,
+              id: true,
+            },
+          },
+        },
+      });
+
+      RequestHandler.sendSuccess(req, res, user);
+    } catch (error) {
+      console.log("get user Error: ", error);
+      RequestHandler.sendError(req, res, error);
+    }
+  }
+
+  static async updateUser(req, res) {
+    try {
+      const userId = Number(req.params.userId);
+
+      if (!userId) {
+        RequestHandler.throwError(400, "userId is required")();
+      }
+
+      if (userId !== req.auth.id) {
+        RequestHandler.throwError(403, "You can only edit your profile")();
+      }
+
+      const validated = await AuthValidator.validateUpdate(req.body);
+
+      const userUpdates = {};
+
+      if (validated.firstName) {
+        userUpdates.firstName = validated.firstName;
+      }
+
+      if (validated.lastName) {
+        userUpdates.lastName = validated.lastName;
+      }
+
+      if (validated.profileAvatarId) {
+        userUpdates.profileAvatar = {
+          connect: {
+            id: validated.profileAvatarId,
+          },
+        };
+      }
+
+      if (validated.coverImageId) {
+        userUpdates.coverImage = {
+          connect: {
+            id: validated.coverImageId,
+          },
+        };
+      }
+
+      let user = await prisma.user.update({
+        where: {
+          id: userId,
+        },
+        data: userUpdates,
+        include: {
+          role: true,
+          studentProfileIfIsStudent: true,
+          staffProfileIfIsStaff: true,
+          preferences: true,
+          rootFolder: true,
+          _count: true,
+          followedBy: {
+            where: {
+              id: req.auth.id,
+            },
+            select: {
+              firstName: true,
+              lastName: true,
+              profileAvatarId: true,
+              studentProfileIfIsStudent: true,
+              staffProfileIfIsStaff: true,
+              id: true,
+            },
+          },
+        },
+      });
+
+      if (!user) {
+        RequestHandler.throwError(404, "user not found")();
+      }
+      RequestHandler.sendSuccess(req, res, user);
+    } catch (error) {
+      console.log("follow user Error: ", error);
+      RequestHandler.sendError(req, res, error);
+    }
+  }
+
+  static async followUser(req, res) {
+    try {
+      const userId = Number(req.params.userId);
+
+      if (!userId) {
+        RequestHandler.throwError(400, "userId is required")();
+      }
+
+      let user = await prisma.user.update({
+        where: {
+          id: userId,
+        },
+        data: {
+          followedBy: {
+            connect: {
+              id: req.auth.id,
+            },
+          },
+        },
+        include: {
+          role: true,
+          studentProfileIfIsStudent: true,
+          staffProfileIfIsStaff: true,
+          preferences: true,
+          rootFolder: true,
+          _count: true,
+          followedBy: {
+            where: {
+              id: req.auth.id,
+            },
+            select: {
+              firstName: true,
+              lastName: true,
+              profileAvatarId: true,
+              studentProfileIfIsStudent: true,
+              staffProfileIfIsStaff: true,
+              id: true,
+            },
+          },
+        },
+      });
+
+      if (!user) {
+        RequestHandler.throwError(404, "user not found")();
+      }
+      RequestHandler.sendSuccess(req, res, user);
+    } catch (error) {
+      console.log("follow user Error: ", error);
+      RequestHandler.sendError(req, res, error);
+    }
+  }
+
+  static async unFollowUser(req, res) {
+    try {
+      const userId = Number(req.params.userId);
+
+      if (!userId) {
+        RequestHandler.throwError(400, "userId is required")();
+      }
+
+      let user = await prisma.user.update({
+        where: {
+          id: userId,
+        },
+        data: {
+          followedBy: {
+            disconnect: {
+              id: req.auth.id,
+            },
+          },
+        },
+        include: {
+          role: true,
+          studentProfileIfIsStudent: true,
+          staffProfileIfIsStaff: true,
+          preferences: true,
+          rootFolder: true,
+          _count: true,
+          followedBy: {
+            where: {
+              id: req.auth.id,
+            },
+            select: {
+              firstName: true,
+              lastName: true,
+              profileAvatarId: true,
+              studentProfileIfIsStudent: true,
+              staffProfileIfIsStaff: true,
+              id: true,
+            },
+          },
+        },
+      });
+
+      if (!user) {
+        RequestHandler.throwError(404, "user not found")();
+      }
+      RequestHandler.sendSuccess(req, res, user);
+    } catch (error) {
+      console.log("follow user Error: ", error);
       RequestHandler.sendError(req, res, error);
     }
   }

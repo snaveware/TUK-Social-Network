@@ -1,4 +1,4 @@
-import { Dimensions } from "react-native";
+import { Dimensions, Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Config from "./Config";
 const base64 = require("base64-js");
@@ -307,9 +307,13 @@ export default class Utils {
     } else if (differenceInSeconds < 86400) {
       const hours = Math.floor(differenceInSeconds / 3600);
       return hours + "h";
-    } else {
+    } else if (differenceInSeconds < 432000) {
       const days = Math.floor(differenceInSeconds / 86400);
       return days + "d";
+    } else {
+      return `${givenDate.getDate()}-${
+        givenDate.getMonth() + 1
+      }-${givenDate.getFullYear()} ${givenDate.getHours()}:${givenDate.getMinutes()}`;
     }
   }
 }

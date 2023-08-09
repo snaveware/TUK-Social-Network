@@ -1,0 +1,198 @@
+tags:
+  - name: Chats
+    description: All  HTTP routes For Chats
+
+paths:
+  /chats:
+    post:
+      tags:
+        - Chats
+      security:
+        - BearerAuth: []
+      summary: Create a new chat
+      description: Endpoint for creating a new chat with specified details.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NewChat"
+      responses:
+        "201":
+          description: Successfully created a new chat.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Chat"
+        "400":
+          description: Bad request. Invalid input data.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        "500":
+          description: Internal Server Error.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+    get:
+      summary: Get user chats
+      description: Endpoint for retrieving chats associated with a specific user.
+      security:
+        - BearerAuth: []
+      tags:
+        - Chats
+      responses:
+        "200":
+          description: Successfully retrieved user chats.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Chat"
+        "400":
+          description: Bad request. Invalid input data.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        "401":
+          description: Unauthorized. User is not authenticated.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        "500":
+          description: Internal Server Error.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+  /chats/{chatId}:
+    get:
+      summary: Get user chats
+      description: Endpoint for retrieving chats associated with a specific user.
+      security:
+        - BearerAuth: []
+      tags:
+        - Chats
+      parameters:
+        - in: path
+          name: chatId
+          required: true
+          schema:
+            type: integer
+          description: The ID of the chat to retrieve.
+      responses:
+        "200":
+          description: Successfully retrieved user chats.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Chat"
+        "400":
+          description: Bad request. Invalid input data.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        "401":
+          description: Unauthorized. User is not authenticated.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        "500":
+          description: Internal Server Error.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+components:
+  schemas:
+    NewChat:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        chatType:
+          $ref: "#/components/schemas/ChatTypes"
+        members:
+          type: array
+          items:
+            type: integer
+          description: An array of user IDs representing members of the chat.
+      required:
+        - name
+        - chatType
+        - members
+      example:
+        name: "Sample Chat"
+        description: "This is a sample chat"
+        chatType: public
+        members: [123, 456, 789]
+
+    Chat:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        description:
+          type: string
+        chatType:
+          $ref: "#/components/schemas/ChatTypes"
+        members:
+          type: array
+          items:
+            type: integer
+          description: An array of user IDs representing members of the chat.
+      required:
+        - id
+        - name
+        - chatType
+        - members
+      example:
+        id: 1
+        name: "Sample Chat"
+        description: "This is a sample chat"
+        chatType: public
+        members: [123, 456, 789]
+
+    ChatTypes:
+      type: string
+      enum: [group, private, public, one_to_chat]
+      description: The type of the chat
+      example: public

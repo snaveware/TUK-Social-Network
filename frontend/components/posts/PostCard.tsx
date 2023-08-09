@@ -3,17 +3,18 @@ import { View, Text, ViewProps, useThemeColor, TextProps } from "../Themed";
 import { ThemeProps } from "../Themed";
 import { useState, useContext, useEffect } from "react";
 import { AppThemeContext } from "../../Theme";
-import { StyleSheet, Dimensions } from "react-native";
+import { StyleSheet, Dimensions, Platform } from "react-native";
 import { AuthContext } from "../../app/_layout";
 import Avatar from "../Avatar";
 import Config from "../../Config";
-import MediaGallery, { GalleryItem } from "../MediaGallery";
+import MediaGallery, { GalleryItem, WebMediaGallery } from "../MediaGallery";
 import { SimpleLineIcons } from "@expo/vector-icons";
 import Utils, { BodyRequestMethods } from "../../Utils";
 import { AntDesign } from "@expo/vector-icons";
 import { Feather } from "@expo/vector-icons";
 import { Ionicons } from "@expo/vector-icons";
 import { TouchableOpacity } from "react-native-gesture-handler";
+import { useRouter } from "expo-router";
 
 export enum PostCardVariant {
   primary = "primary",
@@ -75,6 +76,9 @@ export type PostOwner = {
   firstName: string;
   lastName: string;
   profileAvatarId?: string;
+  staffProfileIfStaff?: { title: string };
+  studentProfileIfStudent?: { registrationNumber: string };
+  bio?: string;
 };
 
 export type Post = {
@@ -103,13 +107,14 @@ export default function PostCard(props: PostCardProps) {
   const { style, lightColor, darkColor, post, ...otherProps } = props;
   const { theme } = useContext(AppThemeContext);
 
-  const { user } = useContext(AuthContext);
+  const { user, accessToken } = useContext(AuthContext);
   const [activeIndex, setActiveIndex] = useState<number>(0);
 
   const [isLiked, setIsLiked] = useState<boolean>(false);
   const [noOfComments, setNoOfComments] = useState<number>(0);
   const [noOfLikes, setNoOfLikes] = useState<number>(0);
   const [noOfShares, setNoOfShares] = useState<number>(0);
+  const router = useRouter();
 
   const [SCREEN_WIDTH, SET_SCREEN_WIDTH] = useState(
     Dimensions.get("window").width
@@ -129,14 +134,14 @@ export default function PostCard(props: PostCardProps) {
   }, [post]);
 
   const hasLikedPost = () => {
-    console.log("has liked: ", post.likers, user.id);
+    // console.log("has liked: ", post.likers, user.id);
     post.likers.map((liker) => {
-      if (liker.id === user.id) {
-        console.log("truing is like", post.id);
+      if (liker.id === user?.id) {
+        // console.log("truing is like", post.id);
         setIsLiked(true);
         return;
       } else {
-        console.log("falsingis like", post.id);
+        // console.log("falsingis like", post.id);
 
         setIsLiked(false);
       }
@@ -159,7 +164,7 @@ export default function PostCard(props: PostCardProps) {
         method: BodyRequestMethods.POST,
         body: {},
       });
-      console.log("like post results: ", results);
+      // console.log("like post results: ", results);
       if (results.success) {
         setIsLiked(true);
         setNoOfComments(results.data._count.comments);
@@ -170,7 +175,7 @@ export default function PostCard(props: PostCardProps) {
           return prevValue - 1;
         });
         setIsLiked(false);
-        console.log("Error liking post: ", results.message);
+        // console.log("Error liking post: ", results.message);
       }
     } catch (error) {
       setIsLiked(false);
@@ -198,7 +203,7 @@ export default function PostCard(props: PostCardProps) {
         method: BodyRequestMethods.POST,
         body: {},
       });
-      console.log("get post results: ", results);
+      // console.log("get post results: ", results);
       if (results.success) {
         setIsLiked(false);
         setNoOfComments(results.data._count.comments);
@@ -209,7 +214,7 @@ export default function PostCard(props: PostCardProps) {
           return prevValue + 1;
         });
         setIsLiked(true);
-        console.log("Error unliking post: ", results.message);
+        // console.log("Error unliking post: ", results.message);
       }
     } catch (error) {
       setNoOfLikes((prevValue) => {
@@ -237,7 +242,7 @@ export default function PostCard(props: PostCardProps) {
           }
           imageSource={
             post.owner?.profileAvatarId
-              ? `${Config.API_URL}/files?fid=${post.owner.profileAvatarId}`
+              ? `${Config.API_URL}/files?fid=${post.owner.profileAvatarId}&t=${accessToken}`
               : undefined
           }
           style={{ width: 40, height: 40 }}
@@ -322,11 +327,20 @@ export default function PostCard(props: PostCardProps) {
         </View>
       )}
       <View style={{ overflow: "hidden" }}>
-        <MediaGallery
-          items={post.files}
-          activeIndex={activeIndex}
-          setActiveIndex={setActiveIndex}
-        />
+        {Platform.OS !== "web" && (
+          <MediaGallery
+            items={post.files}
+            activeIndex={activeIndex}
+            setActiveIndex={setActiveIndex}
+          />
+        )}
+        {Platform.OS === "web" && (
+          <WebMediaGallery
+            items={post.files}
+            activeIndex={activeIndex}
+            setActiveIndex={setActiveIndex}
+          />
+        )}
       </View>
       {post.files.length > 1 && (
         <View
@@ -414,7 +428,15 @@ export default function PostCard(props: PostCardProps) {
             </TouchableOpacity>
           )}
 
-          <TouchableOpacity style={[{ paddingHorizontal: 5 }]}>
+          <TouchableOpacity
+            onPress={() =>
+              router.push({
+                pathname: "/posts/[postId]",
+                params: { postId: post.id },
+              })
+            }
+            style={[{ paddingHorizontal: 5 }]}
+          >
             <Feather name="message-circle" size={26} color={theme.foreground} />
           </TouchableOpacity>
 
@@ -441,7 +463,15 @@ export default function PostCard(props: PostCardProps) {
           },
         ]}
       >
-        <View style={[{ paddingHorizontal: 5 }, styles.flexRow]}>
+        <TouchableOpacity
+          onPress={() =>
+            router.push({
+              pathname: "/posts/[postId]",
+              params: { postId: post.id },
+            })
+          }
+          style={[{ paddingHorizontal: 5 }, styles.flexRow]}
+        >
           <Text
             style={{
               color: theme.foregroundMuted,
@@ -462,7 +492,7 @@ export default function PostCard(props: PostCardProps) {
           >
             {noOfComments === 1 ? "Comment" : "Comments"}
           </Text>
-        </View>
+        </TouchableOpacity>
         <View style={[{ paddingHorizontal: 5 }, styles.flexRow]}>
           <Text
             style={{

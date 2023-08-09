@@ -36,7 +36,14 @@ export default function SetupStudent() {
   const { theme } = useContext(AppThemeContext);
   const router = useRouter();
   const [loading, setLoading] = useState<boolean>(false);
-  const { isLoggedIn, user, setUser, setIsLoggedIn } = useContext(AuthContext);
+  const {
+    isLoggedIn,
+    user,
+    setUser,
+    setIsLoggedIn,
+    accessToken,
+    setAccessToken,
+  } = useContext(AuthContext);
   const [userValues, setUservalues] = useState<StudentUserValues>({
     firstName: "Evans",
     lastName: "Munene",
@@ -99,10 +106,11 @@ export default function SetupStudent() {
         method: BodyRequestMethods.POST,
         body: { ...userValues, verificationToken: params.verificationToken },
       });
-      console.log("Setup user Results: ", results);
+      // console.log("Setup user Results: ", results);
 
       if (results.success) {
         setUser(results.data.user);
+        setAccessToken(results.data.accessToken);
         setIsLoggedIn(true);
         await AsyncStorage.setItem("user", JSON.stringify(results.data.user));
         await AsyncStorage.setItem("accessToken", results.data.accessToken);
@@ -286,7 +294,7 @@ export default function SetupStudent() {
               closeOnSubmit={false}
               initialValue={{ id: programmes?.[0].id }}
               onSelectItem={(item) => {
-                console.log("selected items: ", item);
+                // console.log("selected items: ", item);
                 setUservalues((prevValues: StudentUserValues) => {
                   return {
                     ...prevValues,
@@ -322,7 +330,7 @@ export default function SetupStudent() {
                 );
               }}
               buttonTextAfterSelection={(selectedItem, index) => {
-                console.log("selected item: ", selectedItem);
+                // console.log("selected item: ", selectedItem);
                 return selectedItem.title;
               }}
               rowTextForSelection={(item, index) => {

@@ -11,7 +11,14 @@ import {
 } from "react-native";
 
 import Colors from "../constants/Colors";
-import { useContext } from "react";
+import {
+  LegacyRef,
+  MutableRefObject,
+  createRef,
+  forwardRef,
+  useContext,
+  useRef,
+} from "react";
 import { AppThemeContext } from "../Theme";
 
 export function useThemeColor(
@@ -39,10 +46,16 @@ export type ViewProps = ThemeProps & DefaultView["props"];
 export type TextInputProps = ThemeProps & DefaultTextInput["props"];
 
 export function Text(props: TextProps) {
-  const { style, lightColor, darkColor, ...otherProps } = props;
+  const { style, lightColor, darkColor, selectable, ...otherProps } = props;
   const color = useThemeColor({ light: lightColor, dark: darkColor }, "text");
 
-  return <DefaultText style={[{ color }, style]} {...otherProps} />;
+  return (
+    <DefaultText
+      selectable={selectable === false ? selectable : true}
+      style={[{ color }, style]}
+      {...otherProps}
+    />
+  );
 }
 
 export function View(props: ViewProps) {
@@ -55,7 +68,7 @@ export function View(props: ViewProps) {
   return <DefaultView style={[{ backgroundColor }, style]} {...otherProps} />;
 }
 
-export function TextInput(props: TextInputProps) {
+export const TextInput = forwardRef((props: TextInputProps, ref: any) => {
   const { style, lightColor, darkColor, ...otherProps } = props;
   const color = useThemeColor({ light: lightColor, dark: darkColor }, "text");
   const { theme } = useContext(AppThemeContext);
@@ -79,6 +92,7 @@ export function TextInput(props: TextInputProps) {
         },
         style,
       ]}
+      ref={ref}
       onFocus={() => {
         setInFocus(true);
       }}
@@ -88,4 +102,4 @@ export function TextInput(props: TextInputProps) {
       {...otherProps}
     />
   );
-}
+});

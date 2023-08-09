@@ -14,7 +14,7 @@ async function authenticate(req) {
     RequestHandler.throwError(401, "You must provide an access token")();
   }
 
-  console.log("bearar & query: ", bearerToken, queryAccessToken);
+  // console.log("bearar & query: ", bearerToken, queryAccessToken);
 
   let token;
 
@@ -32,7 +32,7 @@ async function authenticate(req) {
     token = queryAccessToken.trim();
   }
 
-  console.log("token: ", token);
+  // console.log("token: ", token);
 
   if (!token) {
     RequestHandler.throwError(400, "Unable to extract token")();
@@ -51,7 +51,7 @@ async function authenticate(req) {
       throw error;
     }
 
-    console.log("extracted in token: ", extracted);
+    // console.log("extracted in token: ", extracted);
 
     if (extracted.type != "ACCESS") {
       RequestHandler.throwError(
@@ -77,10 +77,20 @@ async function authenticate(req) {
         role: true,
         preferences: true,
         rootFolder: true,
+        staffProfileIfIsStaff: true,
+        studentProfileIfIsStudent: {
+          include: {
+            class: {
+              include: {
+                programme: true,
+              },
+            },
+          },
+        },
       },
     });
 
-    console.log("authenticated user: ", req.auth);
+    // console.log("authenticated user: ", req.auth);
 
     if (!req.auth) {
       RequestHandler.throwError(

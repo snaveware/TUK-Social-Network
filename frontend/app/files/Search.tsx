@@ -1,12 +1,13 @@
-import { StyleSheet } from "react-native";
+import { StatusBar } from "expo-status-bar";
+import { Platform, StyleSheet } from "react-native";
 
 import EditScreenInfo from "../../components/EditScreenInfo";
 import { Text, View } from "../../components/Themed";
 
-export default function FilesTabScreen() {
+export default function SearchFilesScreen() {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Files Page</Text>
+      <Text style={styles.title}>Search Files</Text>
     </View>
   );
 }

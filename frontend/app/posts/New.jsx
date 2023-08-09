@@ -52,7 +52,7 @@ export default function NewPostPage() {
   const { theme } = useContext(AppThemeContext);
   const [activeFileIndex, setActiveFileIndex] = useState(0);
   const [files, setFiles] = useState([]);
-  const { user } = useContext(AuthContext);
+  const { user, accessToken } = useContext(AuthContext);
   const navigation = useNavigation();
 
   const [loadPostStorage, setLoadPostStorage] = useState(true);
@@ -63,7 +63,7 @@ export default function NewPostPage() {
 
   useEffect(() => {
     if (Object.keys(post).length > 0) {
-      console.log("post change: ", post);
+      // console.log("post change: ", post);
       AsyncStorage.setItem("incomplete-post", JSON.stringify(post));
     } else {
       if (loadPostStorage) {
@@ -75,12 +75,12 @@ export default function NewPostPage() {
 
   useEffect(() => {
     if (files.length > 0) {
-      console.log("files change: ", files);
+      // console.log("files change: ", files);
       AsyncStorage.setItem("incomplete-files", JSON.stringify(files));
     } else {
       if (loadFilesStorage) {
-        loadFilesFromStorage();
         setLoadFilesStorage(false);
+        loadFilesFromStorage();
       }
     }
   }, [files]);
@@ -117,10 +117,10 @@ export default function NewPostPage() {
       let post = await AsyncStorage.getItem("incomplete-post");
 
       if (post) {
-        console.log("setting post", post);
+        // console.log("setting post", post);
         post = JSON.parse(post);
         setPost(post);
-        console.log("from storage: ", "post: ", post);
+        // console.log("from storage: ", "post: ", post);
       } else {
         console.log("setting default post");
         setPost({
@@ -144,9 +144,11 @@ export default function NewPostPage() {
 
       if (files) {
         files = JSON.parse(files);
-        setFiles(files);
+        if (files.length > 0) {
+          setFiles(files);
+        }
       }
-      console.log("from storage: ", "files: ", files);
+      // console.log("from storage: ", "files: ", files);
     } catch (error) {
       console.log(
         "Error restoring files from storage in new post page: ",
@@ -196,8 +198,8 @@ export default function NewPostPage() {
 
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.All,
-      allowsEditing: true,
-      aspect: [4, 3],
+      // allowsEditing: true,
+      // aspect: [4, 3],
       quality: 1,
       videoMaxDuration: 60,
     });
@@ -259,7 +261,7 @@ export default function NewPostPage() {
         body: formData,
       });
 
-      console.log("Media file upload results: ", results);
+      // console.log("Media file upload results: ", results);
 
       if (results.success) {
         setFiles((prevValues) => {
@@ -295,12 +297,20 @@ export default function NewPostPage() {
     if (loading) return;
     setLoading(true);
 
-    console.log("...post submitting...", post, files);
+    // console.log("...post submitting...", post, files);
 
     if (!isInputValid()) {
       setLoading(false);
       console.log("input invalid");
       return;
+    }
+
+    if (files && files.length > 0) {
+      files.map(async (file) => {
+        if (!file.id) {
+          await uploadFile(file);
+        }
+      });
     }
 
     try {
@@ -314,7 +324,7 @@ export default function NewPostPage() {
         body: { ...post, files: filesIds },
       });
 
-      console.log("create post results: ", results);
+      // console.log("create post results: ", results);
       if (results.success) {
         router.push({
           pathname: "/(tabs)",
@@ -368,7 +378,7 @@ export default function NewPostPage() {
             text={user ? `${user.firstName[0]}${user.lastName[0]}` : ""}
             imageSource={
               user?.profileAvatarId
-                ? `${Config.API_URL}/files?fid=${user.profileAvatarId}`
+                ? `${Config.API_URL}/files?fid=${user.profileAvatarId}&t=${accessToken}`
                 : undefined
             }
           />
@@ -416,7 +426,7 @@ export default function NewPostPage() {
                 defaultValue={post?.type || Utils.postTypes[0]}
                 sele
                 onSelect={(selectedItem, index) => {
-                  console.log("type selected: ", selectedItem);
+                  // console.log("type selected: ", selectedItem);
                   setPost((prevValues) => {
                     return {
                       ...prevValues,

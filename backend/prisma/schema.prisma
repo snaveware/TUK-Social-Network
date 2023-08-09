@@ -36,7 +36,6 @@ model User {
   chats                     Chat[]                @relation(name: "memberChats")
   groupsIfAdmin             Chat[]                @relation(name: "groupAdmin")
   sentMessages              Message[]             @relation(name: "sender")
-  receivedMessage           Message[]             @relation(name: "recipient")
   readMessages              Message[]             @relation(name: "readMessages")
   isOnline                  Boolean               @default(false)
   filesOwned                File[]                @relation(name: "fileOwner")
@@ -44,6 +43,7 @@ model User {
   ownedPosts                Post[]                @relation(name: "ownedPosts")
   repostedPosts             Post[]                @relation(name: "postReposters")
   likedPosts                Post[]                @relation(name: "postLikers")
+  likedComments             Comment[]             @relation(name: "commentLikers")
   taggedPosts               Post[]                @relation(name: "taggedPosts")
   sharedPosts               Post[]                @relation(name: "sharedPosts")
   UserChatPreferences       UserChatPreferences[]
@@ -55,6 +55,8 @@ model User {
   rootFolderId              Int                   @unique
   rootFolder                Folder                @relation(fields: [rootFolderId], references: [id])
   sharedFolders             Folder[]              @relation(name: "allowedFolderViewers")
+  comments                  Comment[]
+  socketId                  String?
 
   @@map("users")
 }
@@ -271,8 +273,10 @@ model Chat {
   schoolIfSchoolChat  School?
   createdAt           DateTime              @default(now())
   updatedAt           DateTime              @updatedAt
-  // Folder              Folder?               @relation(fields: [folderId], references: [id])
   sharedFolders       Folder[]              @relation(name: "folderAllowedChats")
+  manyChatIfOneToChat Chat?                 @relation(name: "oneToManyChats", fields: [manyChatId], references: [id])
+  oneToManyChats      Chat[]                @relation(name: "oneToManyChats")
+  manyChatId          Int?                  @unique
 
   @@map("chats")
 }
@@ -284,30 +288,29 @@ enum ChatTypes {
   group
   private
   public
+  one_to_chat
 }
 
 model Message {
-  id             Int           @id @default(autoincrement())
-  chat           Chat          @relation(fields: [chatId], references: [id])
-  sender         User          @relation(name: "sender", fields: [senderId], references: [id])
-  recipient      User          @relation(name: "recipient", fields: [recipientId], references: [id])
-  senderId       Int
-  recipientId    Int
-  message        String
-  readBy         User[]        @relation(name: "readMessages")
-  status         MessageStatus @default(pending)
-  replyingTo     Message?      @relation(name: "replies", fields: [replyingToId], references: [id])
-  chatId         Int
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
-  replies        Message[]     @relation(name: "replies")
-  replyingToId   Int?
-  linkedPost     Post?         @relation(fields: [postId], references: [id])
-  postId         Int           @unique
-  linkedPoll     Poll?         @relation(fields: [pollId], references: [id])
-  pollId         Int           @unique
-  attachedFile   File          @relation(fields: [attachedFileId], references: [id])
-  attachedFileId Int
+  id            Int           @id @default(autoincrement())
+  chat          Chat          @relation(fields: [chatId], references: [id])
+  sender        User          @relation(name: "sender", fields: [senderId], references: [id])
+  senderId      Int
+  message       String
+  readBy        User[]        @relation(name: "readMessages")
+  status        MessageStatus @default(pending)
+  replyingTo    Message?      @relation(name: "replies", fields: [replyingToId], references: [id])
+  chatId        Int
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  replies       Message[]     @relation(name: "replies")
+  replyingToId  Int?
+  linkedPost    Post?         @relation(fields: [postId], references: [id])
+  postId        Int?          @unique
+  linkedPoll    Poll?         @relation(fields: [linkedPollId], references: [id])
+  linkedPollId  Int?          @unique
+  attachedFiles File[]
+  senderChatId  Int?
 
   @@map("messages")
 }
@@ -398,16 +401,19 @@ model Poll {
 }
 
 model Comment {
-  id        Int         @id @default(autoincrement())
-  message   String
-  post      Post        @relation(fields: [postId], references: [id])
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
-  postId    Int
-  type      CommentType @default(normal)
-  replies   Comment[]   @relation(name: "commentReply")
-  aReplyFor Comment?    @relation(name: "commentReply", fields: [commentId], references: [id])
-  commentId Int?
+  id          Int         @id @default(autoincrement())
+  message     String
+  post        Post        @relation(fields: [postId], references: [id])
+  commentor   User        @relation(fields: [commentorId], references: [id])
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  postId      Int
+  type        CommentType @default(normal)
+  replies     Comment[]   @relation(name: "commentReply")
+  aReplyFor   Comment?    @relation(name: "commentReply", fields: [commentId], references: [id])
+  commentId   Int?
+  commentorId Int
+  likers      User[]      @relation(name: "commentLikers")
 
   @@map("comments")
 }

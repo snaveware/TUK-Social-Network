@@ -35,6 +35,18 @@ module.exports = class PostsController {
               firstName: true,
               lastName: true,
               profileAvatarId: true,
+
+              studentProfileIfIsStudent: {
+                select: {
+                  registrationNumber: true,
+                },
+              },
+              staffProfileIfIsStaff: {
+                select: {
+                  title: true,
+                  position: true,
+                },
+              },
             },
           },
           likers: {
@@ -71,6 +83,73 @@ module.exports = class PostsController {
               firstName: true,
               lastName: true,
               profileAvatarId: true,
+              studentProfileIfIsStudent: {
+                select: {
+                  registrationNumber: true,
+                },
+              },
+              staffProfileIfIsStaff: {
+                select: {
+                  title: true,
+                  position: true,
+                },
+              },
+            },
+          },
+          likers: {
+            where: {
+              id: req.auth.id,
+            },
+            select: {
+              id: true,
+            },
+          },
+        },
+      });
+
+      RequestHandler.sendSuccess(req, res, posts);
+    } catch (error) {
+      console.log("Error getting posts", error);
+      RequestHandler.sendError(req, res, error);
+    }
+  }
+
+  static async getUserPosts(req, res) {
+    try {
+      const userId = Number(req.params.userId) || req.auth.id;
+
+      Logger.info(JSON.stringify({ action: "get posts", user: userId }));
+      const page = parseInt(req.query.page) || 1;
+      const pageSize = Config.POSTS_PER_PAGE;
+      const skip = (page - 1) * pageSize;
+
+      const posts = await prisma.post.findMany({
+        where: {
+          ownerId: userId,
+        },
+        skip,
+        take: pageSize,
+        orderBy: { createdAt: "desc" },
+        include: {
+          files: true,
+          _count: true,
+          owner: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              profileAvatarId: true,
+              studentProfileIfIsStudent: {
+                select: {
+                  registrationNumber: true,
+                },
+              },
+              staffProfileIfIsStaff: {
+                select: {
+                  title: true,
+                  position: true,
+                },
+              },
             },
           },
           likers: {
@@ -112,8 +191,35 @@ module.exports = class PostsController {
         },
         include: {
           files: true,
-          comments: true,
-          likers: true,
+          comments: {
+            include: {
+              commentor: {
+                select: {
+                  id: true,
+                  firstName: true,
+                  lastName: true,
+                  profileAvatarId: true,
+                  studentProfileIfIsStudent: {
+                    select: {
+                      registrationNumber: true,
+                    },
+                  },
+                  staffProfileIfIsStaff: {
+                    select: {
+                      title: true,
+                      position: true,
+                    },
+                  },
+                },
+              },
+              likers: {
+                select: {
+                  id: true,
+                },
+              },
+              _count: true,
+            },
+          },
           linkedPoll: true,
           _count: true,
           owner: {
@@ -122,6 +228,17 @@ module.exports = class PostsController {
               firstName: true,
               lastName: true,
               profileAvatarId: true,
+              studentProfileIfIsStudent: {
+                select: {
+                  registrationNumber: true,
+                },
+              },
+              staffProfileIfIsStaff: {
+                select: {
+                  title: true,
+                  position: true,
+                },
+              },
             },
           },
           likers: {
@@ -282,6 +399,227 @@ module.exports = class PostsController {
       RequestHandler.sendSuccess(req, res, updatedPost);
     } catch (error) {
       console.log("error unliking post: ", error);
+      RequestHandler.sendError(req, res, error);
+    }
+  }
+
+  static async comment(req, res) {
+    try {
+      Logger.info(
+        JSON.stringify({ action: "create comment", user: req.auth.id })
+      );
+      const validated = await PostsValidator.validateComment(req.body);
+
+      if (validated.type == "reply" && !validated.commentId) {
+        RequestHandler.throwError(
+          400,
+          "A reply must have a comment to reply to",
+          null,
+          "CORRECT_INPUT"
+        );
+      }
+      const createdComment = await prisma.comment.create({
+        data: {
+          message: validated.message,
+          type: validated.type,
+          post: {
+            connect: {
+              id: validated.postId,
+            },
+          },
+          commentId: validated.commentId || undefined,
+          commentor: {
+            connect: {
+              id: req.auth.id,
+            },
+          },
+        },
+        include: {
+          commentor: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              profileAvatarId: true,
+              studentProfileIfIsStudent: {
+                select: {
+                  registrationNumber: true,
+                },
+              },
+              staffProfileIfIsStaff: {
+                select: {
+                  title: true,
+                  position: true,
+                },
+              },
+            },
+          },
+          likers: {
+            select: {
+              id: true,
+            },
+          },
+          _count: true,
+        },
+      });
+
+      RequestHandler.sendSuccess(req, res, createdComment);
+    } catch (error) {
+      console.log("Error creating comment", error);
+      RequestHandler.sendError(req, res, error);
+    }
+  }
+
+  static async likeComment(req, res) {
+    try {
+      Logger.info(
+        JSON.stringify({
+          action: "Like comment",
+          user: req.auth.id,
+          commentId: req.params.commentId,
+        })
+      );
+
+      const commentId = parseInt(req.params.commentId, 10);
+      if (isNaN(commentId)) {
+        return RequestHandler.throwError(
+          400,
+          "Invalid commentId. Must be a number"
+        )();
+      }
+
+      const comment = await prisma.comment.findUnique({
+        where: {
+          id: commentId,
+        },
+        include: {
+          likers: {
+            where: {
+              id: req.auth.id,
+            },
+            select: {
+              id: true,
+            },
+          },
+        },
+      });
+
+      if (!comment) {
+        return RequestHandler.throwError(404, "comment not found")();
+      }
+
+      if (comment.likers.length > 0) {
+        return RequestHandler.throwError(
+          409,
+          "comment already liked by the user"
+        )();
+      }
+
+      const userId = req.auth.id; // Use the authenticated user's ID
+
+      // Update the comment to add the user as a liker
+      const updatedComment = await prisma.comment.update({
+        where: {
+          id: commentId,
+        },
+        data: {
+          likers: {
+            connect: {
+              id: userId,
+            },
+          },
+        },
+        include: {
+          _count: true,
+          likers: {
+            where: {
+              id: req.auth.id,
+            },
+            select: {
+              id: true,
+            },
+          },
+        },
+      });
+
+      RequestHandler.sendSuccess(req, res, updatedComment);
+    } catch (error) {
+      console.log("error liking comment: ", error);
+      RequestHandler.sendError(req, res, error);
+    }
+  }
+
+  static async unlikeComment(req, res) {
+    try {
+      Logger.info(
+        JSON.stringify({ action: "unLike comment", user: req.auth.id })
+      );
+
+      const commentId = parseInt(req.params.commentId, 10);
+      if (isNaN(commentId)) {
+        return RequestHandler.throwError(
+          400,
+          "Invalid postId. Must be a number"
+        )();
+      }
+
+      const comment = await prisma.comment.findUnique({
+        where: {
+          id: commentId,
+        },
+        include: {
+          likers: {
+            where: {
+              id: req.auth.id,
+            },
+            select: {
+              id: true,
+            },
+          },
+        },
+      });
+
+      if (!comment) {
+        return RequestHandler.throwError(404, "comment not found")();
+      }
+
+      if (comment.likers.length < 0) {
+        return RequestHandler.throwError(
+          409,
+          "comment not liked by the user"
+        )();
+      }
+
+      const userId = req.auth.id; // Use the authenticated user's ID
+
+      // Update the comment to add the user as a liker
+      const updatedComment = await prisma.comment.update({
+        where: {
+          id: commentId,
+        },
+        data: {
+          likers: {
+            disconnect: {
+              id: userId,
+            },
+          },
+        },
+        include: {
+          _count: true,
+          likers: {
+            where: {
+              id: req.auth.id,
+            },
+            select: {
+              id: true,
+            },
+          },
+        },
+      });
+
+      RequestHandler.sendSuccess(req, res, updatedComment);
+    } catch (error) {
+      console.log("error unliking Comment: ", error);
       RequestHandler.sendError(req, res, error);
     }
   }

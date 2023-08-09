@@ -266,4 +266,63 @@ module.exports = class AuthValidator {
       throw error;
     }
   }
+
+  static async validateUpdate(values) {
+    const schema = Joi.object({
+      // Profile fields
+      firstName: Joi.string().max(30).label("First Name"),
+      lastName: Joi.string().max(30).label("Last Name"),
+      bio: Joi.string().max(256).label("Bio"),
+      position: Joi.string().max(30).label("Position"),
+      profileAvatarId: Joi.number().integer().label("Profile Avatar ID"),
+      coverImageId: Joi.number().integer().label("Cover Image ID"),
+      // Preferences fields
+      id: Joi.number().integer().label("ID"),
+      getMessagePushNotifications: Joi.boolean().label(
+        "Get Message Push Notifications"
+      ),
+      getTaggingPushNotifications: Joi.boolean().label(
+        "Get Tagging Push Notifications"
+      ),
+      getPostSharingPushNotifications: Joi.boolean().label(
+        "Get Post Sharing Push Notifications"
+      ),
+      getFileSharedPushNotifications: Joi.boolean().label(
+        "Get File Shared Push Notifications"
+      ),
+      appearance: Joi.string()
+        .valid("automatic", "dark", "light")
+        .label("Appearance"),
+      userId: Joi.number().integer().label("User ID"),
+      makeEmailPublic: Joi.boolean().label("Make Email Public"),
+      favoriteColor: Joi.string().label("Favorite Color"),
+      defaultAudience: Joi.string()
+        .valid(
+          "public",
+          "private",
+          "followers",
+          "myclass",
+          "myschool",
+          "myfaculty"
+        )
+        .label("Default Audience"),
+    }).messages({
+      "any.required": "{#label} is required.",
+      "string.base": "{#label} should be a string.",
+      "string.max": "{#label} should not exceed {#limit} characters.",
+      "number.base": "{#label} should be a number.",
+      "number.integer": "{#label} should be an integer.",
+      "boolean.base": "{#label} should be a boolean.",
+      "string.valid": "{#label} should be one of {#valids}.",
+    });
+
+    try {
+      const validated = await schema.validateAsync(values);
+      return validated;
+    } catch (error) {
+      console.log("update validation error: ", error);
+      error.status = 400;
+      throw error;
+    }
+  }
 };

@@ -33,17 +33,6 @@ export default function HomeTabScreen() {
 
   useEffect(() => {
     if (!navigationState?.key) return;
-
-    socket.on("connected", () => {
-      console.log("socket connected..............");
-      socket.emit("message", { message: "message from mobile client" });
-    });
-    socket.on("disconnected", () => {
-      console.log("socket disconnected............");
-    });
-    socket.on("message", (message: any) => {
-      console.log("new Message from server", message);
-    });
   }, []);
 
   useEffect(() => {
@@ -61,7 +50,7 @@ export default function HomeTabScreen() {
     try {
       const URL = `${Config.API_URL}/posts`;
       const results = await Utils.makeGetRequest(URL);
-      console.log("get post results: ", results);
+      // console.log("get post results: ", results);
       if (results.success) {
         setPosts(results.data);
         console.log("successful get posts");

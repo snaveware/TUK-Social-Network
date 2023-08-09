@@ -4,12 +4,18 @@ global.appRoot = resolve(__dirname);
 /**
  * Third Party Modules
  */
-const express = require("express");
 require("dotenv").config();
-const cors = require("cors");
+
 const swaggerUI = require("swagger-ui-express");
 const swaggerJsDoc = require("swagger-jsdoc");
 const fs = require("fs");
+
+/**
+ * App,Server, Io imports
+ *
+ */
+
+const { io, server, app, PORT } = require("./server");
 
 /**
  * Prisma Client Initialization
@@ -23,8 +29,7 @@ const { prisma, PrismaClient, initDatabase } = require("./DatabaseInit");
 
 const Logger = require("./Logger");
 const RequestHandler = require("./RequestHandler");
-// const {} = require("./routers");
-const { createRequestId, logRequests } = require("./middlewares");
+
 const { Config } = require("./configs");
 
 /** log folder */
@@ -56,20 +61,6 @@ try {
 }
 
 /**
- * High Level Declarations and Functions
- */
-const app = express();
-const PORT = process.env.PORT;
-
-const http = require("http");
-const server = http.createServer(app);
-
-const { Server } = require("socket.io");
-const io = new Server(server, {
-  cors: { origin: "*" },
-});
-
-/**
  * Setup Swagger API Documentation if environment is not production
  */
 
@@ -93,51 +84,88 @@ if (Config.NODE_ENV === "development" || Config.NODE_ENV === "testing") {
 }
 
 /**
- * Middlewares
- */
-
-app.use(express.json());
-app.use(cors());
-app.use(createRequestId);
-app.use(logRequests);
-
-/**
  * DB Preview
  */
-
 if (Config.NODE_ENV === "development" || Config.NODE_ENV === "testing") {
   app.get("/dbPreview", async (req, res) => {
     const getDB = async () => {
-      const users = await prisma.user.findMany();
-      const studentsProfiles = await prisma.studentProfile.findMany();
-      const staffProfile = await prisma.staffProfile.findMany();
-      const chats = await prisma.chat.findMany();
-      const posts = await prisma.post.findMany();
-      const comments = await prisma.comment.findMany();
+      const users = await prisma.user.findMany({
+        include: {
+          studentProfileIfIsStudent: true,
+          staffProfileIfIsStaff: true,
+        },
+      });
+      // const studentsProfiles = await prisma.studentProfile.findMany();
+      // const staffProfile = await prisma.staffProfile.findMany();
+      const chats = await prisma.chat.findMany({
+        include: {
+          messages: {
+            include: {
+              linkedPoll: true,
+              linkedPost: true,
+              attachedFiles: true,
+              sender: true,
+              readBy: true,
+            },
+          },
+          schoolIfSchoolChat: true,
+          classIfClassChat: true,
+          roleIfRoleChat: true,
+          members: true,
+        },
+      });
+      const posts = await prisma.post.findMany({
+        include: {
+          owner: true,
+          files: true,
+          comments: true,
+        },
+      });
+      // const comments = await prisma.comment.findMany();
       const notifications = await prisma.notification.findMany();
       const preferences = await prisma.preferences.findMany();
-      const faculties = await prisma.faculty.findMany();
-      const schools = await prisma.school.findMany();
-      const programmes = await prisma.programme.findMany();
-      const classes = await prisma.class.findMany();
-      const folders = await prisma.folder.findMany();
-      const files = await prisma.file.findMany();
+      const faculties = await prisma.faculty.findMany({
+        include: {
+          schools: {
+            include: {
+              programmes: {
+                include: {
+                  classes: true,
+                },
+              },
+            },
+          },
+        },
+      });
+      // const schools = await prisma.school.findMany();
+      // const programmes = await prisma.programme.findMany();
+      // const classes = await prisma.class.findMany();
+      const folders = await prisma.folder.findMany({
+        include: {
+          files: true,
+        },
+        include: {
+          owner: true,
+        },
+      });
+      // const files = await prisma.file.findMany();
 
       return {
         users,
-        studentsProfiles,
-        staffProfile,
+        // studentsProfiles,
+        // staffProfile,
         chats,
         posts,
-        comments,
-        notifications,
-        preferences,
+        // comments,
         faculties,
-        schools,
-        programmes,
-        classes,
+        // schools,
+        // programmes,
+        // classes,
         folders,
-        files,
+
+        // files,
+        preferences,
+        notifications,
       };
     };
 
@@ -153,26 +181,6 @@ if (Config.NODE_ENV === "development" || Config.NODE_ENV === "testing") {
 app.get("/", (req, res) => {
   RequestHandler.sendSuccess(req, res, "Carfast API Server is Up and Running");
 });
-
-/**
- * Routers
- */
-
-const { AuthRouter } = require("./services/auth");
-app.use("/auth", AuthRouter);
-
-const { SchoolsRouter } = require("./services/school");
-app.use("/schools", SchoolsRouter);
-
-const { ProgrammesRouter } = require("./services/programme");
-app.use("/programmes", ProgrammesRouter);
-
-const { FilesRouter } = require("./services/files");
-app.use("/files", FilesRouter);
-
-const { PostsRouter } = require("./services/posts");
-
-app.use("/posts", PostsRouter);
 
 /**
  *  starting the server
@@ -205,19 +213,9 @@ start();
 /**
  * Handling Sockets
  */
-
+const { RTCChatsRouter } = require("./services/RTC");
 io.on("connection", (socket) => {
-  console.log("a user connected", socket.id);
-
-  socket.on("message", (data) => {
-    console.log("message: ", socket.id, data);
-  });
-
-  socket.on("disconnect", (data) => {
-    console.log("disconnect", socket.id, data);
-  });
-
-  socket.emit("message", { message: "message from server" });
+  RTCChatsRouter._init(socket);
 });
 
 /**

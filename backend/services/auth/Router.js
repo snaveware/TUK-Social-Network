@@ -1,5 +1,17 @@
 const router = require("express").Router();
+const { AuthMiddleware } = require("../../middlewares");
 const AuthController = require("./Controller");
+
+router.put("/user/follow/:userId", AuthMiddleware, AuthController.followUser);
+router.put(
+  "/user/unfollow/:userId",
+  AuthMiddleware,
+  AuthController.unFollowUser
+);
+
+router.put("/user/:userId", AuthMiddleware, AuthController.updateUser);
+
+router.get("/user/:userId", AuthMiddleware, AuthController.getUser);
 
 router.post("/sendemailcode", AuthController.sendEmailCode);
 

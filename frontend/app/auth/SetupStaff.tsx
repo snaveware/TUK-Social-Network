@@ -43,7 +43,14 @@ export default function SetupStaff() {
   const { theme } = useContext(AppThemeContext);
   const router = useRouter();
   const [loading, setLoading] = useState<boolean>(false);
-  const { isLoggedIn, user, setUser, setIsLoggedIn } = useContext(AuthContext);
+  const {
+    isLoggedIn,
+    user,
+    setUser,
+    setIsLoggedIn,
+    accessToken,
+    setAccessToken,
+  } = useContext(AuthContext);
   const [userValues, setUservalues] = useState<StaffUserValues>({
     firstName: "Martin",
     lastName: "Munene",
@@ -128,10 +135,11 @@ export default function SetupStaff() {
         method: BodyRequestMethods.POST,
         body: { ...userValues, verificationToken: params.verificationToken },
       });
-      console.log("Setup user Results: ", results);
+      // console.log("Setup user Results: ", results);
 
       if (results.success) {
         setUser(results.data.user);
+        setAccessToken(results.data.accessToken);
         setIsLoggedIn(true);
         await AsyncStorage.setItem("user", JSON.stringify(results.data.user));
         await AsyncStorage.setItem("accessToken", results.data.accessToken);
@@ -174,7 +182,7 @@ export default function SetupStaff() {
     }
 
     if (!userValues.schoolId) {
-      theErrors.SchoolId = "Your School is required";
+      theErrors.schoolId = "Your School is required";
       hasErrors = true;
     }
 
@@ -203,41 +211,109 @@ export default function SetupStaff() {
         )}
         <View style={[styles.inputContainer]}>
           <Text style={styles.label}>Title</Text>
-          <AutocompleteDropdown
-            containerStyle={{ backgroundColor: theme.background }}
-            inputContainerStyle={{
-              backgroundColor: theme.background,
-              borderStyle: "solid",
-              borderColor: theme.border,
-              borderWidth: 0.5,
-              borderRadius: 5,
-            }}
-            textInputProps={{ style: { color: theme.foreground } }}
-            suggestionsListTextStyle={{
-              color: theme.foregroundMuted,
-            }}
-            suggestionsListContainerStyle={{
-              backgroundColor: theme.background,
-              borderStyle: "solid",
-              borderWidth: 0.5,
-              borderColor: theme.border,
-            }}
-            clearOnFocus={false}
-            closeOnBlur={true}
-            closeOnSubmit={false}
-            // initialValue={{ id: titles?.[0].id }}
-            onSelectItem={(item) => {
-              setUservalues((prevValues: StaffUserValues) => {
-                const title: any = item?.title;
-                return {
-                  ...prevValues,
-                  title: item ? title : undefined,
-                };
-              });
-            }}
-            dataSet={titles}
-          />
-          <Text style={styles.error}>{errors.SchoolId}</Text>
+          {Platform.OS !== "web" && (
+            <AutocompleteDropdown
+              containerStyle={{ backgroundColor: theme.background }}
+              inputContainerStyle={{
+                backgroundColor: theme.background,
+                borderStyle: "solid",
+                borderColor: theme.border,
+                borderWidth: 0.5,
+                borderRadius: 5,
+              }}
+              textInputProps={{ style: { color: theme.foreground } }}
+              suggestionsListTextStyle={{
+                color: theme.foregroundMuted,
+              }}
+              suggestionsListContainerStyle={{
+                backgroundColor: theme.background,
+                borderStyle: "solid",
+                borderWidth: 0.5,
+                borderColor: theme.border,
+              }}
+              clearOnFocus={false}
+              closeOnBlur={true}
+              closeOnSubmit={false}
+              // initialValue={{ id: titles?.[0].id }}
+              onSelectItem={(item) => {
+                setUservalues((prevValues: StaffUserValues) => {
+                  console.log("new title: ", item);
+                  const title: any = item?.title;
+                  return {
+                    ...prevValues,
+                    title: item ? title : undefined,
+                  };
+                });
+              }}
+              dataSet={titles}
+            />
+          )}
+          {Platform.OS === "web" && titles && titles.length > 0 && (
+            <SelectDropdown
+              data={titles}
+              onSelect={(selectedItem, index) => {
+                setUservalues((prevValues: StaffUserValues) => {
+                  return {
+                    ...prevValues,
+                    title: selectedItem.title || undefined,
+                  };
+                });
+              }}
+              renderDropdownIcon={() => {
+                return (
+                  <FontAwesome
+                    name="chevron-down"
+                    size={20}
+                    style={{ paddingRight: 5 }}
+                    color={theme.primaryForeground}
+                  />
+                );
+              }}
+              buttonTextAfterSelection={(selectedItem, index) => {
+                console.log("selected title: ", selectedItem);
+                return selectedItem.title;
+              }}
+              rowTextForSelection={(item, index) => {
+                return item.title;
+              }}
+              buttonStyle={[
+                {
+                  backgroundColor: theme.background,
+                  borderWidth: 1,
+                  borderColor: theme.border,
+                  borderRadius: 5,
+                  width: "100%",
+                  maxWidth: "100%",
+                  marginTop: 5,
+                },
+              ]}
+              buttonTextStyle={[
+                {
+                  color: theme.foreground,
+                  textTransform: "capitalize",
+                  textAlign: "left",
+                },
+              ]}
+              rowStyle={{
+                backgroundColor: theme.background,
+                borderWidth: 1,
+                borderColor: theme.border,
+                borderBottomColor: theme.border,
+              }}
+              rowTextStyle={[
+                {
+                  color: theme.foreground,
+                  textTransform: "capitalize",
+                  textAlign: "left",
+                  paddingVertical: 3,
+                },
+              ]}
+              dropdownStyle={{
+                backgroundColor: theme.background,
+              }}
+            />
+          )}
+          <Text style={styles.error}>{errors.title}</Text>
         </View>
         <View style={[styles.inputContainer]}>
           <Text style={styles.label}>First Name</Text>
@@ -346,11 +422,11 @@ export default function SetupStaff() {
               closeOnSubmit={false}
               initialValue={{ id: schools?.[0].id }}
               onSelectItem={(item) => {
-                console.log("selected items: ", item);
+                // console.log("selected items: ", item);
                 setUservalues((prevValues: StaffUserValues) => {
                   return {
                     ...prevValues,
-                    programmeId: item ? parseInt(item.id) : undefined,
+                    schoolId: item ? parseInt(item.id) : undefined,
                   };
                 });
               }}
@@ -365,7 +441,7 @@ export default function SetupStaff() {
                 setUservalues((prevValues: StaffUserValues) => {
                   return {
                     ...prevValues,
-                    programmeId: selectedItem
+                    schoolId: selectedItem
                       ? parseInt(selectedItem.id)
                       : undefined,
                   };
@@ -382,7 +458,7 @@ export default function SetupStaff() {
                 );
               }}
               buttonTextAfterSelection={(selectedItem, index) => {
-                console.log("selected item: ", selectedItem);
+                // console.log("selected item: ", selectedItem);
                 return selectedItem.title;
               }}
               rowTextForSelection={(item, index) => {
@@ -440,7 +516,7 @@ export default function SetupStaff() {
               }}
             />
           )}
-          <Text style={styles.error}>{errors.SchoolId}</Text>
+          <Text style={styles.error}>{errors.schoolId}</Text>
         </View>
 
         <View style={styles.primaryBtnContainer}>

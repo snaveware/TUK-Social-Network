@@ -18,7 +18,14 @@ export default function LoginCodeScreen({ navigation }: any) {
   const params = useLocalSearchParams();
   const router = useRouter();
   const [loading, setLoading] = useState<boolean>(false);
-  const { isLoggedIn, setUser, setIsLoggedIn, user } = useContext(AuthContext);
+  const {
+    isLoggedIn,
+    setUser,
+    setIsLoggedIn,
+    user,
+    accessToken,
+    setAccessToken,
+  } = useContext(AuthContext);
   const [code, setCode] = useState<string>();
   const [errors, setErrors] = useState<any>({});
   const [resendCountdown, setResendCountdown] = useState<number>(60);
@@ -55,7 +62,7 @@ export default function LoginCodeScreen({ navigation }: any) {
         method: BodyRequestMethods.POST,
         body: { OTPCode: code, verificationToken: verificationToken },
       });
-      console.log("Login Results: ", results);
+      // console.log("Login Results: ", results);
 
       if (results.success) {
         if (results.status === 206) {
@@ -77,6 +84,7 @@ export default function LoginCodeScreen({ navigation }: any) {
 
         setUser(results.data.user);
         setIsLoggedIn(true);
+        setAccessToken(results.data.accessToken);
         await AsyncStorage.setItem("user", JSON.stringify(results.data.user));
         await AsyncStorage.setItem("accessToken", results.data.accessToken);
         await AsyncStorage.setItem("refreshToken", results.data.refreshToken);
@@ -130,7 +138,7 @@ export default function LoginCodeScreen({ navigation }: any) {
         method: BodyRequestMethods.POST,
         body: { email: params.email },
       });
-      console.log("Send Email Code Results: ", results);
+      // console.log("Send Email Code Results: ", results);
       if (results.success) {
         setResendCountdown(60);
         setVerificationToken(results.data.verificationToken);

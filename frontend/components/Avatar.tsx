@@ -7,7 +7,7 @@ import {
 } from "react-native/Libraries/StyleSheet/StyleSheetTypes";
 
 import { ThemeProps } from "./Themed";
-import { useState, useContext, useLayoutEffect } from "react";
+import { useState, useContext, useEffect } from "react";
 import { AppThemeContext } from "../Theme";
 import { Image, StyleSheet } from "react-native";
 
@@ -46,15 +46,15 @@ export default function Avatar(props: AvatarProps) {
 
   const [hasImage, setHasImage] = useState<boolean>(false);
 
-  useLayoutEffect(() => {
+  useEffect(() => {
     if (imageSource) {
       setHasImage(true);
     }
-  }, []);
+  }, [imageSource]);
 
-  let backgroundColor = theme.accent;
+  let backgroundColor = theme.backgroundMuted;
 
-  let color = theme.accentForeground;
+  let color = theme.foreground;
 
   let borderColor = theme.primary;
 
@@ -72,8 +72,8 @@ export default function Avatar(props: AvatarProps) {
       color = theme.primary;
       borderColor = theme.primary;
     } else if (variant == "primary") {
-      backgroundColor = theme.primary;
-      color = theme.primaryForeground;
+      backgroundColor = theme.backgroundMuted;
+      color = theme.foreground;
       borderColor = theme.primary;
     }
   }
@@ -110,6 +110,7 @@ export default function Avatar(props: AvatarProps) {
               color: color,
               textAlign: "center",
               fontSize: 18,
+              textTransform: "uppercase",
             },
             textStyles,
           ]}
@@ -123,6 +124,7 @@ export default function Avatar(props: AvatarProps) {
             {
               width: "90%",
               height: "90%",
+              borderRadius: 9999,
             },
             imageStyles,
           ]}

@@ -14,9 +14,8 @@ router.post(
 );
 
 router.post("/folder", AuthMiddleware, FilesController.createFolder);
-
-router.get("/", AuthMiddleware, FilesController.getFile);
-
 router.get("/folder", AuthMiddleware, FilesController.getFolder);
+router.get("/:fileId", AuthMiddleware, FilesController.getFileObject);
+router.get("/", AuthMiddleware, FilesController.getFile);
 
 module.exports = router;
