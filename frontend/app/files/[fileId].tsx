@@ -12,6 +12,7 @@ import Utils from "../../Utils";
 import { Video } from "expo-av";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import VideoPlayer from "../../components/VideoPlayer";
+import FileView from "../../components/files/FileView";
 
 export type File = {
   id: number;
@@ -40,7 +41,7 @@ export default function SingleFileScreen() {
   useEffect(() => {
     if (file) {
       navigation.setOptions({
-        title: file.name,
+        title: file?.name,
       });
     }
   }, [file]);
@@ -72,43 +73,7 @@ export default function SingleFileScreen() {
     }
   }
 
-  return (
-    <View style={{ flex: 1 }}>
-      {file?.type === "image" && (
-        <View>
-          <Image
-            source={{
-              uri: `${Config.API_URL}/files?fid=${file.id}&t=${accessToken}`,
-            }}
-            style={{
-              width: Platform.select({ ios: true, android: true }) ? 500 : 1000,
-              height: Platform.select({ ios: true, android: true })
-                ? 500
-                : 1000,
-            }}
-          />
-          {/* <Text>{file?.name}</Text> */}
-        </View>
-      )}
-
-      {file?.type === "video" && (
-        <VideoPlayer
-          uri={`${Config.API_URL}/files?fid=${file.id}&t=${accessToken}`}
-        />
-      )}
-
-      {file?.type == "word" && (
-        <View>
-          <Text>{file.name}</Text>
-        </View>
-      )}
-      {file?.type == "pdf" && (
-        <View>
-          <Text>{file.name}</Text>
-        </View>
-      )}
-    </View>
-  );
+  return file && <FileView file={file} />;
 }
 
 const styles = StyleSheet.create({

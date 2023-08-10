@@ -1,5 +1,5 @@
 interface ConfigKeys {
-    API_URL: string;
+  API_URL: string;
 }
 
 const environment = process.env.NODE_ENV;
@@ -14,13 +14,14 @@ console.log("environment = ", environment);
 // };
 
 let Config: ConfigKeys = {
-    API_URL: "https://tuchat.snaveware.com",
+  API_URL: "https://tuchat.snaveware.com",
 };
 
 if (environment == "development") {
-    Config = {
-        API_URL: "http://192.168.1.101:5000",
-    };
+  Config = {
+    API_URL: "http://192.168.1.101:5000",
+    // API_URL: "http://172.20.10.3:5000",
+  };
 }
 
 console.log("configs: ", Config);

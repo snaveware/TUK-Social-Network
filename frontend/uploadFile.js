@@ -2,10 +2,14 @@ import Config from "./Config";
 import Utils, { BodyRequestMethods } from "./Utils";
 import { Platform } from "react-native";
 
-export default async function uploadFile(file) {
+export default async function uploadFile(file, folderId) {
   console.log("........Upload file called.......");
   try {
-    const URL = `${Config.API_URL}/files`;
+    let URL = `${Config.API_URL}/files`;
+
+    if (folderId) {
+      URL = `${Config.API_URL}/files?folderId=${folderId}`;
+    }
     const formData = new FormData();
 
     if (Platform.OS == "web") {

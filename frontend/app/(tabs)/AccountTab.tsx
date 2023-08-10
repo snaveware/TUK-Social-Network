@@ -19,11 +19,11 @@ import Utils, { BodyRequestMethods } from "../../Utils";
 import { Ionicons } from "@expo/vector-icons";
 import { TouchableOpacity, Platform } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
-import FileView from "../../components/files/FileView";
 import socket from "../../Socket";
 import * as ImagePicker from "expo-image-picker";
 import uploadFile, { extractAsset } from "../../uploadFile";
 import * as DocumentPicker from "expo-document-picker";
+import FolderView from "../../components/files/FolderView";
 
 export default function AccountTabScreen() {
   const router = useRouter();
@@ -279,7 +279,7 @@ export default function AccountTabScreen() {
     <KeyboardAwareScrollView
       style={{ flex: 1, backgroundColor: theme.background }}
     >
-      <View style={[{ flex: 1 }]}>
+      <View>
         <View>
           <Image
             source={
@@ -626,9 +626,7 @@ export default function AccountTabScreen() {
           posts?.map((post, index) => {
             return <PostCard key={index} post={post} />;
           })}
-        {activeTab === "files" && user && (
-          <FileView user={user} folderId={user.rootFolderId} />
-        )}
+        {activeTab === "files" && user && <FolderView user={user} />}
       </View>
     </KeyboardAwareScrollView>
   );

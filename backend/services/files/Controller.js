@@ -15,7 +15,7 @@ module.exports = class FilesController {
         })
       );
 
-      let folderId = req.query.folderId;
+      let folderId = Number(req.query.folderId);
 
       if (!folderId) {
         folderId = req.auth.rootFolderId;
@@ -195,6 +195,18 @@ module.exports = class FilesController {
       const file = await prisma.file.findUnique({
         where: {
           id: fileId,
+        },
+        include: {
+          owner: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              staffProfileIfIsStaff: true,
+              studentProfileIfIsStudent: true,
+              profileAvatarId: true,
+            },
+          },
         },
       });
 

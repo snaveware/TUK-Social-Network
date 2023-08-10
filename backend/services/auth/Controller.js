@@ -136,7 +136,7 @@ module.exports = class AuthController {
           _count: true,
           followedBy: {
             where: {
-              id: req.auth.id,
+              id: tokenExtractions.userId,
             },
             select: {
               firstName: true,
@@ -561,7 +561,7 @@ module.exports = class AuthController {
           _count: true,
           followedBy: {
             where: {
-              id: req.auth.id,
+              id: studentProfile.userId,
             },
             select: {
               firstName: true,
@@ -759,7 +759,7 @@ module.exports = class AuthController {
           _count: true,
           followedBy: {
             where: {
-              id: req.auth.id,
+              id: staffProfile.userId,
             },
             select: {
               firstName: true,

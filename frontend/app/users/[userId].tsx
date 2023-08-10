@@ -19,8 +19,8 @@ import Utils, { BodyRequestMethods } from "../../Utils";
 import { Ionicons } from "@expo/vector-icons";
 import { TouchableOpacity, Platform } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
-import FileView from "../../components/files/FileView";
 import socket from "../../Socket";
+import FolderView from "../../components/files/FolderView";
 
 export default function UserPageScreen() {
   const router = useRouter();
@@ -449,9 +449,7 @@ export default function UserPageScreen() {
           posts?.map((post, index) => {
             return <PostCard key={index} post={post} />;
           })}
-        {activeTab === "files" && user && (
-          <FileView user={user} folderId={user.rootFolderId} />
-        )}
+        {activeTab === "files" && user && <FolderView user={user} />}
       </View>
     </KeyboardAwareScrollView>
   );

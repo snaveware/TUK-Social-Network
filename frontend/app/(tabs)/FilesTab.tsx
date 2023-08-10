@@ -3,7 +3,6 @@ import { StyleSheet } from "react-native";
 import { useContext, useEffect } from "react";
 import { Text, View } from "../../components/Themed";
 import GlobalStyles from "../../GlobalStyles";
-import FileView from "../../components/files/FileView";
 import { AuthContext } from "../_layout";
 import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 
@@ -12,6 +11,8 @@ import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { Link, Tabs } from "expo-router";
 import { Pressable, useColorScheme } from "react-native";
 import { AppThemeContext } from "../../Theme";
+import FolderView from "../../components/files/FolderView";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 
 export default function FilesTabScreen({
   navigation: propNav,
@@ -19,7 +20,6 @@ export default function FilesTabScreen({
   navigation: any;
 }) {
   const { user } = useContext(AuthContext);
-  const params = useLocalSearchParams();
   const navigation = useNavigation();
   const { theme } = useContext(AppThemeContext);
   const router = useRouter();
@@ -61,9 +61,7 @@ export default function FilesTabScreen({
             href={{
               pathname: "/files/NewFolder",
               params: {
-                parentFolderId: params?.folderId
-                  ? params?.folderId
-                  : user.rootFolderId,
+                folderId: user?.rootFolderId,
               },
             }}
             asChild
@@ -88,16 +86,11 @@ export default function FilesTabScreen({
         </View>
       ),
     });
-  }, [params, user]);
+  }, [user]);
   return (
-    <View style={styles.container}>
-      {user && user.id && (
-        <FileView
-          folderId={params?.folderId || user?.rootFolderId}
-          user={user}
-        />
-      )}
-    </View>
+    <KeyboardAwareScrollView style={styles.container}>
+      {user && user.id && <FolderView user={user} />}
+    </KeyboardAwareScrollView>
   );
 }
 
