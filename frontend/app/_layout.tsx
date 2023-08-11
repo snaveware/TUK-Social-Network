@@ -201,17 +201,21 @@ function RootLayoutNav() {
   }, []);
 
   async function restoreStoredUser() {
-    const storedUser = await AsyncStorage.getItem("user");
-    const accessToken = await AsyncStorage.getItem("accessToken");
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-      if (accessToken) {
-        setAccessToken(accessToken);
+    try {
+      const storedUser = await AsyncStorage.getItem("user");
+      const accessToken = await AsyncStorage.getItem("accessToken");
+      if (storedUser) {
+        setUser(JSON.parse(storedUser));
+        if (accessToken) {
+          setAccessToken(accessToken);
+        }
+        setIsLoggedIn(true);
+      } else {
+        setIsLoggedIn(false);
+        router.push("/auth/LoginEmail");
       }
-      setIsLoggedIn(true);
-    } else {
-      setIsLoggedIn(false);
-      router.push("/auth/LoginEmail");
+    } catch (error) {
+      console.log("Error restoring from local storage", error);
     }
   }
 

@@ -227,27 +227,46 @@ export default function PostCard(props: PostCardProps) {
   }
 
   return (
-    <View>
+    <View
+      style={{
+        width: Platform.select({
+          web: true,
+          windows: true,
+          macos: true,
+        })
+          ? 500
+          : "100%",
+      }}
+    >
       <View
         style={[
           styles.flexRow,
           { justifyContent: "flex-start", padding: 10, paddingBottom: 0 },
         ]}
       >
-        <Avatar
-          text={
-            post?.owner
-              ? `${post?.owner?.firstName[0]}${post?.owner?.lastName[0]}`
-              : ""
-          }
-          imageSource={
-            post.owner?.profileAvatarId
-              ? `${Config.API_URL}/files?fid=${post.owner.profileAvatarId}&t=${accessToken}`
-              : undefined
-          }
-          style={{ width: 40, height: 40 }}
-          textStyles={{ fontSize: 12 }}
-        />
+        <TouchableOpacity
+          onPress={() => {
+            router.push({
+              pathname: "/users/[userId]",
+              params: { userId: post.owner.id },
+            });
+          }}
+        >
+          <Avatar
+            text={
+              post?.owner
+                ? `${post?.owner?.firstName[0]}${post?.owner?.lastName[0]}`
+                : ""
+            }
+            imageSource={
+              post.owner?.profileAvatarId
+                ? `${Config.API_URL}/files?fid=${post.owner.profileAvatarId}&t=${accessToken}`
+                : undefined
+            }
+            style={{ width: 40, height: 40 }}
+            textStyles={{ fontSize: 12 }}
+          />
+        </TouchableOpacity>
 
         <View style={{ marginLeft: 10 }}>
           <View
@@ -257,7 +276,6 @@ export default function PostCard(props: PostCardProps) {
 
               {
                 justifyContent: "space-between",
-                width: SCREEN_WIDTH - 100,
               },
             ]}
           >
@@ -269,13 +287,14 @@ export default function PostCard(props: PostCardProps) {
                 fontWeight: "500",
               }}
             >
+              {post.owner.staffProfileIfStaff?.title}
               {post.owner?.firstName} {post.owner?.lastName}
             </Text>
-            <SimpleLineIcons
+            {/* <SimpleLineIcons
               name="options"
               size={16}
               color={theme.foreground}
-            />
+            /> */}
           </View>
           <Text
             style={{
@@ -288,7 +307,7 @@ export default function PostCard(props: PostCardProps) {
           </Text>
         </View>
       </View>
-      <Text style={{ paddingTop: 10, paddingHorizontal: 10 }}>
+      <Text style={{ paddingVertical: 10, paddingHorizontal: 10 }}>
         {post.caption}
       </Text>
       {post.files.length > 1 && (
@@ -440,13 +459,13 @@ export default function PostCard(props: PostCardProps) {
             <Feather name="message-circle" size={30} color={theme.foreground} />
           </TouchableOpacity>
 
-          <TouchableOpacity style={[{ paddingHorizontal: 5 }]}>
+          {/* <TouchableOpacity style={[{ paddingHorizontal: 5 }]}>
             <Feather name="send" size={28} color={theme.foreground} />
-          </TouchableOpacity>
+          </TouchableOpacity> */}
         </View>
-        <TouchableOpacity style={[{ paddingHorizontal: 5 }]}>
+        {/* <TouchableOpacity style={[{ paddingHorizontal: 5 }]}>
           <Ionicons name="bookmark" size={30} color={theme.foreground} />
-        </TouchableOpacity>
+        </TouchableOpacity> */}
       </View>
       <View
         style={[
@@ -519,7 +538,7 @@ export default function PostCard(props: PostCardProps) {
             {noOfLikes === 1 ? "Heart" : "Hearts"}
           </Text>
         </View>
-        <View style={[{ paddingHorizontal: 5 }, styles.flexRow]}>
+        {/* <View style={[{ paddingHorizontal: 5 }, styles.flexRow]}>
           <Text
             style={{
               color: theme.foregroundMuted,
@@ -540,7 +559,7 @@ export default function PostCard(props: PostCardProps) {
           >
             {noOfShares === 1 ? "Share" : "Shares"}
           </Text>
-        </View>
+        </View> */}
       </View>
     </View>
   );

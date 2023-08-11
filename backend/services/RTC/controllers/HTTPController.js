@@ -112,7 +112,7 @@ module.exports = class ChatsHTTPController {
                 },
                 {
                   classIfClassChat: {
-                    id: classId,
+                    id: classId || Math.random(),
                   },
                 },
               ],

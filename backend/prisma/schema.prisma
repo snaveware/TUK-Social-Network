@@ -53,7 +53,8 @@ model User {
   refreshTokens             RefreshToken[]
   OTPCode                   String?
   rootFolderId              Int                   @unique
-  rootFolder                Folder                @relation(fields: [rootFolderId], references: [id])
+  rootFolder                Folder                @relation(name: "userRootFolder", fields: [rootFolderId], references: [id])
+  ownedFolders              Folder[]              @relation(name: "folderOwner")
   sharedFolders             Folder[]              @relation(name: "allowedFolderViewers")
   comments                  Comment[]
   socketId                  String?
@@ -424,7 +425,7 @@ model Poll {
 model Comment {
   id                      Int            @id @default(autoincrement())
   message                 String
-  post                    Post           @relation(fields: [postId], references: [id])
+  post                    Post           @relation(fields: [postId], references: [id], onDelete: Cascade)
   commentor               User           @relation(fields: [commentorId], references: [id])
   createdAt               DateTime       @default(now())
   updatedAt               DateTime       @updatedAt
@@ -457,8 +458,9 @@ model Folder {
   childFolders            Folder[]       @relation(name: "parentChildFolder")
   parentFolderId          Int?
   files                   File[]
-  owner                   User?
-  userId                  Int?
+  ownerAsRootFolder       User?          @relation(name: "userRootFolder")
+  owner                   User?          @relation(name: "folderOwner", fields: [ownerId], references: [id])
+  ownerId                 Int?
   visibility              FileVisibility @default(private)
   allowedViewers          User[]         @relation(name: "allowedFolderViewers")
   allowedViewerChats      Chat[]         @relation(name: "folderAllowedChats")

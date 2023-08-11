@@ -53,7 +53,7 @@ export default function NewChatScreen() {
   }, [members, name, description]);
 
   function onSelectionChange(selection: any) {
-    setMembers(Object.keys(selection));
+    setMembers(selection && Object.keys(selection));
   }
 
   async function onSubmit() {

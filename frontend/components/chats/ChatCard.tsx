@@ -14,7 +14,7 @@ import { AntDesign } from "@expo/vector-icons";
 import { Feather } from "@expo/vector-icons";
 import { Ionicons } from "@expo/vector-icons";
 import { TouchableOpacity } from "react-native-gesture-handler";
-import { Link } from "expo-router";
+import { Link, useLocalSearchParams } from "expo-router";
 import { useRouter } from "expo-router";
 import { MessageStatus } from "../../app/chats/[chatId]";
 import { MaterialIcons } from "@expo/vector-icons";
@@ -83,22 +83,26 @@ export type ChatCardProps = ThemeProps & ViewProps & CustomChatCardProps;
 export default function ChatCard(props: ChatCardProps) {
   const { style, lightColor, darkColor, chat, ...otherProps } = props;
   const { theme } = useContext(AppThemeContext);
-
+  const params = useLocalSearchParams();
   const { user, accessToken } = useContext(AuthContext);
 
   const [chatImageSource, setChatImageSource] = useState<string | undefined>();
   const [chatName, setChatName] = useState<string | undefined>();
 
   const [SCREEN_WIDTH, SET_SCREEN_WIDTH] = useState(
-    Dimensions.get("window").width
+    Platform.select({ ios: true, android: true })
+      ? Dimensions.get("window").width
+      : 500
   );
   // console.log("chat: ", chat);
 
   const router = useRouter();
   useEffect(() => {
-    Dimensions.addEventListener("change", ({ window, screen }) => {
-      SET_SCREEN_WIDTH(window.width);
-    });
+    if (Platform.select({ ios: true, android: true })) {
+      Dimensions.addEventListener("change", ({ window, screen }) => {
+        SET_SCREEN_WIDTH(window.width);
+      });
+    }
 
     let _chatImageSourceId;
     let _chatName;
@@ -133,10 +137,17 @@ export default function ChatCard(props: ChatCardProps) {
   return (
     <TouchableOpacity
       onPress={() => {
-        router.push({
-          pathname: `/chats/[chatId]`,
-          params: { chatId: chat.id },
-        });
+        if (Platform.select({ ios: true, android: true })) {
+          router.push({
+            pathname: `/chats/[chatId]`,
+            params: { chatId: chat.id },
+          });
+        } else {
+          router.push({
+            pathname: `/(tabs)/ChatsTab`,
+            params: { chatId: chat.id },
+          });
+        }
       }}
       style={[
         styles.flexRow,
@@ -145,7 +156,13 @@ export default function ChatCard(props: ChatCardProps) {
           paddingTop: 10,
           paddingLeft: 10,
           paddingRight: 20,
-          paddingBottom: 0,
+          paddingBottom: 5,
+          marginVertical: 5,
+          width: SCREEN_WIDTH - 10,
+          backgroundColor:
+            params && params.chatId && Number(params.chatId) === chat.id
+              ? theme.backgroundMuted
+              : theme.background,
         },
       ]}
     >
@@ -162,9 +179,15 @@ export default function ChatCard(props: ChatCardProps) {
           borderBottomWidth: 1,
           width: "87%",
           marginHorizontal: 10,
+          backgroundColor: "transparent",
         }}
       >
-        <View style={[styles.flexRow, { justifyContent: "space-between" }]}>
+        <View
+          style={[
+            styles.flexRow,
+            { justifyContent: "space-between", backgroundColor: "transparent" },
+          ]}
+        >
           <Text
             style={{
               fontSize: 16,
@@ -190,8 +213,18 @@ export default function ChatCard(props: ChatCardProps) {
           )}
         </View>
 
-        <View style={[styles.flexRow, { justifyContent: "space-between" }]}>
-          <View style={[styles.flexRow, { paddingVertical: 5 }]}>
+        <View
+          style={[
+            styles.flexRow,
+            { justifyContent: "space-between", backgroundColor: "transparent" },
+          ]}
+        >
+          <View
+            style={[
+              styles.flexRow,
+              { paddingVertical: 5, backgroundColor: "transparent" },
+            ]}
+          >
             {chat?.messages?.[0] &&
               chat?.messages?.[0].sender?.id === user?.id && (
                 <Text style={{ paddingRight: 5 }} selectable={false}>
@@ -209,7 +242,9 @@ export default function ChatCard(props: ChatCardProps) {
                     fontSize: 12,
                     fontWeight: "500",
                     color: theme.foregroundMuted,
-                    width: "90%",
+                    width: Platform.select({ ios: true, android: true })
+                      ? "90%"
+                      : 350,
                     minHeight: 40,
                   }}
                   selectable={false}
@@ -218,8 +253,8 @@ export default function ChatCard(props: ChatCardProps) {
                   chat?.messages?.[0]?.sender?.firstName
                     ? chat?.messages?.[0]?.sender?.firstName + ": "
                     : ""}
-                  {chat?.messages?.[0]?.message.trim().length > 90
-                    ? chat?.messages?.[0]?.message.substring(0, 90) + "..."
+                  {chat?.messages?.[0]?.message.length > 80
+                    ? chat?.messages?.[0]?.message.substring(0, 80) + "..."
                     : chat?.messages?.[0]?.message}
                 </Text>
               )}

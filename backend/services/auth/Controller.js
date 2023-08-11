@@ -26,13 +26,17 @@ module.exports = class AuthController {
         },
       });
 
-      /**
-       * First determine if user is student or staff. The set role
-       */
-
-      const role = "staff";
-
       if (!user) {
+        if (!validated.email.endsWith("tukenya.ac.ke")) {
+          RequestHandler.throwError(400, "The email must be a TUK Email")();
+        }
+
+        let role = "staff";
+
+        if (validated.email.search("student") !== -1) {
+          role = "student";
+        }
+
         user = await prisma.user.create({
           data: {
             email: validated.email,

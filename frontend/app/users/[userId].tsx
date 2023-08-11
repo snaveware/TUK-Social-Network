@@ -72,11 +72,12 @@ export default function UserPageScreen() {
     console.log("...getting posts...");
     if (loading) return;
     setLoading(true);
+    console.log("--get posts,after loading");
 
     try {
       const URL = `${Config.API_URL}/posts/user/${user?.id}`;
       const results = await Utils.makeGetRequest(URL);
-      // console.log("get post results: ", results);
+      console.log("get post results: ", results);
       if (results.success) {
         setPosts(results.data);
         console.log("successful get posts");
@@ -100,13 +101,13 @@ export default function UserPageScreen() {
       const URL = `${Config.API_URL}/auth/user/${params.userId}`;
       const results = await Utils.makeGetRequest(URL);
       // console.log("get user results: ", results);
+      setLoading(false);
       if (results.success) {
         setUser(results.data);
         console.log("successful get user");
       } else {
         setError(results.message);
       }
-      setLoading(false);
     } catch (error) {
       setLoading(false);
       setError("Your are not connected to the internet");
@@ -159,7 +160,7 @@ export default function UserPageScreen() {
                   }
                 : Background
             }
-            style={[{ height: 250 }]}
+            style={[{ height: 250, width: "100%" }]}
           />
           <View
             style={[

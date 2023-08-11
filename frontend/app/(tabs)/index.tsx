@@ -1,10 +1,15 @@
 import { StyleSheet, FlatList } from "react-native";
 import EditScreenInfo from "../../components/EditScreenInfo";
 import { Text, View } from "../../components/Themed";
-import { Pressable } from "react-native";
+import { Pressable, Platform } from "react-native";
 import socket from "../../Socket";
 import { useEffect, useState } from "react";
-import { Link, useRootNavigationState, useRouter } from "expo-router";
+import {
+  Link,
+  useNavigation,
+  useRootNavigationState,
+  useRouter,
+} from "expo-router";
 import { AppThemeContext } from "../../Theme";
 import { useContext } from "react";
 import { AuthContext } from "../_layout";
@@ -16,7 +21,7 @@ import PostCard, { Post } from "../../components/posts/PostCard";
 
 export default function HomeTabScreen() {
   const router = useRouter();
-  const navigationState = useRootNavigationState();
+  // const navigationState = useRootNavigationState();
   const { theme } = useContext(AppThemeContext);
   const { user, setIsLoggedIn, setUser } = useContext(AuthContext);
   const [posts, setPosts] = useState<Post[]>([]);
@@ -31,15 +36,20 @@ export default function HomeTabScreen() {
     router.push("/auth/LoginEmail");
   }
 
-  useEffect(() => {
-    if (!navigationState?.key) return;
-  }, []);
+  const navigation = useNavigation();
+
+  // useEffect(() => {
+  //   if (!navigationState?.key) return;
+  // }, []);
 
   useEffect(() => {
     /**
      * Get Posts
      */
     getPosts();
+    navigation.addListener("focus", () => {
+      getPosts();
+    });
   }, []);
 
   async function getPosts() {
@@ -66,7 +76,7 @@ export default function HomeTabScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container]}>
       <FlatList
         showsVerticalScrollIndicator={false}
         onRefresh={getPosts}
@@ -86,6 +96,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
+    overflow: "hidden",
   },
   title: {
     fontSize: 20,

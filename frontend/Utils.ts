@@ -108,6 +108,19 @@ export default class Utils {
     });
   }
 
+  static async makeDeleteRequest(URL: string) {
+    return Utils.makeRequest(async () => {
+      const response = await fetch(URL, {
+        method: "DELETE",
+        headers: await Utils.getHeaders(),
+      });
+
+      //   console.log("Make Delete Function: ", response);
+
+      return response;
+    });
+  }
+
   static async makeBodyRequest({ URL, method, body }: BodyRequestInterface) {
     return Utils.makeRequest(async () => {
       const response = await fetch(URL, {

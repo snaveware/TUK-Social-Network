@@ -268,4 +268,137 @@ module.exports = class FilesController {
       RequestHandler.sendError(req, res, error);
     }
   }
+
+  static async deleteFile(req, res) {
+    try {
+      const fileId = Number(req.params.fileId);
+
+      if (!fileId) {
+        RequestHandler.throwError(400, "File ID is required")();
+      }
+
+      const file = await prisma.file.findUnique({
+        where: {
+          id: fileId,
+        },
+        select: {
+          id: true,
+          Post: true,
+          chatIfProfile: true,
+          messagesAttachedTo: true,
+          userIfProfileAvatar: true,
+          userIfCoverImage: true,
+          ownerId: true,
+        },
+      });
+
+      if (file.ownerId !== req.auth.id) {
+        RequestHandler.throwError(403, "You can only delete your own files")();
+      }
+
+      if (file.Post) {
+        RequestHandler.throwError(
+          400,
+          "A file cannot be deleted whilst it's attached to a post"
+        )();
+      }
+
+      if (file.messagesAttachedTo) {
+        RequestHandler.throwError(
+          400,
+          "A File cannot be deleted whilst it is attached to a message"
+        )();
+      }
+
+      if (file.chatIfProfile) {
+        RequestHandler.throwError(
+          400,
+          "A file cannot be deleted while it is used as chat profile"
+        )();
+      }
+
+      if (file.userIfProfileAvatar) {
+        RequestHandler.throwError(
+          400,
+          "A file cannot be deleted while it is used as a Profile image"
+        )();
+      }
+
+      if (file.userIfCoverImage) {
+        RequestHandler.throwError(
+          400,
+          "A File cannot be deleted while it's used as a cover image"
+        )();
+      }
+
+      const deletion = await prisma.file.delete({
+        where: {
+          id: fileId,
+        },
+      });
+
+      RequestHandler.sendSuccess(req, res, deletion);
+    } catch (error) {
+      console.log("Error deleting file: ", error);
+      RequestHandler.sendError(req, res, error);
+    }
+  }
+
+  static async deleteFolder(req, res) {
+    try {
+      Logger.info(
+        JSON.stringify({
+          action: "delete folder",
+          user: req.auth.id,
+          folder: req.params.folderId,
+        })
+      );
+      const folderId = Number(req.params.folderId);
+
+      if (!folderId) {
+        RequestHandler.throwError(400, "folder Id is required")();
+      }
+
+      if (folderId === req.auth.rootFolderId) {
+        RequestHandler.throwError(400, "You cannot delete your root folder")();
+      }
+
+      const folder = await prisma.folder.findUnique({
+        where: {
+          id: folderId,
+        },
+        include: {
+          _count: true,
+          owner: true,
+        },
+      });
+
+      if (!folder) {
+        RequestHandler.throwError(404, "Folder not found")();
+      }
+
+      if (!folder.owner || folder.owner.id !== req.auth.id) {
+        RequestHandler.throwError(
+          403,
+          "You can only delete your own folders"
+        )();
+      }
+
+      if (
+        folder._count.files.length > 0 ||
+        folder._count.childFolders.length > 0
+      ) {
+        RequestHandler.throwError(400, "The folder is not empty")();
+      }
+
+      const deletion = await prisma.folder.delete({
+        where: {
+          id: folderId,
+        },
+      });
+    } catch (error) {
+      console.log("Error deleting folder: ", error);
+      RequestHandler.sendError(req, res, error);
+    }
+  }
 };

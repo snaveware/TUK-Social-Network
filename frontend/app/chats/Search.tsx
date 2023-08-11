@@ -24,7 +24,7 @@ export enum SearchTypes {
   all = "all",
   chats = "chats",
   users = "users",
-  messages = "messages",
+  // messages = "messages",
 }
 
 export default function ChatsSearchScreen() {
@@ -50,10 +50,10 @@ export default function ChatsSearchScreen() {
       id: 3,
       title: SearchTypes.users,
     },
-    {
-      id: 4,
-      title: SearchTypes.messages,
-    },
+    // {
+    //   id: 4,
+    //   title: SearchTypes.messages,
+    // },
   ];
 
   const [searchTypeItem, setSearchTypeItem] = useState<any>(
@@ -73,15 +73,15 @@ export default function ChatsSearchScreen() {
       setLoading(false);
     });
 
-    socket.on("search_messages_results", (data) => {
-      console.log(
-        "---search meessages results--- ",
-        data.messages?.length
-        // data.messages[0]
-      );
-      setMessages(data.messages);
-      setLoading(false);
-    });
+    // socket.on("search_messages_results", (data) => {
+    //   console.log(
+    //     "---search meessages results--- ",
+    //     data.messages?.length
+    //     // data.messages[0]
+    //   );
+    //   setMessages(data.messages);
+    //   setLoading(false);
+    // });
 
     socket.on("resolve_chat_response", (data) => {
       console.log("resolve chat response: ", data);
@@ -106,7 +106,7 @@ export default function ChatsSearchScreen() {
     if (searchType === SearchTypes.all) {
       socket.emit("search_chats", { searchString });
       socket.emit("search_users", { searchString });
-      socket.emit("search_messages", { searchString });
+      // socket.emit("search_messages", { searchString });
     } else if (searchType === SearchTypes.chats) {
       socket.emit("search_chats", { searchString });
       setUsers(undefined);
@@ -115,11 +115,12 @@ export default function ChatsSearchScreen() {
       socket.emit("search_users", { searchString });
       setChats(undefined);
       setMessages(undefined);
-    } else if (searchType === SearchTypes.messages) {
-      socket.emit("search_messages", { searchString });
-      setUsers(undefined);
-      setChats(undefined);
     }
+    // } else if (searchType === SearchTypes.messages) {
+    //   socket.emit("search_messages", { searchString });
+    //   setUsers(undefined);
+    //   setChats(undefined);
+    // }
   }
 
   function onUserSelect(user: PostOwner) {
@@ -238,7 +239,7 @@ export default function ChatsSearchScreen() {
       >
         <SearchChatsList chats={chats} />
         <SearchusersList users={users} onSelect={onUserSelect} />
-        <SearchMessagesList messages={messages} />
+        {/* <SearchMessagesList messages={messages} /> */}
       </KeyboardAwareScrollView>
     </View>
   );

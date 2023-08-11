@@ -102,7 +102,7 @@ export type FullChart = {
   _counts: { messages: number; members: number };
 };
 
-export default function SinglePostScreen() {
+export default function SingleChatScreen() {
   const params = useLocalSearchParams();
   const navigation = useNavigation();
   const [loading, setLoading] = useState<boolean>(false);
@@ -121,9 +121,9 @@ export default function SinglePostScreen() {
 
   const [keyboardHeight, setKeyboardHeight] = useState(0);
 
-  const [SCREEN_HEIGHT, SET_SCREEN_HEIGHT] = useState(
-    Dimensions.get("window").height
-  );
+  // const [SCREEN_HEIGHT, SET_SCREEN_HEIGHT] = useState(
+  //   Dimensions.get("window").height
+  // );
 
   const { user, accessToken } = useContext(AuthContext);
   const inputRef = createRef<RNTextInput>();
@@ -135,6 +135,10 @@ export default function SinglePostScreen() {
       inputRef.current?.focus();
     }
   }, [replyMessage]);
+
+  useEffect(() => {
+    getChat();
+  }, [params]);
 
   useEffect(() => {
     getChat();
@@ -236,17 +240,17 @@ export default function SinglePostScreen() {
   }
 
   async function getChat() {
-    console.log("...getting Chats...");
+    console.log("...getting Chat ...id: ", params.chatId);
     if (loading) return;
     setLoading(true);
 
     try {
       const URL = `${Config.API_URL}/chats/${params.chatId}`;
       const results = await Utils.makeGetRequest(URL);
-      // console.log("get Chat results: ", results);
+      console.log("get Chat results: ", results);
       if (results.success) {
         setChat(results.data);
-        console.log("successful get Chats");
+        console.log("successful get Chat");
       } else {
         setError(results.message);
       }
@@ -259,7 +263,15 @@ export default function SinglePostScreen() {
   }
 
   return (
-    <View style={{ flex: 1 }}>
+    <View
+      style={{
+        flex: 1,
+        // width: Platform.select({ ios: true, android: true }) ? undefined : 1000,
+        // overflow: Platform.select({ ios: true, android: true })
+        //   ? undefined
+        //   : "visible",
+      }}
+    >
       <KeyboardAwareFlatList
         onKeyboardWillShow={(frames: any) => {
           if (Platform.OS == "ios") {
@@ -273,7 +285,11 @@ export default function SinglePostScreen() {
         }}
         onRefresh={getChat}
         refreshing={loading}
-        data={chat?.messages}
+        data={
+          Platform.select({ ios: true, android: true })
+            ? chat?.messages
+            : chat?.messages.reverse()
+        }
         renderItem={({ item }: { item: Message }) => (
           <MessageCard setReplyMessage={setReplyMessage} message={item} />
         )}
@@ -453,7 +469,7 @@ export default function SinglePostScreen() {
             },
           ]}
         >
-          <FontAwesome5 name="plus" size={32} color={theme.foreground} />
+          {/* <FontAwesome5 name="plus" size={32} color={theme.foreground} /> */}
           <TextInput
             autoFocus={replyMessage ? true : false}
             multiline={true}

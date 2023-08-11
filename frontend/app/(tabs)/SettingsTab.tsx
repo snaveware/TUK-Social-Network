@@ -1,6 +1,6 @@
 import { FlatList, StyleSheet } from "react-native";
 import { Text, View, TextInput } from "../../components/Themed";
-import Button from "../../components/Button";
+import Button, { ButtonVariant } from "../../components/Button";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation, useRouter } from "expo-router";
 import { useContext, useState, useEffect, useRef } from "react";
@@ -34,7 +34,7 @@ export type profileInput = {
 export default function SettingsTabScreen() {
   const router = useRouter();
   const { user, setIsLoggedIn, setUser, accessToken } = useContext(AuthContext);
-
+  console.log("user: ", user, "access", accessToken);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | undefined>();
   const { theme } = useContext(AppThemeContext);
@@ -72,38 +72,42 @@ export default function SettingsTabScreen() {
   ];
 
   useEffect(() => {
-    getUser();
+    // getUser();
   }, []);
 
   useEffect(() => {
-    navigation.setOptions({
-      title: "Edit Profile",
+    if (navigation) {
+      navigation.setOptions({
+        title: "Edit Profile",
 
-      headerRight: () => {
-        return (
-          <View
-            style={[styles.flexRow, styles.flexCenter, { paddingRight: 10 }]}
-          >
-            <Button
-              onPress={updateProfile}
-              text="Save"
-              style={{
-                paddingHorizontal: 15,
-                paddingVertical: 5,
-                marginVertical: "auto",
-              }}
-            />
-          </View>
-        );
-      },
-    });
+        headerRight: () => {
+          return (
+            <View
+              style={[styles.flexRow, styles.flexCenter, { paddingRight: 10 }]}
+            >
+              <Button
+                onPress={updateProfile}
+                text="Save"
+                style={{
+                  paddingHorizontal: 15,
+                  paddingVertical: 5,
+                  marginVertical: "auto",
+                }}
+              />
+            </View>
+          );
+        },
+      });
+    } else {
+      console.log("-----no navigation-------");
+    }
   }, [profile]);
 
   useEffect(() => {
     if (user) {
       setProfileAvatarImageSource(
         user?.profileAvatarId && accessToken
-          ? `${Config.API_URL}/files?fid=${user.profileAvatarId}&t=${accessToken}`
+          ? `${Config.API_URL}/files?fid=${user?.profileAvatarId}&t=${accessToken}`
           : undefined
       );
 
@@ -114,17 +118,19 @@ export default function SettingsTabScreen() {
       );
 
       setProfile({
-        firstName: user.firstName,
-        lastName: user.lastName,
-        bio: user.bio,
-        title: user.staffProfileIfIsStaff?.title,
-        position: user.staffProfileIfIsStaff?.position,
+        firstName: user?.firstName,
+        lastName: user?.lastName,
+        bio: user?.bio,
+        title: user?.staffProfileIfIsStaff?.title,
+        position: user?.staffProfileIfIsStaff?.position,
       });
-      titles.map((title, index) => {
-        if (user.staffProfileIfIsStaff?.title === title.title) {
-          dropDownRef.current?.selectIndex(index);
-        }
-      });
+
+      titles &&
+        titles.map((title, index) => {
+          if (user?.staffProfileIfIsStaff?.title === title.title) {
+            dropDownRef.current?.selectIndex(index);
+          }
+        });
     }
   }, [user]);
 
@@ -137,18 +143,38 @@ export default function SettingsTabScreen() {
     router.push("/auth/LoginEmail");
   }
 
+  async function clearCache() {
+    const user = await AsyncStorage.getItem("user");
+    const accessToken = await AsyncStorage.getItem("accessToken");
+    const refreshToken = await AsyncStorage.getItem("refreshToken");
+
+    await AsyncStorage.clear();
+
+    if (user && accessToken && refreshToken) {
+      AsyncStorage.setItem("user", user);
+      AsyncStorage.setItem("accessToken", accessToken);
+      AsyncStorage.setItem("refreshToken", refreshToken);
+    } else {
+      setIsLoggedIn(false);
+      setUser(null);
+      router.push("/auth/LoginEmail");
+    }
+  }
+
   async function getUser() {
-    console.log("...getting user...");
+    console.log("...getting user?...");
     if (loading) return;
     setLoading(true);
 
     try {
       const URL = `${Config.API_URL}/auth/user/${user?.id}`;
       const results = await Utils.makeGetRequest(URL);
-      // console.log("get user results: ", results);
+      console.log("get user results: ", results);
       if (results.success) {
-        setUser(results.data);
-        AsyncStorage.setItem("user", JSON.stringify(results.data));
+        if (results.data) {
+          setUser(results.data);
+          AsyncStorage.setItem("user", JSON.stringify(results.data));
+        }
         console.log("successful get user");
       } else {
         setError(results.message);
@@ -265,7 +291,7 @@ export default function SettingsTabScreen() {
     if (loading) return;
     setLoading(true);
     try {
-      if (Object.keys(profile).length < 1) {
+      if (profile && Object.keys(profile).length < 1) {
         setLoading(false);
         return;
       } else if (profile.bio && profile.bio.length > 256) {
@@ -292,8 +318,11 @@ export default function SettingsTabScreen() {
       console.log("update profile results: ", results);
 
       if (results.success) {
-        setUser(results.data);
-        AsyncStorage.setItem("user", JSON.stringify(results.data));
+        if (results.data) {
+          setUser(results.data);
+          AsyncStorage.setItem("user", JSON.stringify(results.data));
+        }
+
         router.push("/(tabs)/AccountTab");
         console.log("successful profile update user");
       } else {
@@ -305,6 +334,14 @@ export default function SettingsTabScreen() {
       setError("Your are not connected to the internet");
       console.log("Error update profile: ", error);
     }
+  }
+
+  if (!user?.firstName) {
+    return (
+      <View>
+        <Text>Loading...</Text>
+      </View>
+    );
   }
 
   return (
@@ -322,7 +359,8 @@ export default function SettingsTabScreen() {
                   }
                 : Background
             }
-            style={[{ height: 250 }]}
+            style={[{ height: 250, width: "100%" }]}
+            resizeMode="cover"
           />
           <View
             style={[
@@ -355,7 +393,7 @@ export default function SettingsTabScreen() {
                 ]}
                 textStyles={{ fontSize: 30 }}
               />
-              <TouchableOpacity
+              {/* <TouchableOpacity
                 style={[
                   styles.flexRow,
                   styles.flexCenter,
@@ -375,7 +413,7 @@ export default function SettingsTabScreen() {
                 }}
               >
                 <Entypo name="camera" size={20} color={theme.foreground} />
-              </TouchableOpacity>
+              </TouchableOpacity> */}
             </View>
             <View
               style={[
@@ -394,7 +432,7 @@ export default function SettingsTabScreen() {
                   { backgroundColor: "transparent" },
                 ]}
               >
-                <TouchableOpacity
+                {/* <TouchableOpacity
                   style={[
                     styles.flexRow,
                     styles.flexCenter,
@@ -411,12 +449,24 @@ export default function SettingsTabScreen() {
                   }}
                 >
                   <Entypo name="camera" size={20} color={theme.foreground} />
-                </TouchableOpacity>
+                </TouchableOpacity> */}
               </View>
             </View>
           </View>
         </View>
-        <View style={[styles.padding, { position: "relative", top: -60 }]}>
+
+        <View
+          style={[
+            styles.padding,
+            {
+              position: "relative",
+              top: -60,
+              padding: Platform.select({ ios: true, android: true })
+                ? undefined
+                : 50,
+            },
+          ]}
+        >
           {errorMessage && (
             <Text style={[styles.error, styles.errorBorder]}>
               {errorMessage}
@@ -584,10 +634,34 @@ export default function SettingsTabScreen() {
         </View>
       </View>
 
+      <View
+        style={[
+          styles.padding,
+          {
+            paddingHorizontal: Platform.select({ ios: true, android: true })
+              ? undefined
+              : 50,
+          },
+        ]}
+      >
+        <Button
+          text="Logout"
+          onPress={onLogout}
+          style={[{ backgroundColor: theme.destructive }]}
+        />
+      </View>
+
       <Button
-        text="Logout"
-        onPress={onLogout}
-        style={{ marginHorizontal: 10, backgroundColor: theme.destructive }}
+        text="Clear Cache"
+        onPress={clearCache}
+        style={[
+          {
+            marginHorizontal: Platform.select({ ios: true, android: true })
+              ? undefined
+              : 50,
+            backgroundColor: theme.destructive,
+          },
+        ]}
       />
     </KeyboardAwareScrollView>
   );

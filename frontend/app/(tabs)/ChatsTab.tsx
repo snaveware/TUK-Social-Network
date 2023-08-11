@@ -13,6 +13,9 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import Utils from "../../Utils";
 import Config from "../../Config";
 import ChatCard, { Chat } from "../../components/chats/ChatCard";
+import SingleChatScreen from "../chats/[chatId]";
+import GlobalStyles from "../../GlobalStyles";
+import { Platform } from "react-native";
 
 export default function ChatsTabScreen() {
   const router = useRouter();
@@ -71,9 +74,20 @@ export default function ChatsTabScreen() {
     try {
       const URL = `${Config.API_URL}/chats`;
       const results = await Utils.makeGetRequest(URL);
-      // console.log("get Chat results: ", results);
+      console.log("get Chat results: (1) ", results.data[0]);
       if (results.success) {
         setChats(results.data);
+        if (
+          !Platform.select({ ios: true, android: true }) &&
+          results.data &&
+          results.data[0] &&
+          results.data[0].id
+        ) {
+          router.push({
+            pathname: "/(tabs)/ChatsTab",
+            params: { chatId: results.data[0].id },
+          });
+        }
         console.log("successful get Chats");
       } else {
         setError(results.message);
@@ -87,7 +101,13 @@ export default function ChatsTabScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <View
+      style={[
+        styles.container,
+        styles.flexRow,
+        { justifyContent: "flex-start", alignItems: "flex-start" },
+      ]}
+    >
       <FlatList
         showsVerticalScrollIndicator={false}
         onRefresh={getChats}
@@ -97,12 +117,39 @@ export default function ChatsTabScreen() {
         keyExtractor={(item) => {
           return item.id.toString();
         }}
+        style={{
+          width: Platform.select({ ios: true, android: true })
+            ? undefined
+            : 500,
+          maxWidth: Platform.select({ ios: true, android: true })
+            ? undefined
+            : 500,
+          height: "100%",
+          borderRightWidth: Platform.select({ ios: true, android: true })
+            ? 0
+            : 1,
+          borderEndWidth: Platform.select({ ios: true, android: true }) ? 0 : 1,
+          borderEndColor: theme.border,
+          borderRightColor: theme.border,
+        }}
       />
+      {!Platform.select({ ios: true, android: true }) && (
+        <View
+          style={{
+            flex: 1,
+            width: "100%",
+            height: "100%",
+          }}
+        >
+          <SingleChatScreen />
+        </View>
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  ...GlobalStyles,
   container: {
     flex: 1,
   },

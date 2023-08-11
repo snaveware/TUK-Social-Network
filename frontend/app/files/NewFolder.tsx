@@ -20,7 +20,7 @@ export default function NewFolderScreen() {
   const router = useRouter();
   const [loading, setLoading] = useState<boolean>(false);
   const { isLoggedIn } = useContext(AuthContext);
-  const [folderName, setFolderName] = useState<string>("Unit 1");
+  const [folderName, setFolderName] = useState<string>();
   const [errors, setErrors] = useState<any>({});
   const { theme } = useContext(AppThemeContext);
 

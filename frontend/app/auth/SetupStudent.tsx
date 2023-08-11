@@ -44,12 +44,7 @@ export default function SetupStudent() {
     accessToken,
     setAccessToken,
   } = useContext(AuthContext);
-  const [userValues, setUservalues] = useState<StudentUserValues>({
-    firstName: "Evans",
-    lastName: "Munene",
-    registrationNumber: "SCII/00819/2019",
-    year: 2019,
-  });
+  const [userValues, setUservalues] = useState<StudentUserValues>({});
   const [errors, setErrors] = useState<any>({});
 
   const [programmes, setProgrammes] = useState<
@@ -106,15 +101,21 @@ export default function SetupStudent() {
         method: BodyRequestMethods.POST,
         body: { ...userValues, verificationToken: params.verificationToken },
       });
-      // console.log("Setup user Results: ", results);
+      console.log("Setup user Results: ", results);
 
       if (results.success) {
         setUser(results.data.user);
         setAccessToken(results.data.accessToken);
         setIsLoggedIn(true);
-        await AsyncStorage.setItem("user", JSON.stringify(results.data.user));
-        await AsyncStorage.setItem("accessToken", results.data.accessToken);
-        await AsyncStorage.setItem("refreshToken", results.data.refreshToken);
+        if (results.data) {
+          await AsyncStorage.setItem("user", JSON.stringify(results.data.user));
+          await AsyncStorage.setItem("accessToken", results.data.accessToken);
+          await AsyncStorage.setItem("refreshToken", results.data.refreshToken);
+        } else {
+          router.push("/auth/LoginEmail");
+          return;
+        }
+
         router.push("/(tabs)");
       } else {
         setErrors({

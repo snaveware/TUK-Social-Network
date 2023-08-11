@@ -62,7 +62,7 @@ export default function NewPostPage() {
   // AsyncStorage.removeItem("incomplete-files");
 
   useEffect(() => {
-    if (Object.keys(post).length > 0) {
+    if (post && Object.keys(post).length > 0) {
       // console.log("post change: ", post);
       AsyncStorage.setItem("incomplete-post", JSON.stringify(post));
     } else {
@@ -126,7 +126,7 @@ export default function NewPostPage() {
         setPost({
           type: "social",
           visibility: "public",
-          caption: "New post message",
+          caption: "",
           files: [],
         });
       }
@@ -148,7 +148,7 @@ export default function NewPostPage() {
           setFiles(files);
         }
       }
-      // console.log("from storage: ", "files: ", files);
+      console.log("from storage: ", "files: ", files);
     } catch (error) {
       console.log(
         "Error restoring files from storage in new post page: ",

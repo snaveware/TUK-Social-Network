@@ -29,7 +29,7 @@ export default function AccountTabScreen() {
   const router = useRouter();
 
   const { user, setIsLoggedIn, setUser, accessToken } = useContext(AuthContext);
-
+  console.log("user: ", user, "access", accessToken);
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | undefined>();
@@ -42,6 +42,10 @@ export default function AccountTabScreen() {
   const [coverImageSource, setCoverImageSource] = useState<string>();
 
   useEffect(() => {
+    navigation.addListener("focus", () => {
+      getUser();
+    });
+
     getUser();
   }, []);
 
@@ -56,7 +60,7 @@ export default function AccountTabScreen() {
       }
       setProfileAvatarImageSource(
         user?.profileAvatarId && accessToken
-          ? `${Config.API_URL}/files?fid=${user.profileAvatarId}&t=${accessToken}`
+          ? `${Config.API_URL}/files?fid=${user?.profileAvatarId}&t=${accessToken}`
           : undefined
       );
 
@@ -111,8 +115,9 @@ export default function AccountTabScreen() {
       console.log("get user results: ", results);
       if (results.success) {
         setUser(results.data);
-
-        AsyncStorage.setItem("user", JSON.stringify(results.data));
+        if (results.data) {
+          AsyncStorage.setItem("user", JSON.stringify(results.data));
+        }
         console.log("successful get user");
       } else {
         setError(results.message);
@@ -126,7 +131,7 @@ export default function AccountTabScreen() {
   }
 
   async function toggleFollowUser() {
-    console.log("...toggle follow user...");
+    console.log("...toggle follow user?...");
     if (loading) return;
     setLoading(true);
     try {
@@ -145,7 +150,10 @@ export default function AccountTabScreen() {
       if (results.success) {
         setUser(results.data);
 
-        AsyncStorage.setItem("user", JSON.stringify(results.data));
+        if (results.data) {
+          AsyncStorage.setItem("user", JSON.stringify(results.data));
+        }
+
         console.log("successful follow toggle user");
       } else {
         setError(results.message);
@@ -255,10 +263,10 @@ export default function AccountTabScreen() {
       console.log("update profile avatar results: ", results);
 
       if (results.success) {
-        setUser(results.data);
-
-        AsyncStorage.setItem("user", JSON.stringify(results.data));
-
+        if (results.data) {
+          setUser(results.data);
+          AsyncStorage.setItem("user", JSON.stringify(results.data));
+        }
         console.log("successful profile update user");
       } else {
         setError(results.message);
@@ -269,6 +277,14 @@ export default function AccountTabScreen() {
       setError("Your are not connected to the internet");
       console.log("Error update profile avatar: ", error);
     }
+  }
+
+  if (!user?.firstName) {
+    return (
+      <View>
+        <Text>Loading...</Text>
+      </View>
+    );
   }
 
   return (
@@ -286,7 +302,8 @@ export default function AccountTabScreen() {
                   }
                 : Background
             }
-            style={[{ height: 250 }]}
+            style={[{ height: 250, width: "100%" }]}
+            resizeMode="cover"
           />
           <View
             style={[
@@ -499,7 +516,6 @@ export default function AccountTabScreen() {
                     toggleFollowUser();
                   }}
                 />
-                {/* <Button text="Message" style={{ marginLeft: 5 }} /> */}
               </View>
             </View>
           </View>
@@ -511,6 +527,9 @@ export default function AccountTabScreen() {
               position: "relative",
               top: -120,
               width: "50%",
+              left: Platform.select({ ios: true, android: true })
+                ? undefined
+                : 30,
             },
           ]}
         >
@@ -522,7 +541,7 @@ export default function AccountTabScreen() {
             }}
           >
             {user?.staffProfileIfIsStaff
-              ? user.staffProfileIfIsStaff.title + " "
+              ? user?.staffProfileIfIsStaff.title + " "
               : ""}
             {user?.firstName} {user?.lastName}
           </Text>
@@ -535,8 +554,8 @@ export default function AccountTabScreen() {
                 textTransform: "uppercase",
               }}
             >
-              {user.studentProfileIfIsStudent
-                ? user.studentProfileIfIsStudent.registrationNumber
+              {user?.studentProfileIfIsStudent
+                ? user?.studentProfileIfIsStudent.registrationNumber
                 : ""}
             </Text>
           )}
@@ -557,6 +576,9 @@ export default function AccountTabScreen() {
             style={{
               position: "relative",
               top: -130,
+              padding: Platform.select({ ios: true, android: true })
+                ? undefined
+                : 30,
             }}
           >
             <Text
@@ -580,65 +602,84 @@ export default function AccountTabScreen() {
                 },
               ]}
             >
-              {user.bio}
+              {user?.bio}
             </Text>
           </View>
         )}
       </View>
-
       <View
-        style={[
-          styles.flexRow,
-
-          {
-            justifyContent: "space-around",
-            borderWidth: 1,
-            borderColor: theme.border,
-            borderRadius: 2,
-            position: "relative",
-            top: -120,
-          },
-        ]}
+        style={{
+          padding: Platform.select({ ios: true, android: true })
+            ? undefined
+            : 30,
+        }}
       >
-        <TouchableOpacity
-          onPress={() => {
-            setActiveTab("posts");
-            navigation.setOptions({
-              title: "Account",
-            });
-          }}
+        <View
           style={[
-            {
-              paddingHorizontal: 50,
-              paddingVertical: 10,
-              backgroundColor:
-                activeTab === "posts" ? theme.primary : theme.background,
-            },
-          ]}
-        >
-          <Text>Posts</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => setActiveTab("files")}
-          style={[
-            {
-              paddingHorizontal: 50,
-              paddingVertical: 10,
-              backgroundColor:
-                activeTab === "files" ? theme.primary : theme.background,
-            },
-          ]}
-        >
-          <Text>Files</Text>
-        </TouchableOpacity>
-      </View>
+            styles.flexRow,
 
-      <View style={{ position: "relative", top: -100 }}>
-        {activeTab === "posts" &&
-          posts?.map((post, index) => {
-            return <PostCard key={index} post={post} />;
-          })}
-        {activeTab === "files" && user && <FolderView user={user} />}
+            {
+              justifyContent: "space-around",
+              borderWidth: 1,
+              borderColor: theme.border,
+              borderRadius: 2,
+              position: "relative",
+              top: -120,
+            },
+          ]}
+        >
+          <TouchableOpacity
+            onPress={() => {
+              setActiveTab("posts");
+              if (navigation) {
+                navigation.setOptions({
+                  title: "Account",
+                });
+              } else {
+                console.log("-----no navigation-------");
+              }
+            }}
+            style={[
+              {
+                paddingHorizontal: 50,
+                paddingVertical: 10,
+                backgroundColor:
+                  activeTab === "posts" ? theme.primary : theme.background,
+              },
+            ]}
+          >
+            <Text>Posts</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => setActiveTab("files")}
+            style={[
+              {
+                paddingHorizontal: 50,
+                paddingVertical: 10,
+                backgroundColor:
+                  activeTab === "files" ? theme.primary : theme.background,
+              },
+            ]}
+          >
+            <Text>Files</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View
+          style={{
+            position: "relative",
+            top: -100,
+            display: "flex",
+            alignItems: "center",
+          }}
+        >
+          {activeTab === "posts" &&
+            posts &&
+            posts?.map((post, index) => {
+              return <PostCard key={index} post={post} />;
+            })}
+          {activeTab === "files" && user && <FolderView user={user} />}
+        </View>
       </View>
     </KeyboardAwareScrollView>
   );

@@ -51,12 +51,7 @@ export default function SetupStaff() {
     accessToken,
     setAccessToken,
   } = useContext(AuthContext);
-  const [userValues, setUservalues] = useState<StaffUserValues>({
-    firstName: "Martin",
-    lastName: "Munene",
-    employeeId: "Emp001/2019",
-    position: "Lecturer",
-  });
+  const [userValues, setUservalues] = useState<StaffUserValues>({});
   const [errors, setErrors] = useState<any>({});
 
   const [schools, setSchools] = useState<
@@ -135,15 +130,20 @@ export default function SetupStaff() {
         method: BodyRequestMethods.POST,
         body: { ...userValues, verificationToken: params.verificationToken },
       });
-      // console.log("Setup user Results: ", results);
+      console.log("Setup user Results: ", results);
 
       if (results.success) {
         setUser(results.data.user);
         setAccessToken(results.data.accessToken);
         setIsLoggedIn(true);
-        await AsyncStorage.setItem("user", JSON.stringify(results.data.user));
-        await AsyncStorage.setItem("accessToken", results.data.accessToken);
-        await AsyncStorage.setItem("refreshToken", results.data.refreshToken);
+        if (results.data) {
+          await AsyncStorage.setItem("user", JSON.stringify(results.data.user));
+          await AsyncStorage.setItem("accessToken", results.data.accessToken);
+          await AsyncStorage.setItem("refreshToken", results.data.refreshToken);
+        } else {
+          router.push("/auth/LoginEmail");
+          return;
+        }
         router.push("/(tabs)");
       } else {
         setErrors({
@@ -360,7 +360,7 @@ export default function SetupStaff() {
           <TextInput
             style={styles.input}
             value={userValues.employeeId}
-            placeholder="Eg. Emp/001/2019"
+            // placeholder="Eg. Emp/001/2019"
             onChangeText={(value) => {
               setUservalues((prevValues: StaffUserValues) => {
                 return {

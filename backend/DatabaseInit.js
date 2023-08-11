@@ -4,12 +4,15 @@ const Logger = require("./Logger");
 const { UniversityData, Roles, Config } = require("./configs");
 
 async function initDatabase() {
+  // await prisma.comment.deleteMany();
   // await prisma.post.deleteMany();
   // await prisma.file.deleteMany();
-  // await prisma.folder.deleteMany();
+  // await prisma.notification.deleteMany();
+  // await prisma.message.deleteMany();
   // await prisma.studentProfile.deleteMany();
   // await prisma.staffProfile.deleteMany();
   // await prisma.user.deleteMany();
+  // await prisma.folder.deleteMany();
   // await prisma.role.deleteMany();
   // await prisma.class.deleteMany();
   // await prisma.programme.deleteMany();
@@ -80,10 +83,23 @@ async function createRootUser() {
     },
   });
 
-  await prisma.user.create({
+  const rootUser = await prisma.user.create({
     data: {
       ...Config.ADMIN,
       rootFolderId: rootFolder.id,
+    },
+  });
+
+  await prisma.folder.update({
+    where: {
+      id: rootFolder.id,
+    },
+    data: {
+      owner: {
+        connect: {
+          id: rootUser.id,
+        },
+      },
     },
   });
 }

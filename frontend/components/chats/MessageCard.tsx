@@ -9,7 +9,7 @@ import GlobalStyles from "../../GlobalStyles";
 import { AuthContext } from "../../app/_layout";
 import Utils from "../../Utils";
 import { EvilIcons } from "@expo/vector-icons";
-import { TouchableOpacity } from "react-native";
+import { TouchableOpacity, Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Swipeable from "react-native-gesture-handler/Swipeable";
 import { Entypo } from "@expo/vector-icons";
@@ -130,6 +130,9 @@ export default function MessageCard({
             justifyContent:
               user?.id === message.sender.id ? "flex-end" : "flex-start",
             alignItems: "center",
+            // width: Platform.select({ ios: true, android: true })
+            //   ? undefined
+            //   : 800,
           },
         ]}
       >
@@ -139,6 +142,7 @@ export default function MessageCard({
             {
               width: "65%",
               minWidth: "65%",
+              maxWidth: "65%",
 
               justifyContent: "flex-start",
               alignItems: "flex-end",
@@ -241,6 +245,9 @@ export default function MessageCard({
                       user?.id === message.sender.id
                         ? theme.primaryForeground
                         : theme.foregroundMuted,
+                    maxWidth: Platform.select({ ios: true, android: true })
+                      ? undefined
+                      : 500,
                   },
                 ]}
               >

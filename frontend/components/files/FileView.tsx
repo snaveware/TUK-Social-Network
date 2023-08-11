@@ -42,7 +42,7 @@ export default function FileView({ file }: { file: any }) {
         },
       ]}
     >
-      <View>
+      {/* <View>
         <View
           style={[
             GlobalStyles.flexRow,
@@ -97,7 +97,7 @@ export default function FileView({ file }: { file: any }) {
             )}
           </View>
         </View>
-      </View>
+      </View> */}
       {file.type === "image" && (
         <Image
           style={{

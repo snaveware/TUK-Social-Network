@@ -163,13 +163,15 @@ export const WebMediaGallery = ({
   const { theme } = useContext(AppThemeContext);
   const scrollViewRef = useRef<ScrollView>(null);
 
-  const [SCREEN_WIDTH, setScreenWidth] = useState(
-    Dimensions.get("window").width
-  );
+  // const [SCREEN_WIDTH, setScreenWidth] = useState(
+  //   Dimensions.get("window").width
+  // );
 
-  Dimensions.addEventListener("change", ({ window, screen }) => {
-    setScreenWidth(window.width);
-  });
+  const SCREEN_WIDTH = 500;
+
+  // Dimensions.addEventListener("change", ({ window, screen }) => {
+  //   setScreenWidth(window.width);
+  // });
 
   const [token, setToken] = useState<string | undefined>();
 

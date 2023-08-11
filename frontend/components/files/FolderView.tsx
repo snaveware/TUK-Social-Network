@@ -22,6 +22,7 @@ import { Entypo } from "@expo/vector-icons";
 const Favicon = require("../../assets/images/favicon.png");
 import FileCard from "./FileCard";
 import FolderCard from "./FolderCard";
+import Dismissable from "../Dismissable";
 
 export default function FolderView({ user }: { user: any }) {
   const { theme } = useContext(AppThemeContext);
@@ -38,9 +39,11 @@ export default function FolderView({ user }: { user: any }) {
   const router = useRouter();
   console.log("folder: ", user.rootFolderId);
 
-  // useEffect(() => {
-  //   setActiveFolderId(user.rootFolderId);
-  // }, [user]);
+  const [dismissableMessage, setDismissableMessage] = useState<string>();
+
+  const [dismissableVariant, setDismissableVariant] = useState<
+    "info" | "danger" | "success"
+  >("info");
 
   useEffect(() => {
     if (folder) {
@@ -75,6 +78,7 @@ export default function FolderView({ user }: { user: any }) {
   }, [folder]);
 
   useEffect(() => {
+    setDismissableMessage(undefined);
     if (activeFolderId && accessToken) {
       fetchFolder();
       navigation.addListener("focus", () => {
@@ -83,32 +87,58 @@ export default function FolderView({ user }: { user: any }) {
     }
   }, [activeFolderId, accessToken]);
 
-  useEffect(() => {
-    if (folder) {
-      console.log("folder change: ", folder.files.length);
-    }
-  }, [folder]);
-
   async function fetchFolder() {
     try {
+      console.log("active folder id: ", activeFolderId);
+      if (!activeFolderId) {
+        setDismissableMessage("Not active folder id");
+        setDismissableVariant("danger");
+      }
       if (loading) return;
       setLoading(true);
       const URL = `${Config.API_URL}/files/folder?fid=${activeFolderId}&t=${accessToken}`;
 
       const results = await Utils.makeGetRequest(URL);
 
-      // console.log("folder request results: ", results.data);
+      console.log("folder request results: ", results, URL);
 
       if (results.success) {
         setFolder(results.data);
       } else {
-        setError(results.message);
+        setDismissableVariant("danger");
+        setDismissableMessage(results.message);
       }
-
       setLoading(false);
     } catch (error) {
       setLoading(false);
       console.log("error fetching folder: ", error);
+    }
+  }
+
+  async function deleteFolder() {
+    console.log("deleting folder--------");
+    if (loading) return;
+    setLoading(true);
+    setDismissableMessage(undefined);
+    try {
+      const URL = `${Config.API_URL}/files/folder/${activeFolderId}`;
+      console.log("delete folder url: ", URL);
+      const results = await Utils.makeDeleteRequest(URL);
+
+      console.log("delete folder results: ", results);
+
+      if (results.success) {
+        fetchFolder();
+      } else {
+        setDismissableMessage(results.message);
+        setDismissableVariant("danger");
+      }
+      setLoading(false);
+    } catch (error) {
+      setLoading(false);
+      console.log("Network Error deleting message");
+      setDismissableMessage("Network Error, Please check your internet");
+      setDismissableVariant("danger");
     }
   }
 
@@ -129,7 +159,14 @@ export default function FolderView({ user }: { user: any }) {
           <AntDesign
             onPress={() => {
               setActiveFolderId(folder.parentFolderId);
-              console.log("back folder: ", folder.parentFolderId);
+              console.log(
+                "back folder: ",
+                folder.parentFolderId,
+                "folder: ",
+                folder,
+                "active: ",
+                activeFolderId
+              );
             }}
             name="arrowleft"
             size={24}
@@ -141,9 +178,14 @@ export default function FolderView({ user }: { user: any }) {
         <Text
           ellipsizeMode="head"
           numberOfLines={1}
-          style={[styles.title, styles.padding]}
+          style={[styles.title, styles.padding, { width: "50%" }]}
         >
-          {folder?.path || "My Drive"}
+          {folder?.path ||
+            `${
+              authUser?.id === user?.id
+                ? "My Drive"
+                : user.firstName + user.lastName + "'s Drive"
+            }`}
         </Text>
 
         {user?.id === authUser?.id && (
@@ -163,21 +205,34 @@ export default function FolderView({ user }: { user: any }) {
               name="addfile"
               size={24}
               color={theme.foreground}
+              style={{ marginRight: 15 }}
             />
-            <AntDesign
+            {/* <AntDesign
               name="sharealt"
               size={24}
               style={{ marginHorizontal: 15 }}
               color={theme.foreground}
-            />
-            <MaterialIcons
-              name="delete-outline"
-              size={24}
-              color={theme.destructive}
-            />
+            /> */}
+            {folder?.path && (
+              <MaterialIcons
+                name="delete-outline"
+                size={30}
+                onPress={deleteFolder}
+                color={theme.destructive}
+              />
+            )}
           </View>
         )}
       </View>
+
+      {dismissableMessage && (
+        <Dismissable
+          onDismiss={() => setDismissableMessage(undefined)}
+          isDismissed={dismissableMessage ? true : false}
+          variant={dismissableVariant}
+          message={dismissableMessage}
+        />
+      )}
 
       {folder?.childFolders && folder?.childFolders?.length > 0 && (
         <Text
@@ -193,7 +248,8 @@ export default function FolderView({ user }: { user: any }) {
         style={[
           {
             display: "flex",
-            flexDirection: "row-reverse",
+            // flexDirection: "row-reverse",
+            flexDirection: "row",
             justifyContent: "flex-start",
             alignItems: "center",
             flexWrap: "wrap",

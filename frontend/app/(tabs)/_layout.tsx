@@ -100,6 +100,7 @@ export default function TabLayout() {
         name="ChatsTab"
         options={{
           title: "Chats",
+          tabBarLabel: "Chats",
 
           tabBarIcon: ({ color }) => (
             // <TabBarIcon name="comment" color={color} />
