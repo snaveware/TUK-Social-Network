@@ -68,6 +68,7 @@ export default function HomeTabScreen() {
   return (
     <View style={styles.container}>
       <FlatList
+        showsVerticalScrollIndicator={false}
         onRefresh={getPosts}
         refreshing={loading}
         data={posts}

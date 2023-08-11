@@ -89,6 +89,7 @@ export default function ChatsTabScreen() {
   return (
     <View style={styles.container}>
       <FlatList
+        showsVerticalScrollIndicator={false}
         onRefresh={getChats}
         refreshing={loading}
         data={Chats}

@@ -3,7 +3,7 @@ import { View, Text } from "../Themed";
 import { Image, StyleSheet, Platform } from "react-native";
 import { Video } from "expo-av";
 import { AppThemeContext } from "../../Theme";
-import { useContext } from "react";
+import { useContext, useState, useEffect } from "react";
 import Config from "../../Config";
 import { AuthContext } from "../../app/_layout";
 import { FontAwesome5 } from "@expo/vector-icons";
@@ -12,6 +12,18 @@ import { Link } from "expo-router";
 export default function FileCard({ file }: { file: any }) {
   const { theme } = useContext(AppThemeContext);
   const { user, accessToken } = useContext(AuthContext);
+  const [fileSource, setFileSource] = useState<string>(
+    `${Config.API_URL}/files?fid=${file.id}&t=${accessToken}`
+  );
+
+  useEffect(() => {
+    if (file.id) {
+      setFileSource(`${Config.API_URL}/files?fid=${file.id}&t=${accessToken}`);
+    } else {
+      setFileSource(file.uri);
+    }
+  }, [file]);
+
   return (
     <View
       style={[
@@ -52,7 +64,7 @@ export default function FileCard({ file }: { file: any }) {
                 : 240,
             }}
             source={{
-              uri: `${Config.API_URL}/files?fid=${file.id}&t=${accessToken}`,
+              uri: fileSource,
             }}
           />
         )}
@@ -60,7 +72,7 @@ export default function FileCard({ file }: { file: any }) {
         {file.type === "video" && (
           <Video
             source={{
-              uri: `${Config.API_URL}/files?fid=${file.id}&t=${accessToken}`,
+              uri: fileSource,
             }}
             style={{
               width: Platform.select({ ios: true, android: true }) ? 160 : 240,

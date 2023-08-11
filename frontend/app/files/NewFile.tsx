@@ -17,10 +17,13 @@ import { AntDesign } from "@expo/vector-icons";
 import { TouchableOpacity } from "react-native-gesture-handler";
 import GlobalStyles from "../../GlobalStyles";
 import { FontAwesome5 } from "@expo/vector-icons";
-import uploadFile from "../../uploadFile";
+import uploadFile, { extractFileAsset } from "../../uploadFile";
 import { extractAsset } from "../../uploadFile";
 import Utils from "../../Utils";
 import * as ImagePicker from "expo-image-picker";
+import FileView from "../../components/files/FileView";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import FileCard from "../../components/files/FileCard";
 
 export default function NewFileScreen() {
   const [files, setfiles] = useState();
@@ -28,8 +31,9 @@ export default function NewFileScreen() {
   const { user } = useContext(AuthContext);
   const navigation = useNavigation();
   const router = useRouter();
-  const [file, setFile] = useState<File>();
+  const [file, setFile] = useState<any>();
   const params = useLocalSearchParams();
+  const [errorMessage, setErrorMessage] = useState<string>();
 
   useEffect(() => {
     navigation.setOptions({
@@ -43,8 +47,15 @@ export default function NewFileScreen() {
             ]}
           >
             <Button
-              onPress={() => {
-                uploadFile(file, params.folderId);
+              onPress={async () => {
+                const result = await uploadFile(file, params.folderId);
+                if (result) {
+                  router.back();
+                } else {
+                  setErrorMessage(
+                    "An error occurred while uploading, please try again later"
+                  );
+                }
               }}
               text="Upload"
               style={{
@@ -60,22 +71,36 @@ export default function NewFileScreen() {
   }, [file, params]);
 
   async function pickfile() {
+    setErrorMessage(undefined);
     const result = await DocumentPicker.getDocumentAsync({
       // type: "video/*,image/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      // type: "application/pdf,application/msword",
+
       copyToCacheDirectory: false, // Set this to true if you want to copy the file to the cache directory,
     });
 
-    const asset: any = extractAsset(result);
+    let asset: any = extractFileAsset(result);
 
-    const attr = Utils.extractMimeTypeAndBase64(asset.uri);
-    asset.mimeType = attr.mimeType;
+    asset.type = Utils.getFileTypeFromMimeType(asset.mimeType);
 
-    console.log("picked asset (file): ", asset);
+    if (Platform.OS === "web") {
+      asset = extractAsset(result);
 
+      const attr = Utils.extractMimeTypeAndBase64(asset.uri);
+      asset.mimeType = attr.mimeType;
+    }
+
+    if (!asset.type) {
+      setErrorMessage("Invalid File Type");
+      return;
+    }
+
+    console.log("picked assest (file): ", asset);
     setFile(asset);
   }
 
   async function pickImage() {
+    setErrorMessage(undefined);
     if (Platform.OS == "web") {
       const result = await DocumentPicker.getDocumentAsync({
         type: "image/*,video/*",
@@ -88,13 +113,18 @@ export default function NewFileScreen() {
       asset.mimeType = attr.mimeType;
       console.log("picked asset (image): ", asset);
 
+      if (!asset.type) {
+        setErrorMessage("Invalid File Type");
+        return;
+      }
+
       setFile(asset);
 
       return;
     }
 
     let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ImagePicker.MediaTypeOptions.All,
       quality: 1,
     });
 
@@ -113,6 +143,11 @@ export default function NewFileScreen() {
         asset.mimeType
       )}`;
 
+      if (!asset.type) {
+        setErrorMessage("Invalid File Type");
+        return;
+      }
+
       console.log("picked asset (image): ", asset);
 
       setFile(asset);
@@ -120,43 +155,47 @@ export default function NewFileScreen() {
   }
 
   return (
-    <View
+    <KeyboardAwareScrollView
       style={[
-        styles.flexCols,
         styles.padding,
-
         {
           flex: 1,
-          justifyContent: "flex-start",
-          alignItems: "center",
         },
       ]}
     >
       {file && (
         <View
           style={[
+            styles.flexRow,
+            styles.flexCenter,
             styles.padding,
             styles.margin,
             {
-              borderWidth: 1,
-              borderColor: theme.border,
-              borderRadius: 5,
               width: "100%",
             },
           ]}
         >
-          <Text>{file?.name}</Text>
+          <FileCard file={file} />
         </View>
       )}
+
+      {errorMessage && (
+        <Text style={[styles.error, styles.errorBorder]}>{errorMessage}</Text>
+      )}
+
       <View
-        style={{
-          backgroundColor: theme.backgroundMuted,
-          borderStyle: "dashed",
-          borderWidth: 1,
-          borderColor: theme.primary,
-          width: "100%",
-          height: file ? undefined : "30%",
-        }}
+        style={[
+          styles.flexCols,
+          styles.flexCenter,
+          {
+            backgroundColor: theme.backgroundMuted,
+            borderStyle: "dashed",
+            borderWidth: 1,
+            borderColor: theme.primary,
+            width: "100%",
+            height: file ? undefined : 250,
+          },
+        ]}
       >
         <Text style={[styles.padding, { textAlign: "center" }]}>Gallery</Text>
 
@@ -173,7 +212,6 @@ export default function NewFileScreen() {
               borderStyle: "dashed",
               borderWidth: 1,
               borderColor: theme.primary,
-              height: "100%",
             },
           ]}
         >
@@ -199,15 +237,19 @@ export default function NewFileScreen() {
         </View>
       </View>
       <View
-        style={{
-          backgroundColor: theme.backgroundMuted,
-          borderStyle: "dashed",
-          borderWidth: 1,
-          borderColor: theme.primary,
-          width: "100%",
-          height: file ? undefined : "30%",
-          marginTop: 50,
-        }}
+        style={[
+          styles.flexCols,
+          styles.flexCenter,
+          {
+            backgroundColor: theme.backgroundMuted,
+            borderStyle: "dashed",
+            borderWidth: 1,
+            borderColor: theme.primary,
+            width: "100%",
+            height: file ? undefined : 250,
+            marginTop: 50,
+          },
+        ]}
       >
         <Text style={[styles.padding, { textAlign: "center" }]}>Files</Text>
 
@@ -224,7 +266,6 @@ export default function NewFileScreen() {
               borderStyle: "dashed",
               borderWidth: 1,
               borderColor: theme.primary,
-              height: "100%",
             },
           ]}
         >
@@ -250,7 +291,7 @@ export default function NewFileScreen() {
           <FontAwesome5 name="file-word" size={30} color={theme.foreground} />
         </View>
       </View>
-    </View>
+    </KeyboardAwareScrollView>
   );
 }
 

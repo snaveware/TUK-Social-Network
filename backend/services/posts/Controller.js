@@ -326,6 +326,27 @@ module.exports = class PostsController {
         },
       });
 
+      await prisma.notification.create({
+        data: {
+          user: {
+            connect: {
+              id: updatedPost.ownerId,
+            },
+          },
+          message: `${req.auth.firstName} ${req.auth.lastName} has liked your post`,
+          associatedPost: {
+            connect: {
+              id: updatedPost.id,
+            },
+          },
+          associatedUser: {
+            connect: {
+              id: req.auth.id,
+            },
+          },
+        },
+      });
+
       RequestHandler.sendSuccess(req, res, updatedPost);
     } catch (error) {
       console.log("error liking post: ", error);
@@ -418,6 +439,21 @@ module.exports = class PostsController {
           "CORRECT_INPUT"
         );
       }
+
+      const post = await prisma.post.findUnique({
+        where: {
+          id: validated.postId,
+        },
+        select: {
+          ownerId: true,
+          id: true,
+        },
+      });
+
+      if (!post) {
+        RequestHandler.throwError(404, "post not found")();
+      }
+
       const createdComment = await prisma.comment.create({
         data: {
           message: validated.message,
@@ -460,6 +496,32 @@ module.exports = class PostsController {
             },
           },
           _count: true,
+        },
+      });
+
+      await prisma.notification.create({
+        data: {
+          user: {
+            connect: {
+              id: post.ownerId,
+            },
+          },
+          message: `${req.auth.firstName} ${req.auth.lastName} has left a comment on your post`,
+          associatedPost: {
+            connect: {
+              id: post.id,
+            },
+          },
+          associatedComment: {
+            connect: {
+              id: createdComment.id,
+            },
+          },
+          associatedUser: {
+            connect: {
+              id: req.auth.id,
+            },
+          },
         },
       });
 
@@ -537,6 +599,37 @@ module.exports = class PostsController {
             },
             select: {
               id: true,
+            },
+          },
+          post: {
+            select: {
+              id: true,
+            },
+          },
+        },
+      });
+
+      await prisma.notification.create({
+        data: {
+          user: {
+            connect: {
+              id: updatedComment.commentorId,
+            },
+          },
+          message: `${req.auth.firstName} ${req.auth.lastName} has liked your comment`,
+          associatedPost: {
+            connect: {
+              id: updatedComment.post.id,
+            },
+          },
+          associatedComment: {
+            connect: {
+              id: comment.id,
+            },
+          },
+          associatedUser: {
+            connect: {
+              id: req.auth.id,
             },
           },
         },

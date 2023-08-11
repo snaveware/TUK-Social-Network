@@ -39,8 +39,7 @@ export default function NewFolderScreen() {
       return;
     }
 
-    const parentFolderId = params.parentFolderId;
-
+    const parentFolderId = params.folderId;
     if (!parentFolderId) {
       setErrors({
         global: "Parent folder is needed",

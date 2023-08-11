@@ -43,7 +43,7 @@ export default function TabLayout() {
                   {({ pressed }) => (
                     <FontAwesome
                       name="bell"
-                      size={20}
+                      size={28}
                       color={Colors[colorScheme ?? "light"].text}
                       style={{ opacity: pressed ? 0.5 : 1 }}
                     />
@@ -55,7 +55,7 @@ export default function TabLayout() {
                   {({ pressed }) => (
                     <MaterialIcons
                       name="search"
-                      size={25}
+                      size={32}
                       color={Colors[colorScheme ?? "light"].text}
                       style={{
                         marginHorizontal: 15,
@@ -72,7 +72,7 @@ export default function TabLayout() {
                   {({ pressed }) => (
                     <FontAwesome
                       name="plus"
-                      size={22}
+                      size={30}
                       color={Colors[colorScheme ?? "light"].text}
                       style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
                     />
@@ -113,7 +113,7 @@ export default function TabLayout() {
                   {({ pressed }) => (
                     <FontAwesome
                       name="bell"
-                      size={20}
+                      size={28}
                       color={Colors[colorScheme ?? "light"].text}
                       style={{ opacity: pressed ? 0.5 : 1 }}
                     />
@@ -125,7 +125,7 @@ export default function TabLayout() {
                   {({ pressed }) => (
                     <MaterialIcons
                       name="search"
-                      size={25}
+                      size={32}
                       color={Colors[colorScheme ?? "light"].text}
                       style={{
                         marginHorizontal: 15,
@@ -142,7 +142,7 @@ export default function TabLayout() {
                   {({ pressed }) => (
                     <FontAwesome
                       name="plus"
-                      size={22}
+                      size={30}
                       color={Colors[colorScheme ?? "light"].text}
                       style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
                     />
@@ -191,7 +191,7 @@ export default function TabLayout() {
                   {({ pressed }) => (
                     <FontAwesome
                       name="bell"
-                      size={20}
+                      size={28}
                       color={Colors[colorScheme ?? "light"].text}
                       style={{ opacity: pressed ? 0.5 : 1 }}
                     />
@@ -203,7 +203,7 @@ export default function TabLayout() {
                   {({ pressed }) => (
                     <MaterialIcons
                       name="search"
-                      size={25}
+                      size={32}
                       color={Colors[colorScheme ?? "light"].text}
                       style={{
                         marginHorizontal: 15,
@@ -245,7 +245,7 @@ export default function TabLayout() {
                   {({ pressed }) => (
                     <FontAwesome
                       name="bell"
-                      size={20}
+                      size={28}
                       color={Colors[colorScheme ?? "light"].text}
                       style={{ opacity: pressed ? 0.5 : 1 }}
                     />

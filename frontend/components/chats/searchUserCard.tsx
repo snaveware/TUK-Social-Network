@@ -49,13 +49,17 @@ export default function SearchUserCard({
         style={{ width: 50, height: 50 }}
         textStyles={{ fontSize: 12 }}
       />
-      <View style={{ paddingLeft: 10 }}>
+      <View style={{ paddingLeft: 10, width: "80%" }}>
         <Text>{`${
           user?.staffProfileIfStaff ? user?.staffProfileIfStaff.title : ""
         } ${user?.firstName} ${user?.lastName}`}</Text>
         {user?.bio && (
-          <Text style={{ color: theme.foregroundMuted }}>
-            {user?.bio.length > 50 ? user.bio.substring(0, 50) : user.bio}
+          <Text
+            numberOfLines={2}
+            ellipsizeMode="tail"
+            style={{ color: theme.foregroundMuted, fontSize: 12 }}
+          >
+            {user.bio}
           </Text>
         )}
       </View>

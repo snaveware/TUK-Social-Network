@@ -49,3 +49,11 @@ export function extractAsset(result) {
     file: result.file,
   };
 }
+
+export function extractFileAsset(result) {
+  return {
+    uri: result.uri,
+    mimeType: result.mimeType,
+    name: result.name,
+  };
+}

@@ -270,6 +270,7 @@ module.exports = class AuthValidator {
   static async validateUpdate(values) {
     const schema = Joi.object({
       // Profile fields
+      title: Joi.string().valid("Prof", "Dr", "Mr", "Ms", "Mrs").label("Title"),
       firstName: Joi.string().max(30).label("First Name"),
       lastName: Joi.string().max(30).label("Last Name"),
       bio: Joi.string().max(256).label("Bio"),
@@ -277,7 +278,6 @@ module.exports = class AuthValidator {
       profileAvatarId: Joi.number().integer().label("Profile Avatar ID"),
       coverImageId: Joi.number().integer().label("Cover Image ID"),
       // Preferences fields
-      id: Joi.number().integer().label("ID"),
       getMessagePushNotifications: Joi.boolean().label(
         "Get Message Push Notifications"
       ),

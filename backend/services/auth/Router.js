@@ -9,6 +9,18 @@ router.put(
   AuthController.unFollowUser
 );
 
+router.get(
+  "/user/notifications",
+  AuthMiddleware,
+  AuthController.getNotifications
+);
+
+router.put(
+  "/user/notifications/:notificationId/dismiss",
+  AuthMiddleware,
+  AuthController.dismissNotification
+);
+
 router.put("/user/:userId", AuthMiddleware, AuthController.updateUser);
 
 router.get("/user/:userId", AuthMiddleware, AuthController.getUser);

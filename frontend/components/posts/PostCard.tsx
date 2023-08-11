@@ -288,7 +288,7 @@ export default function PostCard(props: PostCardProps) {
           </Text>
         </View>
       </View>
-      <Text style={{ paddingVertical: 10, paddingHorizontal: 10 }}>
+      <Text style={{ paddingTop: 10, paddingHorizontal: 10 }}>
         {post.caption}
       </Text>
       {post.files.length > 1 && (
@@ -314,7 +314,7 @@ export default function PostCard(props: PostCardProps) {
               borderWidth: 1,
               borderColor: theme.border,
 
-              margin: 2,
+              marginHorizontal: 2,
               display: "flex",
               justifyContent: "center",
               alignItems: "center",
@@ -417,14 +417,14 @@ export default function PostCard(props: PostCardProps) {
               onPress={unlikePost}
               style={[{ paddingHorizontal: 5 }]}
             >
-              <AntDesign name="heart" size={26} color={"#FE251B"} />
+              <AntDesign name="heart" size={28} color={"#FE251B"} />
             </TouchableOpacity>
           ) : (
             <TouchableOpacity
               onPress={likePost}
               style={[{ paddingHorizontal: 5 }]}
             >
-              <AntDesign name="hearto" size={25} color={theme.foreground} />
+              <AntDesign name="hearto" size={28} color={theme.foreground} />
             </TouchableOpacity>
           )}
 
@@ -435,17 +435,17 @@ export default function PostCard(props: PostCardProps) {
                 params: { postId: post.id },
               })
             }
-            style={[{ paddingHorizontal: 5 }]}
+            style={[{ paddingHorizontal: 10 }]}
           >
-            <Feather name="message-circle" size={26} color={theme.foreground} />
+            <Feather name="message-circle" size={30} color={theme.foreground} />
           </TouchableOpacity>
 
           <TouchableOpacity style={[{ paddingHorizontal: 5 }]}>
-            <Feather name="send" size={24} color={theme.foreground} />
+            <Feather name="send" size={28} color={theme.foreground} />
           </TouchableOpacity>
         </View>
         <TouchableOpacity style={[{ paddingHorizontal: 5 }]}>
-          <Ionicons name="bookmark" size={26} color={theme.foreground} />
+          <Ionicons name="bookmark" size={30} color={theme.foreground} />
         </TouchableOpacity>
       </View>
       <View
@@ -454,12 +454,14 @@ export default function PostCard(props: PostCardProps) {
 
           {
             paddingHorizontal: 10,
-            paddingTop: 5,
-            paddingBottom: 15,
+            paddingTop: 10,
+            paddingBottom: 10,
             flexDirection: "row",
             justifyContent: "space-between",
             alignItems: "center",
             flexWrap: "nowrap",
+            borderBottomWidth: 0.6,
+            borderBottomColor: theme.border,
           },
         ]}
       >
@@ -473,6 +475,7 @@ export default function PostCard(props: PostCardProps) {
           style={[{ paddingHorizontal: 5 }, styles.flexRow]}
         >
           <Text
+            selectable={false}
             style={{
               color: theme.foregroundMuted,
               fontSize: 16,
@@ -483,6 +486,7 @@ export default function PostCard(props: PostCardProps) {
             {noOfComments}
           </Text>
           <Text
+            selectable={false}
             style={{
               color: theme.foregroundMuted,
               fontSize: 16,

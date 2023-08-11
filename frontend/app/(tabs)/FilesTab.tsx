@@ -33,7 +33,7 @@ export default function FilesTabScreen({
               {({ pressed }) => (
                 <FontAwesome
                   name="bell"
-                  size={20}
+                  size={28}
                   color={theme.foreground}
                   style={{ opacity: pressed ? 0.5 : 1 }}
                 />
@@ -45,7 +45,7 @@ export default function FilesTabScreen({
               {({ pressed }) => (
                 <MaterialIcons
                   name="search"
-                  size={25}
+                  size={32}
                   color={theme.foreground}
                   style={{
                     marginHorizontal: 15,
@@ -76,7 +76,7 @@ export default function FilesTabScreen({
               {({ pressed }) => (
                 <FontAwesome
                   name="plus"
-                  size={22}
+                  size={30}
                   color={theme.foreground}
                   style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
                 />
@@ -88,7 +88,10 @@ export default function FilesTabScreen({
     });
   }, [user]);
   return (
-    <KeyboardAwareScrollView style={styles.container}>
+    <KeyboardAwareScrollView
+      style={{ flex: 1, backgroundColor: theme.background }}
+      showsVerticalScrollIndicator={false}
+    >
       {user && user.id && <FolderView user={user} />}
     </KeyboardAwareScrollView>
   );

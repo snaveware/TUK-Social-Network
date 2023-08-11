@@ -47,7 +47,7 @@ model User {
   taggedPosts               Post[]                @relation(name: "taggedPosts")
   sharedPosts               Post[]                @relation(name: "sharedPosts")
   UserChatPreferences       UserChatPreferences[]
-  notifications             Notification[]
+  notifications             Notification[]        @relation(name: "toUser")
   savedFiles                File[]                @relation(name: "userFileSaved")
   savedPosts                Post[]                @relation(name: "userPostsSaved")
   refreshTokens             RefreshToken[]
@@ -57,6 +57,7 @@ model User {
   sharedFolders             Folder[]              @relation(name: "allowedFolderViewers")
   comments                  Comment[]
   socketId                  String?
+  associatedNotifications   Notification[]        @relation(name: "associatedUser")
 
   @@map("users")
 }
@@ -73,12 +74,29 @@ model RefreshToken {
 }
 
 model Notification {
-  id        Int      @id @default(autoincrement())
-  user      User     @relation(fields: [userId], references: [id])
-  message   String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  userId    Int
+  id                  Int      @id @default(autoincrement())
+  user                User     @relation(name: "toUser", fields: [userId], references: [id])
+  message             String
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  userId              Int
+  isDismissed         Boolean  @default(false)
+  associatedPost      Post?    @relation(fields: [associatedPostId], references: [id])
+  associatedChat      Chat?    @relation(fields: [associatedChatId], references: [id])
+  associatedMessage   Message? @relation(fields: [associatedMessageId], references: [id])
+  associatedComment   Comment? @relation(fields: [associatedCommentId], references: [id])
+  associatedFile      File?    @relation(fields: [associatedFileId], references: [id])
+  associatedFolder    Folder?  @relation(fields: [associatedFolderId], references: [id])
+  associatedPostId    Int?
+  associatedChatId    Int?
+  associatedMessageId Int?
+  associatedCommentId Int?
+  associatedFileId    Int?
+  associatedFolderId  Int?
+  fileId              Int?
+  folderId            Int?
+  associatedUserId    Int
+  associatedUser      User     @relation(name: "associatedUser", fields: [associatedUserId], references: [id])
 
   @@map("notifications")
 }
@@ -256,27 +274,28 @@ model Faculty {
 
 // RTC
 model Chat {
-  id                  Int                   @id @default(autoincrement())
-  name                String
-  description         String
-  chatType            ChatTypes
-  profileAvatarId     Int?                  @unique
-  profileAvatar       File?                 @relation(name: "chatProfile", fields: [profileAvatarId], references: [id])
-  members             User[]                @relation(name: "memberChats")
-  adminId             Int?
-  admin               User?                 @relation(name: "groupAdmin", fields: [adminId], references: [id])
-  allowedViewFiles    File[]                @relation(name: "fileAllowedChats")
-  messages            Message[]
-  UserChatPreferences UserChatPreferences[]
-  classIfClassChat    Class?
-  roleIfRoleChat      Role?
-  schoolIfSchoolChat  School?
-  createdAt           DateTime              @default(now())
-  updatedAt           DateTime              @updatedAt
-  sharedFolders       Folder[]              @relation(name: "folderAllowedChats")
-  manyChatIfOneToChat Chat?                 @relation(name: "oneToManyChats", fields: [manyChatId], references: [id])
-  oneToManyChats      Chat[]                @relation(name: "oneToManyChats")
-  manyChatId          Int?                  @unique
+  id                      Int                   @id @default(autoincrement())
+  name                    String
+  description             String
+  chatType                ChatTypes
+  profileAvatarId         Int?                  @unique
+  profileAvatar           File?                 @relation(name: "chatProfile", fields: [profileAvatarId], references: [id])
+  members                 User[]                @relation(name: "memberChats")
+  adminId                 Int?
+  admin                   User?                 @relation(name: "groupAdmin", fields: [adminId], references: [id])
+  allowedViewFiles        File[]                @relation(name: "fileAllowedChats")
+  messages                Message[]
+  UserChatPreferences     UserChatPreferences[]
+  classIfClassChat        Class?
+  roleIfRoleChat          Role?
+  schoolIfSchoolChat      School?
+  createdAt               DateTime              @default(now())
+  updatedAt               DateTime              @updatedAt
+  sharedFolders           Folder[]              @relation(name: "folderAllowedChats")
+  manyChatIfOneToChat     Chat?                 @relation(name: "oneToManyChats", fields: [manyChatId], references: [id])
+  oneToManyChats          Chat[]                @relation(name: "oneToManyChats")
+  manyChatId              Int?                  @unique
+  associatedNotifications Notification[]
 
   @@map("chats")
 }
@@ -292,25 +311,26 @@ enum ChatTypes {
 }
 
 model Message {
-  id            Int           @id @default(autoincrement())
-  chat          Chat          @relation(fields: [chatId], references: [id])
-  sender        User          @relation(name: "sender", fields: [senderId], references: [id])
-  senderId      Int
-  message       String
-  readBy        User[]        @relation(name: "readMessages")
-  status        MessageStatus @default(pending)
-  replyingTo    Message?      @relation(name: "replies", fields: [replyingToId], references: [id])
-  chatId        Int
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-  replies       Message[]     @relation(name: "replies")
-  replyingToId  Int?
-  linkedPost    Post?         @relation(fields: [postId], references: [id])
-  postId        Int?          @unique
-  linkedPoll    Poll?         @relation(fields: [linkedPollId], references: [id])
-  linkedPollId  Int?          @unique
-  attachedFiles File[]
-  senderChatId  Int?
+  id                      Int            @id @default(autoincrement())
+  chat                    Chat           @relation(fields: [chatId], references: [id])
+  sender                  User           @relation(name: "sender", fields: [senderId], references: [id])
+  senderId                Int
+  message                 String
+  readBy                  User[]         @relation(name: "readMessages")
+  status                  MessageStatus  @default(pending)
+  replyingTo              Message?       @relation(name: "replies", fields: [replyingToId], references: [id])
+  chatId                  Int
+  createdAt               DateTime       @default(now())
+  updatedAt               DateTime       @updatedAt
+  replies                 Message[]      @relation(name: "replies")
+  replyingToId            Int?
+  linkedPost              Post?          @relation(fields: [postId], references: [id])
+  postId                  Int?           @unique
+  linkedPoll              Poll?          @relation(fields: [linkedPollId], references: [id])
+  linkedPollId            Int?           @unique
+  attachedFiles           File[]
+  senderChatId            Int?
+  associatedNotifications Notification[]
 
   @@map("messages")
 }
@@ -350,25 +370,26 @@ enum BackgroundTypes {
 
 // Posts
 model Post {
-  id               Int            @id @default(autoincrement())
-  files            File[]
-  caption          String
-  ownerId          Int
-  owner            User           @relation(name: "ownedPosts", fields: [ownerId], references: [id])
-  reposters        User[]         @relation(name: "postReposters")
-  likers           User[]         @relation(name: "postLikers")
-  sharedTo         User[]         @relation(name: "sharedPosts")
-  taggedUsers      User[]         @relation(name: "taggedPosts")
-  noOfRequests     Int            @default(0)
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
-  linkedtoMessages Message[]
-  type             PostTypes      @default(social)
-  linkedPoll       Poll?          @relation(fields: [pollId], references: [id])
-  pollId           Int?           @unique
-  savedBy          User[]         @relation(name: "userPostsSaved")
-  comments         Comment[]
-  visibility       PostVisibility @default(public)
+  id                      Int            @id @default(autoincrement())
+  files                   File[]
+  caption                 String
+  ownerId                 Int
+  owner                   User           @relation(name: "ownedPosts", fields: [ownerId], references: [id])
+  reposters               User[]         @relation(name: "postReposters")
+  likers                  User[]         @relation(name: "postLikers")
+  sharedTo                User[]         @relation(name: "sharedPosts")
+  taggedUsers             User[]         @relation(name: "taggedPosts")
+  noOfRequests            Int            @default(0)
+  createdAt               DateTime       @default(now())
+  updatedAt               DateTime       @updatedAt
+  linkedtoMessages        Message[]
+  type                    PostTypes      @default(social)
+  linkedPoll              Poll?          @relation(fields: [pollId], references: [id])
+  pollId                  Int?           @unique
+  savedBy                 User[]         @relation(name: "userPostsSaved")
+  comments                Comment[]
+  visibility              PostVisibility @default(public)
+  associatedNotifications Notification[]
 
   @@map("posts")
 }
@@ -401,19 +422,20 @@ model Poll {
 }
 
 model Comment {
-  id          Int         @id @default(autoincrement())
-  message     String
-  post        Post        @relation(fields: [postId], references: [id])
-  commentor   User        @relation(fields: [commentorId], references: [id])
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  postId      Int
-  type        CommentType @default(normal)
-  replies     Comment[]   @relation(name: "commentReply")
-  aReplyFor   Comment?    @relation(name: "commentReply", fields: [commentId], references: [id])
-  commentId   Int?
-  commentorId Int
-  likers      User[]      @relation(name: "commentLikers")
+  id                      Int            @id @default(autoincrement())
+  message                 String
+  post                    Post           @relation(fields: [postId], references: [id])
+  commentor               User           @relation(fields: [commentorId], references: [id])
+  createdAt               DateTime       @default(now())
+  updatedAt               DateTime       @updatedAt
+  postId                  Int
+  type                    CommentType    @default(normal)
+  replies                 Comment[]      @relation(name: "commentReply")
+  aReplyFor               Comment?       @relation(name: "commentReply", fields: [commentId], references: [id])
+  commentId               Int?
+  commentorId             Int
+  likers                  User[]         @relation(name: "commentLikers")
+  associatedNotifications Notification[]
 
   @@map("comments")
 }
@@ -426,22 +448,23 @@ enum CommentType {
 // Files
 
 model Folder {
-  id                     Int            @id @default(autoincrement())
-  name                   String
-  path                   String
-  parentFolder           Folder?        @relation(name: "parentChildFolder", fields: [parentFolderId], references: [id])
-  createdAt              DateTime       @default(now())
-  updatedAt              DateTime       @updatedAt
-  childFolders           Folder[]       @relation(name: "parentChildFolder")
-  parentFolderId         Int?
-  files                  File[]
-  owner                  User?
-  userId                 Int?
-  visibility             FileVisibility @default(private)
-  allowedViewers         User[]         @relation(name: "allowedFolderViewers")
-  allowedViewerChats     Chat[]         @relation(name: "folderAllowedChats")
-  allowedViewerSchools   School[]
-  allowedViewerFaculties Faculty[]
+  id                      Int            @id @default(autoincrement())
+  name                    String
+  path                    String
+  parentFolder            Folder?        @relation(name: "parentChildFolder", fields: [parentFolderId], references: [id])
+  createdAt               DateTime       @default(now())
+  updatedAt               DateTime       @updatedAt
+  childFolders            Folder[]       @relation(name: "parentChildFolder")
+  parentFolderId          Int?
+  files                   File[]
+  owner                   User?
+  userId                  Int?
+  visibility              FileVisibility @default(private)
+  allowedViewers          User[]         @relation(name: "allowedFolderViewers")
+  allowedViewerChats      Chat[]         @relation(name: "folderAllowedChats")
+  allowedViewerSchools    School[]
+  allowedViewerFaculties  Faculty[]
+  associatedNotifications Notification[]
 
   @@map("folders")
 }
@@ -471,6 +494,7 @@ model File {
   savedBy                             User[]               @relation(name: "userFileSaved")
   folder                              Folder?              @relation(fields: [folderId], references: [id])
   folderId                            Int?
+  associatedNotifications             Notification[]
 
   @@map("files")
 }

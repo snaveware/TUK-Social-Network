@@ -28,13 +28,8 @@ import FolderView from "../../components/files/FolderView";
 export default function AccountTabScreen() {
   const router = useRouter();
 
-  const {
-    user: authUser,
-    setIsLoggedIn,
-    setUser: setAuthUser,
-    accessToken,
-  } = useContext(AuthContext);
-  const [user, setUser] = useState<User>(authUser);
+  const { user, setIsLoggedIn, setUser, accessToken } = useContext(AuthContext);
+
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | undefined>();
@@ -54,7 +49,7 @@ export default function AccountTabScreen() {
     // console.log("user change: ", user);
     if (user) {
       getUserPosts();
-      if (user?.followedBy?.[0] && user?.followedBy?.[0].id === authUser?.id) {
+      if (user?.followedBy?.[0] && user?.followedBy?.[0].id === user?.id) {
         setIsFollowing(true);
       } else {
         setIsFollowing(false);
@@ -111,12 +106,12 @@ export default function AccountTabScreen() {
     setLoading(true);
 
     try {
-      const URL = `${Config.API_URL}/auth/user/${authUser?.id}`;
+      const URL = `${Config.API_URL}/auth/user/${user?.id}`;
       const results = await Utils.makeGetRequest(URL);
-      // console.log("get user results: ", results);
+      console.log("get user results: ", results);
       if (results.success) {
         setUser(results.data);
-        setAuthUser(results.data);
+
         AsyncStorage.setItem("user", JSON.stringify(results.data));
         console.log("successful get user");
       } else {
@@ -137,9 +132,9 @@ export default function AccountTabScreen() {
     try {
       let URL;
       if (isFollowing) {
-        URL = `${Config.API_URL}/auth/user/unfollow/${authUser?.id}`;
+        URL = `${Config.API_URL}/auth/user/unfollow/${user?.id}`;
       } else {
-        URL = `${Config.API_URL}/auth/user/follow/${authUser?.id}`;
+        URL = `${Config.API_URL}/auth/user/follow/${user?.id}`;
       }
       const results = await Utils.makeBodyRequest({
         URL,
@@ -149,7 +144,7 @@ export default function AccountTabScreen() {
       console.log("toggle follow results: ", URL, results);
       if (results.success) {
         setUser(results.data);
-        setAuthUser(results.data);
+
         AsyncStorage.setItem("user", JSON.stringify(results.data));
         console.log("successful follow toggle user");
       } else {
@@ -247,7 +242,7 @@ export default function AccountTabScreen() {
     if (loading) return;
     setLoading(true);
     try {
-      const URL = `${Config.API_URL}/auth/user/${authUser?.id}`;
+      const URL = `${Config.API_URL}/auth/user/${user?.id}`;
 
       const results = await Utils.makeBodyRequest({
         URL,
@@ -261,9 +256,10 @@ export default function AccountTabScreen() {
 
       if (results.success) {
         setUser(results.data);
-        setAuthUser(results.data);
+
         AsyncStorage.setItem("user", JSON.stringify(results.data));
-        console.log("successful profile avatar update user");
+
+        console.log("successful profile update user");
       } else {
         setError(results.message);
       }
@@ -278,6 +274,7 @@ export default function AccountTabScreen() {
   return (
     <KeyboardAwareScrollView
       style={{ flex: 1, backgroundColor: theme.background }}
+      showsVerticalScrollIndicator={false}
     >
       <View>
         <View>
@@ -556,21 +553,36 @@ export default function AccountTabScreen() {
           </Text>
         </View>
         {user?.bio && (
-          <Text
-            style={[
-              {
-                paddingHorizontal: 8,
-                fontSize: 14,
-                fontWeight: "400",
-                paddingVertical: 10,
-                textTransform: "capitalize",
-                position: "relative",
-                top: -130,
-              },
-            ]}
+          <View
+            style={{
+              position: "relative",
+              top: -130,
+            }}
           >
-            {user.bio}
-          </Text>
+            <Text
+              style={[
+                styles.title,
+                {
+                  paddingLeft: 10,
+                },
+              ]}
+            >
+              Bio
+            </Text>
+            <Text
+              style={[
+                {
+                  paddingHorizontal: 8,
+                  fontSize: 14,
+                  fontWeight: "400",
+                  paddingVertical: 10,
+                  textTransform: "capitalize",
+                },
+              ]}
+            >
+              {user.bio}
+            </Text>
+          </View>
         )}
       </View>
 

@@ -847,6 +847,57 @@ module.exports = class AuthController {
 
       const validated = await AuthValidator.validateUpdate(req.body);
 
+      let user = await prisma.user.findUnique({
+        where: {
+          id: userId,
+        },
+        include: {
+          role: true,
+          studentProfileIfIsStudent: true,
+          staffProfileIfIsStaff: true,
+          preferences: true,
+          rootFolder: true,
+          _count: true,
+          followedBy: {
+            where: {
+              id: req.auth.id,
+            },
+            select: {
+              firstName: true,
+              lastName: true,
+              profileAvatarId: true,
+              studentProfileIfIsStudent: true,
+              staffProfileIfIsStaff: true,
+              id: true,
+            },
+          },
+        },
+      });
+
+      if (!user) {
+        RequestHandler.throwError(404, "User not found")();
+      }
+
+      if (user.staffProfileIfIsStaff) {
+        const staffProfileUpdates = {};
+        if (validated.title) {
+          staffProfileUpdates.title = validated.title;
+        }
+
+        if (validated.position) {
+          staffProfileUpdates.position = validated.position;
+        }
+
+        if (Object.keys(staffProfileUpdates).length > 0) {
+          const staffProfileUpdate = await prisma.staffProfile.update({
+            where: {
+              userId: userId,
+            },
+            data: staffProfileUpdates,
+          });
+        }
+      }
+
       const userUpdates = {};
 
       if (validated.firstName) {
@@ -873,37 +924,40 @@ module.exports = class AuthController {
         };
       }
 
-      let user = await prisma.user.update({
-        where: {
-          id: userId,
-        },
-        data: userUpdates,
-        include: {
-          role: true,
-          studentProfileIfIsStudent: true,
-          staffProfileIfIsStaff: true,
-          preferences: true,
-          rootFolder: true,
-          _count: true,
-          followedBy: {
-            where: {
-              id: req.auth.id,
-            },
-            select: {
-              firstName: true,
-              lastName: true,
-              profileAvatarId: true,
-              studentProfileIfIsStudent: true,
-              staffProfileIfIsStaff: true,
-              id: true,
+      if (validated.bio) {
+        userUpdates.bio = validated.bio;
+      }
+
+      if (Object.keys(userUpdates).length > 0) {
+        user = await prisma.user.update({
+          where: {
+            id: userId,
+          },
+          data: userUpdates,
+          include: {
+            role: true,
+            studentProfileIfIsStudent: true,
+            staffProfileIfIsStaff: true,
+            preferences: true,
+            rootFolder: true,
+            _count: true,
+            followedBy: {
+              where: {
+                id: req.auth.id,
+              },
+              select: {
+                firstName: true,
+                lastName: true,
+                profileAvatarId: true,
+                studentProfileIfIsStudent: true,
+                staffProfileIfIsStaff: true,
+                id: true,
+              },
             },
           },
-        },
-      });
-
-      if (!user) {
-        RequestHandler.throwError(404, "user not found")();
+        });
       }
+
       RequestHandler.sendSuccess(req, res, user);
     } catch (error) {
       console.log("follow user Error: ", error);
@@ -956,6 +1010,24 @@ module.exports = class AuthController {
       if (!user) {
         RequestHandler.throwError(404, "user not found")();
       }
+
+      await prisma.notification.create({
+        data: {
+          user: {
+            connect: {
+              id: user.id,
+            },
+          },
+          message: `${req.auth.firstName} ${req.auth.lastName} started following you`,
+
+          associatedUser: {
+            connect: {
+              id: req.auth.id,
+            },
+          },
+        },
+      });
+
       RequestHandler.sendSuccess(req, res, user);
     } catch (error) {
       console.log("follow user Error: ", error);
@@ -1011,6 +1083,69 @@ module.exports = class AuthController {
       RequestHandler.sendSuccess(req, res, user);
     } catch (error) {
       console.log("follow user Error: ", error);
+      RequestHandler.sendError(req, res, error);
+    }
+  }
+
+  static async getNotifications(req, res) {
+    try {
+      const notifications = await prisma.notification.findMany({
+        where: {
+          userId: req.auth.id,
+          isDismissed: false,
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+        include: {
+          user: {
+            select: {
+              firstName: true,
+              lastName: true,
+              profileAvatarId: true,
+              staffProfileIfIsStaff: true,
+              studentProfileIfIsStudent: true,
+            },
+          },
+          associatedUser: {
+            select: {
+              firstName: true,
+              lastName: true,
+              profileAvatarId: true,
+              staffProfileIfIsStaff: true,
+              studentProfileIfIsStudent: true,
+            },
+          },
+        },
+      });
+
+      RequestHandler.sendSuccess(req, res, notifications);
+    } catch (error) {
+      console.log("error getting notifications: ", error);
+      RequestHandler.sendError(req, res, error);
+    }
+  }
+
+  static async dismissNotification(req, res) {
+    try {
+      const notificationId = Number(req.params.notificationId);
+
+      if (!notificationId) {
+        RequestHandler.throwError(400, "Notification id is required")();
+      }
+
+      const dismissedNotification = await prisma.notification.update({
+        where: {
+          id: notificationId,
+        },
+        data: {
+          isDismissed: true,
+        },
+      });
+
+      RequestHandler.sendSuccess(req, res, dismissedNotification);
+    } catch (error) {
+      console.log("error dismissing notification: ", error);
       RequestHandler.sendError(req, res, error);
     }
   }
