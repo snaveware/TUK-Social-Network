@@ -158,84 +158,99 @@ export default function NewPostPage() {
   }
 
   const pickImage = async () => {
-    if (Platform.OS == "web") {
-      const result = await DocumentPicker.getDocumentAsync({
-        type: ",video/*,image/*",
-        copyToCacheDirectory: false, // Set this to true if you want to copy the file to the cache directory
-      });
+    try {
+      if (Platform.OS == "web") {
+        const result = await DocumentPicker.getDocumentAsync({
+          type: ",video/*,image/*",
+          copyToCacheDirectory: false, // Set this to true if you want to copy the file to the cache directory
+        });
 
-      const asset = {
-        uri: result.uri,
-        type: result.file.type.split("/")[0],
-        file: result.file,
-      };
+        console.log("result: ", result);
 
-      const attr = Utils.extractMimeTypeAndBase64(asset.uri);
-      asset.mimeType = attr.mimeType;
+        const asset = {
+          uri: result.uri,
+          type: result.file.type.split("/")[0],
+          file: result.file,
+        };
 
-      setFiles((prevValues) => {
-        let sameFile = false;
-        let i = 0;
-        while (!sameFile && i < prevValues.length) {
-          if (
-            prevValues[i].name === result.file.name ||
-            prevValues[i].uri === result.uri
-          ) {
-            sameFile = true;
+        const attr = Utils.extractMimeTypeAndBase64(asset.uri);
+        asset.mimeType = attr.mimeType;
+
+        setFiles((prevValues) => {
+          let sameFile = false;
+          let i = 0;
+          while (!sameFile && i < prevValues.length) {
+            if (
+              prevValues[i].name === result.file.name ||
+              prevValues[i].uri === result.uri
+            ) {
+              sameFile = true;
+            }
+            i++;
           }
-          i++;
-        }
 
-        if (sameFile) {
-          return [...prevValues];
-        } else {
-          uploadFile(asset);
-          return [...prevValues, asset];
-        }
-      });
-      return;
-    }
-
-    let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.All,
-      // allowsEditing: true,
-      // aspect: [4, 3],
-      quality: 1,
-      videoMaxDuration: 60,
-    });
-
-    if (result && result.assets) {
-      const asset = {
-        uri: result.assets[0].uri,
-        type: result.assets[0].type || "image",
-      };
-
-      asset.mimeType = Utils.getMimeTypeFromURI({
-        uri: asset.uri,
-        type: asset.type || "image",
-      });
-
-      asset.name = `${Utils.generateUniqueString()}${Utils.getMediaFileExtension(
-        asset.mimeType
-      )}`;
-
-      setFiles((prevValues) => {
-        const sameFile = false;
-        let i = 0;
-        while (!sameFile && i < prevValues.length) {
-          if (prevValues[i].uri === asset.uri) {
-            sameFile = true;
+          if (sameFile) {
+            return [...prevValues];
+          } else {
+            uploadFile(asset);
+            return [...prevValues, asset];
           }
-          i++;
-        }
+        });
+        return;
+      }
 
-        if (sameFile) {
-          return [...prevValues];
-        } else {
-          uploadFile(asset);
-          return [...prevValues, asset];
-        }
+      let result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.All,
+        // allowsEditing: true,
+        // aspect: [4, 3],
+        quality: 1,
+        // videoMaxDuration: 60,
       });
+
+      if (result && result.assets) {
+        const asset = {
+          uri: result.assets[0].uri,
+          type: result.assets[0].type || "image",
+        };
+
+        asset.mimeType = Utils.getMimeTypeFromURI({
+          uri: asset.uri,
+          type: asset.type || "image",
+        });
+
+        asset.name = `${Utils.generateUniqueString()}${Utils.getMediaFileExtension(
+          asset.mimeType
+        )}`;
+
+        console.log(
+          "picked asset: ",
+          asset,
+          "mime: ",
+          asset.mimeType,
+          "type: ",
+          asset.type
+        );
+
+        setFiles((prevValues) => {
+          const sameFile = false;
+          let i = 0;
+          while (!sameFile && i < prevValues.length) {
+            if (prevValues[i].uri === asset.uri) {
+              sameFile = true;
+            }
+            i++;
+          }
+
+          if (sameFile) {
+            return [...prevValues];
+          } else {
+            uploadFile(asset);
+            return [...prevValues, asset];
+          }
+        });
+      }
+    } catch (error) {
+      console.log("error picking media file: ", error);
     }
   };
 
@@ -251,7 +266,7 @@ export default function NewPostPage() {
         formData.append("file", {
           uri: file.uri,
           name: file.name,
-          type: file.mimetype,
+          type: file.mimeType,
         });
       }
 

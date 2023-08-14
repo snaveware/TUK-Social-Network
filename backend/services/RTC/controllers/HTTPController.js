@@ -3,7 +3,6 @@ const Logger = require("../../../Logger");
 const ChatsValidator = require("../Validator");
 const { prisma } = require("../../../DatabaseInit");
 const { Config } = require("../../../configs");
-const { io } = require("../../../server");
 module.exports = class ChatsHTTPController {
   static async createChat(req, res) {
     try {
@@ -20,10 +19,12 @@ module.exports = class ChatsHTTPController {
             connect: membersData,
           },
           chatType: validated.chatType,
-          admin: {
-            connect: {
-              id: req.auth.id,
-            },
+          admins: {
+            connect: [
+              {
+                id: req.auth.id,
+              },
+            ],
           },
         },
         include: {
@@ -32,7 +33,7 @@ module.exports = class ChatsHTTPController {
               id: true,
               firstName: true,
               lastName: true,
-              profileAvatar: true,
+              profileAvatarId: true,
               studentProfileIfIsStudent: {
                 select: {
                   registrationNumber: true,
@@ -44,6 +45,28 @@ module.exports = class ChatsHTTPController {
                   position: true,
                 },
               },
+              bio: true,
+              socketId: true,
+            },
+          },
+          admins: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              profileAvatarId: true,
+              studentProfileIfIsStudent: {
+                select: {
+                  registrationNumber: true,
+                },
+              },
+              staffProfileIfIsStaff: {
+                select: {
+                  title: true,
+                  position: true,
+                },
+              },
+              bio: true,
               socketId: true,
             },
           },
@@ -138,7 +161,8 @@ module.exports = class ChatsHTTPController {
               id: true,
               firstName: true,
               lastName: true,
-              profileAvatar: true,
+              profileAvatarId: true,
+              bio: true,
               studentProfileIfIsStudent: {
                 select: {
                   registrationNumber: true,
@@ -273,7 +297,8 @@ module.exports = class ChatsHTTPController {
               id: true,
               firstName: true,
               lastName: true,
-              profileAvatar: true,
+              profileAvatarId: true,
+              bio: true,
               studentProfileIfIsStudent: {
                 select: {
                   registrationNumber: true,
@@ -287,7 +312,27 @@ module.exports = class ChatsHTTPController {
               },
             },
           },
-
+          admins: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              profileAvatarId: true,
+              studentProfileIfIsStudent: {
+                select: {
+                  registrationNumber: true,
+                },
+              },
+              staffProfileIfIsStaff: {
+                select: {
+                  title: true,
+                  position: true,
+                },
+              },
+              bio: true,
+              socketId: true,
+            },
+          },
           schoolIfSchoolChat: true,
           classIfClassChat: true,
           roleIfRoleChat: true,
@@ -308,6 +353,7 @@ module.exports = class ChatsHTTPController {
                   firstName: true,
                   lastName: true,
                   profileAvatarId: true,
+                  bio: true,
                   studentProfileIfIsStudent: true,
                   staffProfileIfIsStaff: true,
                 },
@@ -317,8 +363,10 @@ module.exports = class ChatsHTTPController {
                   name: true,
                   path: true,
                   id: true,
+                  type: true,
                 },
               },
+
               linkedPoll: true,
               linkedPost: true,
               chat: true,
@@ -330,6 +378,7 @@ module.exports = class ChatsHTTPController {
                       firstName: true,
                       lastName: true,
                       profileAvatarId: true,
+                      bio: true,
                       staffProfileIfIsStaff: true,
                       studentProfileIfIsStudent: true,
                     },
@@ -386,7 +435,8 @@ module.exports = class ChatsHTTPController {
                 id: true,
                 firstName: true,
                 lastName: true,
-                profileAvatar: true,
+                profileAvatarId: true,
+                bio: true,
                 studentProfileIfIsStudent: {
                   select: {
                     registrationNumber: true,
@@ -498,7 +548,8 @@ module.exports = class ChatsHTTPController {
                   id: true,
                   firstName: true,
                   lastName: true,
-                  profileAvatar: true,
+                  profileAvatarId: true,
+                  bio: true,
                   studentProfileIfIsStudent: {
                     select: {
                       registrationNumber: true,
@@ -570,7 +621,8 @@ module.exports = class ChatsHTTPController {
                   id: true,
                   firstName: true,
                   lastName: true,
-                  profileAvatar: true,
+                  profileAvatarId: true,
+                  bio: true,
                   studentProfileIfIsStudent: {
                     select: {
                       registrationNumber: true,
@@ -598,6 +650,193 @@ module.exports = class ChatsHTTPController {
       RequestHandler.sendSuccess(req, res, chat);
     } catch (error) {
       console.log("Error resolving chat", error);
+      RequestHandler.sendError(req, res, error);
+    }
+  }
+
+  static async updateChat(req, res) {
+    try {
+      Logger.info(
+        JSON.stringify({
+          action: "update Chat",
+          user: req.auth.id,
+          chatId: req.params.chatId,
+        })
+      );
+
+      const chatId = Number(req.params.chatId);
+
+      if (!chatId || isNaN(chatId)) {
+        RequestHandler.throwError(400, "Valid chat Id is required")();
+      }
+
+      const validated = await ChatsValidator.validateUpdate(req.body);
+
+      let chat = await prisma.chat.findFirst({
+        where: {
+          id: chatId,
+          admins: {
+            some: {
+              id: req.auth.id,
+            },
+          },
+        },
+        include: {
+          members: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              profileAvatarId: true,
+              studentProfileIfIsStudent: {
+                select: {
+                  registrationNumber: true,
+                },
+              },
+              staffProfileIfIsStaff: {
+                select: {
+                  title: true,
+                  position: true,
+                },
+              },
+              bio: true,
+              socketId: true,
+            },
+          },
+          admins: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              profileAvatarId: true,
+              studentProfileIfIsStudent: {
+                select: {
+                  registrationNumber: true,
+                },
+              },
+              staffProfileIfIsStaff: {
+                select: {
+                  title: true,
+                  position: true,
+                },
+              },
+              bio: true,
+              socketId: true,
+            },
+          },
+        },
+      });
+
+      if (!chat) {
+        RequestHandler.throwError(404, "Chat not found")();
+      }
+
+      const update = {
+        members: {
+          connect: [],
+          disconnect: [],
+        },
+        admins: {
+          connect: [],
+          disconnect: [],
+        },
+      };
+
+      if (validated.removeMembers) {
+        const members = validated.removeMembers.map((id) => ({ id }));
+        update.members.disconnect = members;
+      }
+
+      if (validated.addMembers) {
+        const members = validated.addMembers.map((id) => ({ id }));
+        update.members.connect = members;
+      }
+
+      if (validated.name && validated.name !== chat.name) {
+        update.name = validated.name;
+      }
+
+      if (validated.description && validated.description !== chat.description) {
+        update.description = validated.description;
+      }
+
+      if (validated.addAdmins) {
+        const admins = validated.addAdmins.map((id) => ({ id }));
+        update.admins.connect = admins;
+      }
+
+      if (validated.removeAdmins) {
+        const admins = validated.removeAdmins.map((id) => ({ id }));
+        update.admins.disconnect = admins;
+      }
+
+      if (validated.profileAvatarId) {
+        update.profileAvatar = {
+          connect: {
+            id: validated.profileAvatarId,
+          },
+        };
+      }
+
+      console.log("chat update : ", update);
+
+      if (Object.keys(update).length > 0) {
+        chat = await prisma.chat.update({
+          where: {
+            id: chatId,
+          },
+
+          data: update,
+
+          include: {
+            members: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                profileAvatarId: true,
+                studentProfileIfIsStudent: {
+                  select: {
+                    registrationNumber: true,
+                  },
+                },
+                staffProfileIfIsStaff: {
+                  select: {
+                    title: true,
+                    position: true,
+                  },
+                },
+                bio: true,
+                socketId: true,
+              },
+            },
+            admins: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                profileAvatarId: true,
+                studentProfileIfIsStudent: {
+                  select: {
+                    registrationNumber: true,
+                  },
+                },
+                staffProfileIfIsStaff: {
+                  select: {
+                    title: true,
+                    position: true,
+                  },
+                },
+                bio: true,
+                socketId: true,
+              },
+            },
+          },
+        });
+      }
+      RequestHandler.sendSuccess(req, res, chat);
+    } catch (error) {
+      console.log("Error creatiing chat", error);
       RequestHandler.sendError(req, res, error);
     }
   }

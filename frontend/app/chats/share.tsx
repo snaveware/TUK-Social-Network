@@ -76,15 +76,26 @@ export default function ChatsShareScreen() {
     socket.on("resolve_chat_response", (data) => {
       console.log("resolve chat response: ", data);
 
-      router.back();
+      if (Platform.select({ ios: true, android: true })) {
+        router.back();
+        router.push({
+          pathname: `/chats/${data.chat.id}`,
+          params: {
+            shareMessage: params.shareMessage,
+            targetChatId: data.chat.id,
+          },
+        });
+      } else {
+        router.push({
+          pathname: `/(tabs)/ChatsTab`,
+          params: {
+            shareMessage: params.shareMessage,
+            targetChatId: data.chat.id,
+            chatId: data.chat.id,
+          },
+        });
+      }
 
-      router.push({
-        pathname: `/chats/${data.chat.id}`,
-        params: {
-          shareMessage: params.shareMessage,
-          targetChatId: data.chat.id,
-        },
-      });
       setLoading(false);
     });
 

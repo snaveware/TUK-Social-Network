@@ -1,6 +1,7 @@
 import Config from "./Config";
 import Utils, { BodyRequestMethods } from "./Utils";
 import { Platform } from "react-native";
+import * as FileSystem from "expo-file-system";
 
 export default async function uploadFile(file, folderId) {
   console.log("........Upload file called.......");
@@ -15,10 +16,12 @@ export default async function uploadFile(file, folderId) {
     if (Platform.OS == "web") {
       formData.append("file", file.file);
     } else {
+      let uri = file.uri;
+
       formData.append("file", {
-        uri: file.uri,
-        name: file.name,
-        type: file.mimetype,
+        uri: uri,
+        name: file.name.replaceAll(" ", "-"),
+        type: file.mimeType,
       });
     }
 
@@ -28,7 +31,7 @@ export default async function uploadFile(file, folderId) {
       body: formData,
     });
 
-    // console.log("Media file upload results: ", results);
+    console.log("Media file upload results: ", results);
 
     if (results.success) {
       return results.data;
@@ -56,4 +59,14 @@ export function extractFileAsset(result) {
     mimeType: result.mimeType,
     name: result.name,
   };
+}
+
+export function extractMultipleWebAssets(result) {
+  console.log("extracting files: ", result);
+  const files = [];
+
+  for (const file of result.output) {
+    files.push({ file: file, type: Utils.getFileTypeFromMimeType(file.type) });
+  }
+  return files;
 }

@@ -12,6 +12,7 @@ export enum ButtonVariant {
   secondary = "secondary",
   text = "text",
   outline = "outline",
+  destructive = "destructive",
 }
 
 export type CustomButtonProps = {
@@ -53,10 +54,12 @@ export default function Button(props: ButtonProps) {
       backgroundColor = theme.secondary;
       color = theme.secondaryForeground;
       borderColor = theme.secondary;
-    } else if (variant == "outline") {
+    } else if (variant === "outline") {
       backgroundColor = theme.background;
       color = theme.primary;
       borderColor = theme.primary;
+    } else if (variant === "destructive") {
+      backgroundColor = theme.destructive;
     }
   }
 

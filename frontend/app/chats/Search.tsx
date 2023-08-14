@@ -85,8 +85,17 @@ export default function ChatsSearchScreen() {
 
     socket.on("resolve_chat_response", (data) => {
       console.log("resolve chat response: ", data);
-      router.back();
-      router.push(`/chats/${data.chat.id}`);
+
+      if (Platform.select({ ios: true, android: true })) {
+        router.back();
+        router.push(`/chats/${data.chat.id}`);
+      } else {
+        router.push({
+          pathname: `/(tabs)/ChatsTab`,
+          params: { chatId: data.chat.id },
+        });
+      }
+
       setLoading(false);
     });
 

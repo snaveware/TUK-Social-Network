@@ -287,13 +287,41 @@ module.exports = class RTCChatsController {
         }
       }
 
-      validated.attachedFiles = validated.attachedFiles
-        ? {
-            connect: validated.attachedFiles.map((id) => {
-              return { id };
-            }),
-          }
-        : undefined;
+      console.log("new message: ", validated);
+
+      if (validated.attachedFiles) {
+        const filesAccesses = await prisma.file.findMany({
+          where: {
+            id: {
+              in: validated.attached,
+            },
+          },
+          select: {
+            id: true,
+          },
+        });
+
+        await prisma.chat.update({
+          where: {
+            id: validated.chatId,
+          },
+          data: {
+            AccessGranted: {
+              connect: filesAccesses,
+            },
+          },
+        });
+
+        validated.attachedFiles = {
+          connect: validated.attachedFiles.map((id) => {
+            return { id };
+          }),
+        };
+
+        console.log("final attached files: ", validated.attachedFiles);
+      }
+
+      console.log("final attached files: ", validated.attachedFiles);
 
       const { chatId, replyingToId, ...otherParams } = validated;
 
@@ -698,7 +726,7 @@ module.exports = class RTCChatsController {
 
       const messages = await prisma.message.findMany({
         where: {
-          // chatId: data.chatId ? data.chatId : undefined,
+          chatId: data.chatId ? data.chatId : undefined,
           status: {
             not: "deleted",
           },
@@ -795,10 +823,24 @@ module.exports = class RTCChatsController {
               name: true,
               path: true,
               id: true,
+              type: true,
             },
           },
           linkedPoll: true,
           linkedPost: true,
+          replyingTo: {
+            include: {
+              sender: {
+                select: {
+                  firstName: true,
+                  lastName: true,
+                  profileAvatarId: true,
+                  staffProfileIfIsStaff: true,
+                  studentProfileIfIsStudent: true,
+                },
+              },
+            },
+          },
         },
         orderBy: {
           createdAt: "desc",

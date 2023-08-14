@@ -246,10 +246,9 @@ export default function FolderView({ user }: { user: any }) {
 
       <View
         style={[
+          styles.flexRow,
+
           {
-            display: "flex",
-            // flexDirection: "row-reverse",
-            flexDirection: "row",
             justifyContent: "flex-start",
             alignItems: "center",
             flexWrap: "wrap",

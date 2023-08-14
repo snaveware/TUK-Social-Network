@@ -29,7 +29,7 @@ export const ThemeLight: ThemeContext = {
   foreground: "#000000",
   foregroundMuted: "#007272",
   backgroundMuted: "#F0F0F0",
-  border: "#F0F0F0",
+  border: "#E0F0E0",
   accent: "#252566",
   accentForeground: "#FFFFFF",
   destructive: "#C66D67",
@@ -46,7 +46,7 @@ export const ThemeDark: ThemeContext = {
   foregroundMuted: "#007272",
   backgroundMuted: "#2D2D2D",
   border: "#2D2D2D",
-  accent: "#252566",
+  accent: "#C6A767",
   accentForeground: "#FFFFFF",
   destructive: "#C66D67",
 };

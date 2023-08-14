@@ -1,7 +1,7 @@
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { Link, Tabs } from "expo-router";
-import { Pressable, useColorScheme } from "react-native";
+import { Pressable, useColorScheme, Platform } from "react-native";
 // import ChatsIcon from "../../assets/images/ChatsIcon.svg";
 import ChatsIcon from "../../components/custom-icons/ChatsIcon";
 import { Text, View } from "../../components/Themed";
@@ -101,7 +101,9 @@ export default function TabLayout() {
         options={{
           title: "Chats",
           tabBarLabel: "Chats",
-
+          headerShown: Platform.select({ ios: true, android: true })
+            ? true
+            : false,
           tabBarIcon: ({ color }) => (
             // <TabBarIcon name="comment" color={color} />
             // <ChatsIcon color={color} />

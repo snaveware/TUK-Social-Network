@@ -34,6 +34,23 @@ export const unstable_settings = {
   initialRouteName: "(tabs)",
 };
 
+export enum AccessItemTypes {
+  Post = "post",
+  File = "file",
+  Folder = "folder",
+  Poll = "poll",
+}
+
+export interface Access {
+  users: number[];
+  schools: number[];
+  classes: number[];
+  faculties: number[];
+  programmes: number[];
+  chats: number[];
+  isPublic: boolean;
+}
+
 export type UserCounts = {
   followedBy: number;
   follows: number;
@@ -291,6 +308,13 @@ function RootLayoutNav() {
                     presentation: "modal",
                     title: "Forward Message",
                     headerTitle: "Forward Message",
+                  }}
+                />
+
+                <Stack.Screen
+                  name="chats/[chatId]"
+                  options={{
+                    headerShown: false,
                   }}
                 />
 

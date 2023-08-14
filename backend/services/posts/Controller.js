@@ -14,6 +14,19 @@ module.exports = class PostsController {
 
       console.log("files: ", files);
 
+      await prisma.access.updateMany({
+        where: {
+          fileIfItemIsFile: {
+            id: {
+              in: validated.files,
+            },
+          },
+        },
+        data: {
+          isPublic: true,
+        },
+      });
+
       const createdPost = await prisma.post.create({
         data: {
           caption: validated.caption,
@@ -22,6 +35,12 @@ module.exports = class PostsController {
           owner: {
             connect: {
               id: req.auth.id,
+            },
+          },
+          Access: {
+            create: {
+              itemType: "post",
+              isPublic: true,
             },
           },
           files: {

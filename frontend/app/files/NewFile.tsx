@@ -23,12 +23,14 @@ import Utils from "../../Utils";
 import * as ImagePicker from "expo-image-picker";
 import FileView from "../../components/files/FileView";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import * as FileSystem from "expo-file-system";
+import Config from "../../Config";
 import FileCard from "../../components/files/FileCard";
 
 export default function NewFileScreen() {
   const [files, setfiles] = useState();
   const { theme } = useContext(AppThemeContext);
-  const { user } = useContext(AuthContext);
+  const { user, accessToken } = useContext(AuthContext);
   const navigation = useNavigation();
   const router = useRouter();
   const [file, setFile] = useState<any>();
@@ -76,8 +78,10 @@ export default function NewFileScreen() {
       // type: "video/*,image/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       // type: "application/pdf,application/msword",
 
-      copyToCacheDirectory: false, // Set this to true if you want to copy the file to the cache directory,
+      copyToCacheDirectory: true, // Set this to true if you want to copy the file to the cache directory,
     });
+
+    console.log("picked file result: ", result);
 
     let asset: any = extractFileAsset(result);
 
@@ -106,6 +110,8 @@ export default function NewFileScreen() {
         type: "image/*,video/*",
         copyToCacheDirectory: false, // Set this to true if you want to copy the file to the cache directory
       });
+
+      console.log("result: ", result);
 
       const asset: any = extractAsset(result);
 

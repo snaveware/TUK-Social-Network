@@ -52,11 +52,11 @@ module.exports = class ChatsValidator {
       message: Joi.string()
         .min(1)
         .max(1000) // Updated maximum length to 1000 characters
-        .required()
         .label("Message")
+        .default("")
+        .allow("")
         .messages({
           "string.base": "{#label} should be a type of text",
-          "string.empty": "{#label} cannot be empty",
           "string.min": "{#label} should have a minimum length of {#limit}",
           "string.max": "{#label} should have a maximum length of {#limit}",
           "any.required": "{#label} is required",
@@ -124,6 +124,85 @@ module.exports = class ChatsValidator {
       otherUserId: Joi.number().optional().label("Other User ID").messages({
         "number.base": "{#label} must be a number.",
       }),
+    });
+
+    try {
+      const validated = await schema.validateAsync(values);
+      return validated;
+    } catch (error) {
+      console.log("error validating CHAT resolution: ", error);
+      error.status = 400;
+      throw error;
+    }
+  }
+
+  static async validateUpdate(values) {
+    const schema = Joi.object({
+      name: Joi.string().optional().max(256).label("Name").messages({
+        "string.base": "{#label} should be a string.",
+        "string.max": "{#label} should not exceed 256 characters.",
+      }),
+      description: Joi.string()
+        .optional()
+        .max(1000)
+        .label("Description")
+        .messages({
+          "string.base": "{#label} should be a string.",
+          "string.max": "{#label} should not exceed 1000 characters.",
+        }),
+      profileAvatarId: Joi.number().optional().label("Profile Avatar Id"),
+      addMembers: Joi.array()
+        .items(Joi.number().integer())
+        .unique()
+        .optional()
+        .label("Members to add")
+        .messages({
+          "array.base": "{#label} should be an array.",
+          "array.min": "{#label} must have at least 1 member.",
+          "array.unique": "{#label} must have unique members.",
+          "number.base": "{#label} should be a number.",
+          "number.integer": "{#label} should be an integer.",
+        }),
+      removeMembers: Joi.array()
+        .items(Joi.number().integer())
+        .unique()
+        .optional()
+        .label("Members to remove")
+        .messages({
+          "any.required": "{#label} is required.",
+          "array.base": "{#label} should be an array.",
+          "array.min": "{#label} must have at least 1 member.",
+          "array.unique": "{#label} must have unique members.",
+          "number.base": "{#label} should be a number.",
+          "number.integer": "{#label} should be an integer.",
+        }),
+
+      addAdmins: Joi.array()
+        .items(Joi.number().integer())
+        .unique()
+        .optional()
+        .label("Admins to add")
+        .messages({
+          "any.required": "{#label} is required.",
+          "array.base": "{#label} should be an array.",
+          "array.min": "{#label} must have at least 1 member.",
+          "array.unique": "{#label} must have unique members.",
+          "number.base": "{#label} should be a number.",
+          "number.integer": "{#label} should be an integer.",
+        }),
+      removeAdmins: Joi.array()
+        .items(Joi.number().integer())
+        .unique()
+        .optional()
+        .label("Admins to remove")
+        .messages({
+          "any.required": "{#label} is required.",
+          "array.base": "{#label} should be an array.",
+          "array.min": "{#label} must have at least 1 member.",
+          "array.unique": "{#label} must have unique members.",
+          "number.base": "{#label} should be a number.",
+          "number.integer": "{#label} should be an integer.",
+        }),
     });
 
     try {

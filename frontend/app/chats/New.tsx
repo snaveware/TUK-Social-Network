@@ -14,7 +14,13 @@ import Button from "../../components/Button";
 import Config from "../../Config";
 import Utils, { BodyRequestMethods } from "../../Utils";
 
-export default function NewChatScreen() {
+export default function NewChatScreen({
+  onCreate = false,
+  setOnCreate,
+}: {
+  onCreate?: boolean;
+  setOnCreate: any;
+}) {
   const navigation = useNavigation();
   const [members, setMembers] = useState<string[]>();
   const [name, setName] = useState<string>();
@@ -52,8 +58,15 @@ export default function NewChatScreen() {
     });
   }, [members, name, description]);
 
+  useEffect(() => {
+    if (onCreate && setOnCreate) {
+      setOnCreate(false);
+      onSubmit();
+    }
+  });
+
   function onSelectionChange(selection: any) {
-    setMembers(selection && Object.keys(selection));
+    setMembers(Object.keys(selection));
   }
 
   async function onSubmit() {
@@ -86,10 +99,10 @@ export default function NewChatScreen() {
         return;
       }
 
-      let _members = [...members];
+      let _members: string[] = [...members];
 
-      if (!members.includes(user.id.toString())) {
-        _members = [..._members, user.id];
+      if (user && !members.includes(user.id.toString())) {
+        _members = [..._members, user.id.toString()];
       }
 
       const results = await Utils.makeBodyRequest({
@@ -106,11 +119,19 @@ export default function NewChatScreen() {
       console.log("group create results", results.data);
 
       if (results.success) {
-        router.back();
-        router.push({
-          pathname: "/chats/[chatId]",
-          params: { chatId: results.data.id },
-        });
+        if (Platform.select({ ios: true, android: true })) {
+          router.back();
+
+          router.push({
+            pathname: "/chats/[chatId]",
+            params: { chatId: results.data.id },
+          });
+        } else {
+          router.push({
+            pathname: "/(tabs)/ChatsTab",
+            params: { chatId: results.data.id },
+          });
+        }
       } else {
         setErrorMessage(results.message);
       }

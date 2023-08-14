@@ -26,7 +26,7 @@ export enum SearchTypes {
   messages = "messages",
 }
 
-export default function ChatsShareScreen() {
+export default function PostsSearchScreen() {
   const [users, setUsers] = useState<PostOwner[]>();
   const { theme } = useContext(AppThemeContext);
   const [keyboardHeight, setKeyboardHeight] = useState(0);

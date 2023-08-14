@@ -280,8 +280,9 @@ export default function AccountTabScreen() {
   }
 
   if (!user?.firstName) {
+    getUser();
     return (
-      <View>
+      <View style={[styles.padding, { backgroundColor: theme.background }]}>
         <Text>Loading...</Text>
       </View>
     );

@@ -49,6 +49,12 @@ module.exports = class AuthController {
               create: {
                 name: validated.email,
                 path: "",
+                Access: {
+                  create: {
+                    isPublic: true,
+                    itemType: "folder",
+                  },
+                },
               },
             },
           },
@@ -512,10 +518,12 @@ module.exports = class AuthController {
                 name: `${programme.abbreviation} ${validated.year}`,
                 chatType: "class",
                 description: `Group chat for ${programme.abbreviation} Class of ${validated.year}`,
-                admin: {
-                  connect: {
-                    id: user.id,
-                  },
+                admins: {
+                  connect: [
+                    {
+                      id: user.id,
+                    },
+                  ],
                 },
               },
             },

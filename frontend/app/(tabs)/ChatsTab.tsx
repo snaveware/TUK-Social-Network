@@ -4,7 +4,13 @@ import { Text, View } from "../../components/Themed";
 import { Pressable } from "react-native";
 import socket from "../../Socket";
 import { useEffect, useState } from "react";
-import { Link, useRootNavigationState, useRouter } from "expo-router";
+import {
+  Link,
+  useLocalSearchParams,
+  useNavigation,
+  useRootNavigationState,
+  useRouter,
+} from "expo-router";
 import { AppThemeContext } from "../../Theme";
 import { useContext } from "react";
 import { AuthContext } from "../_layout";
@@ -16,15 +22,22 @@ import ChatCard, { Chat } from "../../components/chats/ChatCard";
 import SingleChatScreen from "../chats/[chatId]";
 import GlobalStyles from "../../GlobalStyles";
 import { Platform } from "react-native";
+import ChatsTopBar from "../../components/chats/ChatsTopBar";
+import ChatsSearchScreen from "../chats/Search";
+import NewChatScreen from "../chats/New";
+import ChatsShareScreen from "../chats/share";
 
 export default function ChatsTabScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams();
   const navigationState = useRootNavigationState();
   const { theme } = useContext(AppThemeContext);
   const { user, setIsLoggedIn, setUser } = useContext(AuthContext);
   const [Chats, setChats] = useState<Chat[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | undefined>();
+  const navigation = useNavigation();
+  const [onPostCreate, setOnPostCrete] = useState<boolean>(false);
   function onLogout() {
     AsyncStorage.removeItem("user");
     AsyncStorage.removeItem("acessToken");
@@ -64,6 +77,9 @@ export default function ChatsTabScreen() {
      * Get Chats
      */
     getChats();
+    navigation.addListener("focus", () => {
+      getChats();
+    });
   }, []);
 
   async function getChats() {
@@ -74,7 +90,7 @@ export default function ChatsTabScreen() {
     try {
       const URL = `${Config.API_URL}/chats`;
       const results = await Utils.makeGetRequest(URL);
-      console.log("get Chat results: (1) ", results.data[0]);
+      // console.log("get Chat results: (1) ", results.data[0]);
       if (results.success) {
         setChats(results.data);
         if (
@@ -108,15 +124,7 @@ export default function ChatsTabScreen() {
         { justifyContent: "flex-start", alignItems: "flex-start" },
       ]}
     >
-      <FlatList
-        showsVerticalScrollIndicator={false}
-        onRefresh={getChats}
-        refreshing={loading}
-        data={Chats}
-        renderItem={({ item }: { item: Chat }) => <ChatCard chat={item} />}
-        keyExtractor={(item) => {
-          return item.id.toString();
-        }}
+      <View
         style={{
           width: Platform.select({ ios: true, android: true })
             ? undefined
@@ -132,18 +140,74 @@ export default function ChatsTabScreen() {
           borderEndColor: theme.border,
           borderRightColor: theme.border,
         }}
-      />
-      {!Platform.select({ ios: true, android: true }) && (
-        <View
-          style={{
-            flex: 1,
-            width: "100%",
-            height: "100%",
-          }}
-        >
-          <SingleChatScreen />
-        </View>
-      )}
+      >
+        {!Platform.select({ ios: true, android: true }) && (
+          <ChatsTopBar
+            onPostCreate={onPostCreate}
+            setOnPostCreate={setOnPostCrete}
+            onActionEnd={getChats}
+          />
+        )}
+
+        {Chats &&
+          params.action !== "search" &&
+          params.action !== "add" &&
+          params.action !== "share" && (
+            <FlatList
+              showsVerticalScrollIndicator={false}
+              onRefresh={getChats}
+              refreshing={loading}
+              data={Chats}
+              renderItem={({ item }: { item: Chat }) => (
+                <ChatCard chat={item} />
+              )}
+              keyExtractor={(item) => {
+                return item.id.toString();
+              }}
+            />
+          )}
+
+        {params.action === "search" && <ChatsSearchScreen />}
+
+        {params.action === "add" && (
+          <NewChatScreen onCreate={onPostCreate} setOnCreate={setOnPostCrete} />
+        )}
+
+        {params.action === "share" && <ChatsShareScreen />}
+      </View>
+      {!Platform.select({ ios: true, android: true }) &&
+        params.action !== "search" &&
+        params.action !== "add" &&
+        params.action !== "share" && (
+          <View
+            style={{
+              flex: 1,
+              width: "100%",
+              height: "100%",
+            }}
+          >
+            <SingleChatScreen />
+          </View>
+        )}
+
+      {!Platform.select({ ios: true, android: true }) &&
+        (params.action === "search" ||
+          params.action === "add" ||
+          params.action === "share") && (
+          <View
+            style={[
+              styles.flexRow,
+              styles.flexCenter,
+              {
+                flex: 1,
+                width: "100%",
+                height: "100%",
+              },
+            ]}
+          >
+            <Text>Tuchat.</Text>
+          </View>
+        )}
     </View>
   );
 }

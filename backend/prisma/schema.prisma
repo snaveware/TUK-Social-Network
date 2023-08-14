@@ -34,12 +34,11 @@ model User {
   createdAt                 DateTime              @default(now())
   updatedAt                 DateTime              @updatedAt
   chats                     Chat[]                @relation(name: "memberChats")
-  groupsIfAdmin             Chat[]                @relation(name: "groupAdmin")
+  groupsIfAdmin             Chat[]                @relation(name: "groupAdmins")
   sentMessages              Message[]             @relation(name: "sender")
   readMessages              Message[]             @relation(name: "readMessages")
   isOnline                  Boolean               @default(false)
   filesOwned                File[]                @relation(name: "fileOwner")
-  allowedFiles              File[]                @relation(name: "allowedFileViewers")
   ownedPosts                Post[]                @relation(name: "ownedPosts")
   repostedPosts             Post[]                @relation(name: "postReposters")
   likedPosts                Post[]                @relation(name: "postLikers")
@@ -55,10 +54,10 @@ model User {
   rootFolderId              Int                   @unique
   rootFolder                Folder                @relation(name: "userRootFolder", fields: [rootFolderId], references: [id])
   ownedFolders              Folder[]              @relation(name: "folderOwner")
-  sharedFolders             Folder[]              @relation(name: "allowedFolderViewers")
   comments                  Comment[]
   socketId                  String?
   associatedNotifications   Notification[]        @relation(name: "associatedUser")
+  AccessGranted             Access[]
 
   @@map("users")
 }
@@ -208,51 +207,53 @@ enum Titles {
 }
 
 model Class {
-  id          Int              @id @default(autoincrement())
-  programmeId Int
-  year        Int
-  programme   Programme        @relation(fields: [programmeId], references: [id])
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
-  students    StudentProfile[]
-  chat        Chat             @relation(fields: [chatId], references: [id])
-  chatId      Int              @unique
+  id            Int              @id @default(autoincrement())
+  programmeId   Int
+  year          Int
+  programme     Programme        @relation(fields: [programmeId], references: [id])
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  students      StudentProfile[]
+  chat          Chat             @relation(fields: [chatId], references: [id])
+  chatId        Int              @unique
+  AccessGranted Access[]
 
   @@unique([programmeId, year])
   @@map("classes")
 }
 
 model Programme {
-  id           Int      @id @default(autoincrement())
-  name         String   @unique
-  abbreviation String   @unique
-  schoolId     Int
-  school       School   @relation(fields: [schoolId], references: [id])
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  classes      Class[]
+  id            Int      @id @default(autoincrement())
+  name          String   @unique
+  abbreviation  String   @unique
+  schoolId      Int
+  school        School   @relation(fields: [schoolId], references: [id])
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  classes       Class[]
+  AccessGranted Access[]
 
   @@map("programmes")
 }
 
 model School {
-  id                   Int             @id @default(autoincrement())
-  name                 String          @unique
-  abbreviation         String
-  facultyId            Int
-  faculty              Faculty         @relation(fields: [facultyId], references: [id])
-  directorId           Int?            @unique
-  director             StaffProfile?   @relation(name: "asSchoolDirector", fields: [directorId], references: [userId])
-  staffs               StaffProfile[]  @relation(name: "staffSchool")
-  createdAt            DateTime        @default(now())
-  updatedAt            DateTime        @updatedAt
-  programmes           Programme[]
-  sharedFiles          File[]
+  id           Int            @id @default(autoincrement())
+  name         String         @unique
+  abbreviation String
+  facultyId    Int
+  faculty      Faculty        @relation(fields: [facultyId], references: [id])
+  directorId   Int?           @unique
+  director     StaffProfile?  @relation(name: "asSchoolDirector", fields: [directorId], references: [userId])
+  staffs       StaffProfile[] @relation(name: "staffSchool")
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  programmes   Programme[]
+
   SchoolRepresentative StudentProfile? @relation(fields: [studentProfileId], references: [userId])
   studentProfileId     Int?            @unique
   chat                 Chat            @relation(fields: [chatId], references: [id])
   chatId               Int             @unique
-  sharedFolders        Folder[]
+  AccessGranted        Access[]
 
   @@map("schools")
 }
@@ -267,8 +268,7 @@ model Faculty {
   staffs          StaffProfile[] @relation(name: "staffFaculty")
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
-  sharedFiles     File[]
-  sharedFolders   Folder[]
+  AccessGranted   Access[]
 
   @@map("faculties")
 }
@@ -282,9 +282,7 @@ model Chat {
   profileAvatarId         Int?                  @unique
   profileAvatar           File?                 @relation(name: "chatProfile", fields: [profileAvatarId], references: [id])
   members                 User[]                @relation(name: "memberChats")
-  adminId                 Int?
-  admin                   User?                 @relation(name: "groupAdmin", fields: [adminId], references: [id])
-  allowedViewFiles        File[]                @relation(name: "fileAllowedChats")
+  admins                  User[]                @relation(name: "groupAdmins")
   messages                Message[]
   UserChatPreferences     UserChatPreferences[]
   classIfClassChat        Class?
@@ -292,11 +290,11 @@ model Chat {
   schoolIfSchoolChat      School?
   createdAt               DateTime              @default(now())
   updatedAt               DateTime              @updatedAt
-  sharedFolders           Folder[]              @relation(name: "folderAllowedChats")
   manyChatIfOneToChat     Chat?                 @relation(name: "oneToManyChats", fields: [manyChatId], references: [id])
   oneToManyChats          Chat[]                @relation(name: "oneToManyChats")
   manyChatId              Int?                  @unique
   associatedNotifications Notification[]
+  AccessGranted           Access[]
 
   @@map("chats")
 }
@@ -391,7 +389,10 @@ model Post {
   comments                Comment[]
   visibility              PostVisibility @default(public)
   associatedNotifications Notification[]
+  itemtype                ItemTypes      @default(post)
+  Access                  Access         @relation(fields: [id], references: [id])
 
+  @@unique([id, itemtype])
   @@map("posts")
 }
 
@@ -410,15 +411,18 @@ enum PostTypes {
 }
 
 model Poll {
-  id            Int      @id @default(autoincrement())
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id            Int       @id @default(autoincrement())
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
   linkedPost    Post?
   linkedMessage Message?
   question      String
   options       String[]
   results       Json
+  itemtype      ItemTypes @default(poll)
+  Access        Access    @relation(fields: [id], references: [id])
 
+  @@unique([id, itemtype])
   @@map("polls")
 }
 
@@ -461,12 +465,8 @@ model Folder {
   ownerAsRootFolder       User?          @relation(name: "userRootFolder")
   owner                   User?          @relation(name: "folderOwner", fields: [ownerId], references: [id])
   ownerId                 Int?
-  visibility              FileVisibility @default(private)
-  allowedViewers          User[]         @relation(name: "allowedFolderViewers")
-  allowedViewerChats      Chat[]         @relation(name: "folderAllowedChats")
-  allowedViewerSchools    School[]
-  allowedViewerFaculties  Faculty[]
   associatedNotifications Notification[]
+  Access                  Access         @relation(fields: [id], references: [id])
 
   @@map("folders")
 }
@@ -481,11 +481,6 @@ model File {
   ownerId                             Int
   owner                               User                 @relation(name: "fileOwner", fields: [ownerId], references: [id])
   chatIfProfile                       Chat?                @relation(name: "chatProfile")
-  visibility                          FileVisibility       @default(private)
-  allowedViewers                      User[]               @relation(name: "allowedFileViewers")
-  allowedViewerChats                  Chat[]               @relation(name: "fileAllowedChats")
-  allowedViewerSchools                School[]
-  allowedViewerFaculties              Faculty[]
   noOfRequests                        Int                  @default(0)
   createdAt                           DateTime             @default(now())
   updatedAt                           DateTime             @updatedAt
@@ -497,6 +492,7 @@ model File {
   folder                              Folder?              @relation(fields: [folderId], references: [id])
   folderId                            Int?
   associatedNotifications             Notification[]
+  Access                              Access               @relation(fields: [id], references: [id])
 
   @@map("files")
 }
@@ -508,8 +504,27 @@ enum FileTypes {
   word
 }
 
-enum FileVisibility {
-  public
-  private
-  protected
+model Access {
+  id                   Int         @id @default(autoincrement())
+  itemType             ItemTypes
+  users                User[]
+  schools              School[]
+  classes              Class[]
+  faculties            Faculty[]
+  programmes           Programme[]
+  chats                Chat[]
+  fileIfItemIsFile     File?
+  folderIfItemIsFolder Folder?
+  postIfItemIsPost     Post?
+  pollIfItemIsPoll     Poll?
+  isPublic             Boolean     @default(false)
+  createdAt            DateTime    @default(now())
+  updatedAt            DateTime    @updatedAt
+}
+
+enum ItemTypes {
+  post
+  file
+  folder
+  poll
 }

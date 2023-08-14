@@ -58,6 +58,7 @@ export default function MultiUserSelector({
     <View
       style={[
         styles.flexCols,
+        styles.padding,
         { justifyContent: "flex-start", alignItems: "flex-start", flex: 1 },
       ]}
     >
@@ -66,11 +67,12 @@ export default function MultiUserSelector({
           styles.flexRow,
           {
             justifyContent: "center",
-            borderTopWidth: 0.3,
+            // borderBottomWidth: 0.3,
             alignItems: "center",
-            borderTopColor: theme.border,
+            // borderBottomColor: theme.border,
             paddingHorizontal: 15,
-            paddingVertical: 5,
+            paddingVertical: 10,
+            width: "100%",
           },
         ]}
       >

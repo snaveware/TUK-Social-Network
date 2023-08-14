@@ -47,6 +47,12 @@ module.exports = class FilesController {
               id: req.auth.id,
             },
           },
+          Access: {
+            create: {
+              isPublic: false,
+              itemType: "file",
+            },
+          },
           folder: {
             connect: {
               id: folder.id,
@@ -93,6 +99,12 @@ module.exports = class FilesController {
               id: req.auth.id,
             },
           },
+          Access: {
+            create: {
+              itemType: "folder",
+              isPublic: false,
+            },
+          },
           parentFolder: {
             connect: {
               id: folder.id,
@@ -130,7 +142,7 @@ module.exports = class FilesController {
             message: "File id not provided",
           })
         );
-        req.end(404);
+        res.end(404);
         return;
       }
 
@@ -152,7 +164,7 @@ module.exports = class FilesController {
             user: req.auth.id,
           })
         );
-        req.end(404);
+        res.end(404);
         return;
       }
 
@@ -303,7 +315,7 @@ module.exports = class FilesController {
         )();
       }
 
-      if (file.messagesAttachedTo) {
+      if (file.messagesAttachedTo.length > 1) {
         RequestHandler.throwError(
           400,
           "A File cannot be deleted whilst it is attached to a message"

@@ -18,7 +18,6 @@ async function initDatabase() {
   // await prisma.programme.deleteMany();
   // await prisma.school.deleteMany();
   // await prisma.chat.deleteMany();
-
   // await prisma.faculty.deleteMany();
 
   // return;
@@ -80,6 +79,12 @@ async function createRootUser() {
     data: {
       name: Config.ADMIN.email,
       path: "",
+      Access: {
+        create: {
+          itemType: "folder",
+          isPublic: true,
+        },
+      },
     },
   });
 

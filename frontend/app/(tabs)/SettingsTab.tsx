@@ -337,8 +337,9 @@ export default function SettingsTabScreen() {
   }
 
   if (!user?.firstName) {
+    getUser();
     return (
-      <View>
+      <View style={[styles.padding, { backgroundColor: theme.background }]}>
         <Text>Loading...</Text>
       </View>
     );
@@ -457,13 +458,10 @@ export default function SettingsTabScreen() {
 
         <View
           style={[
-            styles.padding,
             {
               position: "relative",
               top: -60,
-              padding: Platform.select({ ios: true, android: true })
-                ? undefined
-                : 50,
+              padding: Platform.select({ ios: true, android: true }) ? 20 : 50,
             },
           ]}
         >
@@ -650,19 +648,18 @@ export default function SettingsTabScreen() {
           style={[{ backgroundColor: theme.destructive }]}
         />
       </View>
-
-      <Button
-        text="Clear Cache"
-        onPress={clearCache}
+      <View
         style={[
+          styles.padding,
           {
-            marginHorizontal: Platform.select({ ios: true, android: true })
+            paddingHorizontal: Platform.select({ ios: true, android: true })
               ? undefined
               : 50,
-            backgroundColor: theme.destructive,
           },
         ]}
-      />
+      >
+        <Button text="Clear Cache" onPress={clearCache} />
+      </View>
     </KeyboardAwareScrollView>
   );
 }

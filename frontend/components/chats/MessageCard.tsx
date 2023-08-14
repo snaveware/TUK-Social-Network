@@ -17,6 +17,7 @@ import * as Clipboard from "expo-clipboard";
 import { MaterialIcons } from "@expo/vector-icons";
 import socket from "../../Socket";
 import { useRouter } from "expo-router";
+import FileCard from "../files/FileCard";
 
 export default function MessageCard({
   message,
@@ -122,17 +123,13 @@ export default function MessageCard({
       <View
         style={[
           styles.flexRow,
-          styles.padding,
 
           {
             marginHorizontal: 5,
-
+            paddingVertical: 5,
             justifyContent:
               user?.id === message.sender.id ? "flex-end" : "flex-start",
             alignItems: "center",
-            // width: Platform.select({ ios: true, android: true })
-            //   ? undefined
-            //   : 800,
           },
         ]}
       >
@@ -140,9 +137,18 @@ export default function MessageCard({
           style={[
             styles.flexRow,
             {
-              width: "65%",
-              minWidth: "65%",
-              maxWidth: "65%",
+              width:
+                message.attachedFiles &&
+                message.attachedFiles.length > 1 &&
+                Platform.select({ ios: true, android: true })
+                  ? "85%"
+                  : "65%",
+              maxWidth:
+                message.attachedFiles &&
+                message.attachedFiles.length > 1 &&
+                Platform.select({ ios: true, android: true })
+                  ? "85%"
+                  : "65%",
 
               justifyContent: "flex-start",
               alignItems: "flex-end",
@@ -175,13 +181,14 @@ export default function MessageCard({
                 borderBottomRightRadius:
                   user?.id === message.sender.id ? 0 : 12,
                 borderBottomLeftRadius: user?.id === message.sender.id ? 12 : 0,
-                backgroundColor:
-                  user?.id === message.sender.id
-                    ? theme.backgroundMuted
-                    : theme.primary,
-                borderColor:
-                  user?.id === message.sender.id ? theme.border : "transparent",
-                borderWidth: 1,
+                backgroundColor: theme.backgroundMuted,
+
+                width:
+                  message.attachedFiles &&
+                  message.attachedFiles.length > 1 &&
+                  Platform.select({ ios: true, android: true })
+                    ? "100%"
+                    : undefined,
               },
             ]}
           >
@@ -219,10 +226,7 @@ export default function MessageCard({
                   style={[
                     {
                       color: theme.foregroundMuted,
-                      borderColor:
-                        user?.id === message.sender.id
-                          ? theme.primaryForeground
-                          : theme.foregroundMuted,
+                      borderColor: theme.foregroundMuted,
                       fontSize: 12,
                     },
                   ]}
@@ -234,25 +238,93 @@ export default function MessageCard({
               </View>
             )}
             {!isDeleted && (
-              <Text
-                style={[
-                  {
-                    color:
-                      user?.id === message.sender.id
-                        ? theme.foreground
-                        : theme.primaryForeground,
-                    borderColor:
-                      user?.id === message.sender.id
-                        ? theme.primaryForeground
-                        : theme.foregroundMuted,
-                    maxWidth: Platform.select({ ios: true, android: true })
-                      ? undefined
-                      : 500,
-                  },
-                ]}
+              <View
+                style={{
+                  backgroundColor: "transparent",
+                  width: "100%",
+
+                  maxWidth: Platform.select({ ios: true, android: true })
+                    ? undefined
+                    : 500,
+                }}
               >
-                {message.message}
-              </Text>
+                <Text
+                  style={[
+                    {
+                      color: theme.foreground,
+                      borderColor: theme.foregroundMuted,
+                      maxWidth: Platform.select({ ios: true, android: true })
+                        ? undefined
+                        : 500,
+                      paddingHorizontal: 20,
+                    },
+                  ]}
+                >
+                  {message.message}
+                </Text>
+                {message.attachedFiles && message.attachedFiles.length > 0 && (
+                  <View
+                    style={[
+                      styles.flexRow,
+                      styles.paddingV,
+                      {
+                        backgroundColor: "transparent",
+                        justifyContent: "space-between",
+                        flexWrap: "wrap",
+                        alignItems: "center",
+                        width: "100%",
+                      },
+                    ]}
+                  >
+                    {message.attachedFiles
+                      // .slice(
+                      //   0,
+                      //   Math.min(
+                      //     message.attachedFiles.length,
+                      //     Platform.select({ ios: true, android: true }) ? 2 : 3
+                      //   )
+                      // )
+                      .map((file, index) => {
+                        return (
+                          <FileCard
+                            key={index}
+                            file={file}
+                            size={
+                              Platform.select({ ios: true, android: true })
+                                ? 130
+                                : 200
+                            }
+                            showLabel={
+                              file.type === "video" || file.type === "image"
+                                ? false
+                                : true
+                            }
+                            showBorder={false}
+                          />
+                        );
+                      })}
+                    {/* {message.attachedFiles.length >
+                      (Platform.select({ ios: true, android: true })
+                        ? 2
+                        : 3) && (
+                      <Text
+                        style={{
+                          fontSize: 16,
+                          marginRight: 10,
+                          color: theme.accentForeground,
+                        }}
+                      >
+                        +{" "}
+                        {message.attachedFiles?.length -
+                          (Platform.select({ ios: true, android: true })
+                            ? 2
+                            : 3)}{" "}
+                        More
+                      </Text>
+                    )} */}
+                  </View>
+                )}
+              </View>
             )}
             {isDeleted && (
               <View
@@ -261,10 +333,7 @@ export default function MessageCard({
                   {
                     justifyContent: "flex-start",
                     alignItems: "center",
-                    borderColor:
-                      user?.id === message.sender.id
-                        ? theme.primaryForeground
-                        : theme.foregroundMuted,
+                    borderColor: theme.foregroundMuted,
                     backgroundColor: "transparent",
                   },
                 ]}
@@ -277,10 +346,7 @@ export default function MessageCard({
                 <Text
                   style={[
                     {
-                      color:
-                        user?.id === message.sender.id
-                          ? theme.foreground
-                          : theme.primaryForeground,
+                      color: theme.foreground,
                       paddingLeft: 3,
                     },
                   ]}
@@ -296,10 +362,8 @@ export default function MessageCard({
                 {
                   justifyContent: "space-between",
                   alignItems: "center",
-                  backgroundColor:
-                    user?.id === message.sender.id
-                      ? theme.backgroundMuted
-                      : theme.primary,
+                  backgroundColor: theme.backgroundMuted,
+                  // paddingTop: 3,
                 },
               ]}
             >
@@ -307,12 +371,9 @@ export default function MessageCard({
                 style={[
                   {
                     fontSize: 10,
-                    color:
-                      user?.id === message.sender.id
-                        ? theme.foregroundMuted
-                        : theme.primaryForeground,
+                    color: theme.foregroundMuted,
                     textAlign: "right",
-                    paddingTop: 5,
+
                     marginRight: 10,
                   },
                 ]}
@@ -320,23 +381,15 @@ export default function MessageCard({
                 <EvilIcons
                   name="check"
                   size={16}
-                  color={
-                    user?.id === message.sender.id
-                      ? theme.foregroundMuted
-                      : theme.backgroundMuted
-                  }
+                  color={theme.foregroundMuted}
                 />
               </Text>
               <Text
                 style={[
                   {
                     fontSize: 10,
-                    color:
-                      user?.id === message.sender.id
-                        ? theme.foregroundMuted
-                        : theme.backgroundMuted,
+                    color: theme.foregroundMuted,
                     textAlign: "right",
-                    paddingTop: 5,
                   },
                 ]}
               >

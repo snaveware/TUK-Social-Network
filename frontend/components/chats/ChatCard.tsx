@@ -47,6 +47,9 @@ export type ChatMember = {
   firstName: string;
   lastName: string;
   profileAvatarId: string;
+  staffProfileIfStaff?: { title: string };
+  studentProfileIfStudent?: { registrationNumber: string };
+  bio?: string;
 };
 
 export type ChatCardMessage = {
@@ -72,6 +75,7 @@ export type Chat = {
   messages: ChatCardMessage[];
   _count: { messages: number }; //number of unread
   manyChatId: number; //for one to many chats
+  admins?: ChatMember[];
 };
 
 export type CustomChatCardProps = {
@@ -132,7 +136,7 @@ export default function ChatCard(props: ChatCardProps) {
     }
 
     setChatName(_chatName);
-  }, []);
+  }, [chat]);
 
   return (
     <TouchableOpacity
@@ -159,6 +163,7 @@ export default function ChatCard(props: ChatCardProps) {
           paddingBottom: 5,
           marginVertical: 5,
           width: SCREEN_WIDTH - 10,
+
           backgroundColor:
             params && params.chatId && Number(params.chatId) === chat.id
               ? theme.backgroundMuted
@@ -166,8 +171,15 @@ export default function ChatCard(props: ChatCardProps) {
         },
       ]}
     >
+      {/* <Avatar
+        text={`${chatName?.[0] || ":"} ${chatName?.[1] || ")"}`}
+        imageSource={chatImageSource ? chatImageSource : undefined}
+        style={{ width: 50, height: 50 }}
+        textStyles={{ fontSize: 12 }}
+      /> */}
+
       <Avatar
-        text={`${chatName?.[0]} ${chatName?.[1]}`}
+        text={`${chatName?.[0] || ":"} ${chatName?.[1] || ")"}`}
         imageSource={chatImageSource ? chatImageSource : undefined}
         style={{ width: 50, height: 50 }}
         textStyles={{ fontSize: 12 }}
