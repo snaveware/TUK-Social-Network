@@ -6,10 +6,24 @@ import {
   Platform,
   TouchableOpacity,
   ScrollView,
+  RefreshControl,
+  ActivityIndicator,
 } from "react-native";
 import { Text, View, TextInput } from "../../components/Themed";
-import { useEffect, useState, useContext, useLayoutEffect } from "react";
-import { Link, useNavigation, useRouter } from "expo-router";
+import {
+  useEffect,
+  useState,
+  useContext,
+  useLayoutEffect,
+  useRef,
+} from "react";
+import {
+  Link,
+  useLocalSearchParams,
+  useNavigation,
+  useRootNavigationState,
+  useRouter,
+} from "expo-router";
 import { AuthContext } from "../_layout";
 import DefaultAppTheme, { AppThemeContext } from "../../Theme";
 import Utils from "../../Utils";
@@ -24,7 +38,11 @@ import SelectDropdown from "react-native-select-dropdown";
 import Button, { ButtonVariant } from "../../components/Button";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import Avatar from "../../components/Avatar";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import {
+  Feather,
+  MaterialCommunityIcons,
+  MaterialIcons,
+} from "@expo/vector-icons";
 const BackgroundImage = require("../../assets/images/background.png");
 import { Entypo } from "@expo/vector-icons";
 import { AntDesign } from "@expo/vector-icons";
@@ -42,9 +60,11 @@ import MediaGallery, {
 // }
 
 import * as DocumentPicker from "expo-document-picker";
+import Modal, { ModalVariant } from "../../components/Modal";
 
 export default function NewPostPage() {
   const router = useRouter();
+  const params = useLocalSearchParams();
   const [loading, setLoading] = useState(false);
   const { isLoggedIn } = useContext(AuthContext);
   const [post, setPost] = useState({});
@@ -54,14 +74,137 @@ export default function NewPostPage() {
   const [files, setFiles] = useState([]);
   const { user, accessToken } = useContext(AuthContext);
   const navigation = useNavigation();
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
 
+  const [Access, setAccess] = useState();
+
+  const [modalText, setModalText] = useState("");
+  const [modalVariant, setModalVariant] = useState(ModalVariant.confirmation);
   const [loadPostStorage, setLoadPostStorage] = useState(true);
   const [loadFilesStorage, setLoadFilesStorage] = useState(true);
+
+  typeDropdownRef = useRef(null);
+  visibilityDropdownRef = useRef(null);
 
   // AsyncStorage.removeItem("incomplete-post");
   // AsyncStorage.removeItem("incomplete-files");
 
+  const [showModal, setShowModal] = useState(false);
+
+  const onModalConfirm = () => {
+    if (files[activeFileIndex].id) {
+      deleteFile();
+    } else {
+      setFiles((prevValues) => {
+        prevValues.splice(activeFileIndex, 1);
+        AsyncStorage.setItem("incomplete-files", JSON.stringify(files));
+        return prevValues;
+      });
+    }
+  };
+
+  const deleteFileConfirm = () => {
+    setModalText("Are you sure you want to delete this file?");
+    setShowModal(true);
+    setModalVariant(ModalVariant.confirmation);
+    setShowModal(true);
+  };
+
+  const deleteFile = async () => {
+    console.log("deleted file.........");
+    console.log("index", activeFileIndex, "files: ", files);
+    if (loading) return;
+    setLoading(true);
+    setModalText("");
+    try {
+      const URL = `${Config.API_URL}/files/${files[activeFileIndex].id}`;
+      console.log("delete file url: ", URL);
+      const results = await Utils.makeDeleteRequest(URL);
+
+      console.log("delete file results: ", results);
+
+      if (results.success) {
+        setFiles((prevValues) => {
+          prevValues.splice(activeFileIndex, 1);
+          AsyncStorage.setItem("incomplete-files", JSON.stringify(files));
+          return prevValues;
+        });
+      } else {
+        setModalText(results.message);
+        setModalVariant(ModalVariant.danger);
+        setShowModal(true);
+      }
+      setLoading(false);
+    } catch (error) {
+      setLoading(false);
+      console.log("Network Error deleting file");
+      setModalText("Network Error, Please check your internet");
+      setModalVariant(ModalVariant.danger);
+      setShowModal(true);
+    }
+  };
+
+  const downloadFile = async () => {
+    console.log("download file.....", file.id);
+
+    const callback = (downloadProgress) => {
+      const progress = Math.floor(
+        (downloadProgress.totalBytesWritten /
+          downloadProgress.totalBytesExpectedToWrite) *
+          100
+      );
+      setDownloadProgress(progress);
+      setModalText(progress.toString());
+      setModalVariant(undefined);
+      setShowModal(true);
+    };
+
+    console.log("directory: ", FileSystem.documentDirectory);
+
+    const downloadResumable = FileSystem.createDownloadResumable(
+      `${Config.API_URL}/files?fid=${file.id}&t=${accessToken}`,
+      FileSystem.documentDirectory + file.name,
+      {},
+      callback
+    );
+
+    try {
+      const result = await downloadResumable.downloadAsync();
+      let uri;
+      if (result?.uri) {
+        uri = await FileSystem.getContentUriAsync(result.uri);
+      }
+
+      if (!uri) {
+        setModalText("An error occured while downloading the file");
+        setModalVariant(ModalVariant.danger);
+        setShowModal(true);
+        return;
+      }
+
+      // setModalVariant(ModalVariant.success);
+      // setModalText("Downloaded Successfully");
+      // setShowModal(true);
+      Linking.openURL(uri);
+      console.log("Finished downloading to ", uri);
+    } catch (e) {
+      console.error("error downloading: ", e);
+    }
+
+    // Linking.openURL(`${Config.API_URL}/files?fid=${file.id}&t=${accessToken}`);
+  };
+
   useEffect(() => {
+    confirmSharing();
+    navigation.addListener("focus", () => {
+      confirmSharing();
+      console.log("params:(focus) ------------", params);
+    });
+    console.log("params: ------------", params);
+  }, []);
+
+  useEffect(() => {
+    console.log("post change: ", post);
     if (post && Object.keys(post).length > 0) {
       // console.log("post change: ", post);
       AsyncStorage.setItem("incomplete-post", JSON.stringify(post));
@@ -74,6 +217,7 @@ export default function NewPostPage() {
   }, [post]);
 
   useEffect(() => {
+    console.log("files change: ", files);
     if (files.length > 0) {
       // console.log("files change: ", files);
       AsyncStorage.setItem("incomplete-files", JSON.stringify(files));
@@ -110,7 +254,7 @@ export default function NewPostPage() {
         );
       },
     });
-  }, [post, files]);
+  }, [post, files, Access, loading]);
 
   async function loadPostFromStorage() {
     try {
@@ -120,7 +264,26 @@ export default function NewPostPage() {
         // console.log("setting post", post);
         post = JSON.parse(post);
         setPost(post);
+
         // console.log("from storage: ", "post: ", post);
+        Utils.postTypes.map((type, index) => {
+          // console.log("found type: ", type, "post.type: ", post.type);
+          if (type.name === post.type) {
+            typeDropdownRef.current.selectIndex(index);
+          }
+        });
+
+        Utils.postVisibilities.map((visibility, index) => {
+          // console.log(
+          //   "found visibility: ",
+          //   visibility,
+          //   "post visibility: ",
+          //   post.visibility
+          // );
+          if (visibility.name === post.visibility) {
+            visibilityDropdownRef.current.selectIndex(index);
+          }
+        });
       } else {
         console.log("setting default post");
         setPost({
@@ -159,6 +322,7 @@ export default function NewPostPage() {
 
   const pickImage = async () => {
     try {
+      setLoading(true);
       if (Platform.OS == "web") {
         const result = await DocumentPicker.getDocumentAsync({
           type: ",video/*,image/*",
@@ -196,6 +360,7 @@ export default function NewPostPage() {
             return [...prevValues, asset];
           }
         });
+        setLoading(false);
         return;
       }
 
@@ -240,7 +405,7 @@ export default function NewPostPage() {
             }
             i++;
           }
-
+          setLoading(false);
           if (sameFile) {
             return [...prevValues];
           } else {
@@ -250,6 +415,9 @@ export default function NewPostPage() {
         });
       }
     } catch (error) {
+      setModalText("Sorry Failed to pick media, Please try again. ");
+      setModalVariant(ModalVariant.danger);
+      setShowModal(true);
       console.log("error picking media file: ", error);
     }
   };
@@ -339,16 +507,22 @@ export default function NewPostPage() {
         body: { ...post, files: filesIds },
       });
 
-      // console.log("create post results: ", results);
+      console.log("create post results: ", results);
       if (results.success) {
-        router.push({
-          pathname: "/(tabs)",
-        });
         await AsyncStorage.removeItem("incomplete-post");
         await AsyncStorage.removeItem("incomplete-files");
         setPost({});
         setFiles([]);
 
+        console.log("granting other access: ", Access);
+
+        if (Access) {
+          share(results.data.id);
+        } else {
+          router.push({
+            pathname: "/(tabs)",
+          });
+        }
         console.log("successful post");
       } else {
         setErrors({
@@ -359,6 +533,50 @@ export default function NewPostPage() {
     } catch (error) {
       setLoading(false);
       console.log("Error Sending Email: ", error);
+    }
+  }
+
+  async function share(postId) {
+    console.log("(post) doing share.....");
+
+    try {
+      const body = {
+        items: {
+          post: postId,
+        },
+        ...Access,
+      };
+
+      const URL = `${Config.API_URL}/auth/users/share`;
+
+      const results = await Utils.makeBodyRequest({
+        URL,
+        method: BodyRequestMethods.PUT,
+        body: body,
+      });
+      if (results.success) {
+        setLoading(false);
+        AsyncStorage.removeItem("selectedSearch");
+        AsyncStorage.removeItem("selectionId");
+        console.log("......................share suceeeded...............");
+        router.push({
+          pathname: "/(tabs)",
+        });
+      } else {
+        setModalText(results.message);
+        setModalVariant(ModalVariant.danger);
+        setShowModal(true);
+      }
+    } catch (error) {
+      AsyncStorage.removeItem("selectedSearch");
+      AsyncStorage.removeItem("selectionId");
+      setModalText(
+        "A network error occured while trying to share, please check your network and try again"
+      );
+      setModalVariant(ModalVariant.danger);
+      setShowModal(true);
+      setLoading(false);
+      console.log("error Sharing folder");
     }
   }
 
@@ -380,9 +598,71 @@ export default function NewPostPage() {
     return !hasErrors;
   }
 
+  function selectForSharing() {
+    router.setParams({ selectionId: `new_post` });
+    router.push({
+      pathname: "/select",
+      params: { selectionId: `new_post` },
+    });
+  }
+
+  async function confirmSharing() {
+    // console.log("(new post)confirming share.....");
+    const storedSelectionId = await AsyncStorage.getItem("selectionId");
+    let selection = await AsyncStorage.getItem("selectedSearch");
+    // console.log("selection id: ", storedSelectionId, "selection :", selection);
+
+    if (selection && storedSelectionId === `new_post`) {
+      console.log("confirmed share...");
+
+      selection = JSON.parse(selection);
+
+      let _Access = {};
+
+      Object.keys(selection).map((item) => {
+        if (selection[item].length > 0) {
+          _Access[item] = selection[item];
+        }
+      });
+
+      console.log("new access: ", _Access);
+
+      if (Object.keys(_Access).length > 0) {
+        setAccess(_Access);
+      } else {
+        setAccess(undefined);
+        // AsyncStorage.removeItem("selectionId");
+        AsyncStorage.removeItem("selectedSearch");
+      }
+    } else if (!storedSelectionId || !selection) {
+      setAccess(undefined);
+      // AsyncStorage.removeItem("selectionId");
+      // AsyncStorage.removeItem("selectedSearch");
+    }
+  }
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }}>
-      <KeyboardAwareScrollView>
+      <Modal
+        showModal={showModal}
+        setShowModal={setShowModal}
+        variant={modalVariant}
+        message={modalText}
+        onConfirm={onModalConfirm}
+      />
+      {loading && <ActivityIndicator animating={false} size={40} />}
+      <KeyboardAwareScrollView
+        style={{ flex: 1, marginBottom: keyboardHeight }}
+        onKeyboardWillShow={(frames) => {
+          if (Platform.OS == "ios") {
+            setKeyboardHeight(frames.endCoordinates.height);
+          }
+        }}
+        onKeyboardWillHide={(frames) => {
+          setKeyboardHeight(0);
+        }}
+        // showsVerticalScrollIndicator={false}
+      >
         <View
           style={[
             styles.flexRow,
@@ -425,6 +705,7 @@ export default function NewPostPage() {
               ]}
             >
               <SelectDropdown
+                ref={typeDropdownRef}
                 renderCustomizedRowChild={(item, index, isSelected) => {
                   return (
                     <View style={[styles.flexCols, { paddingHorizontal: 5 }]}>
@@ -439,7 +720,6 @@ export default function NewPostPage() {
                 }}
                 data={Utils.postTypes}
                 defaultValue={post?.type || Utils.postTypes[0]}
-                sele
                 onSelect={(selectedItem, index) => {
                   // console.log("type selected: ", selectedItem);
                   setPost((prevValues) => {
@@ -463,14 +743,14 @@ export default function NewPostPage() {
                     borderRadius: 5,
                     paddingHorizontal: 5,
                     width: 120,
-                    height: 42,
+                    height: 43,
                   },
                 ]}
                 renderDropdownIcon={() => {
                   return (
                     <FontAwesome
                       name="chevron-down"
-                      size={12}
+                      size={16}
                       style={{ paddingRight: 5 }}
                       color={theme.primaryForeground}
                     />
@@ -480,7 +760,7 @@ export default function NewPostPage() {
                   {
                     color: theme.primaryForeground,
                     textTransform: "capitalize",
-                    fontSize: 12,
+                    fontSize: 14,
                   },
                 ]}
                 rowStyle={{
@@ -518,17 +798,18 @@ export default function NewPostPage() {
               >
                 <MaterialCommunityIcons
                   name="account-eye"
-                  size={16}
+                  size={20}
                   color={theme.foreground}
                 />
                 <SelectDropdown
+                  ref={visibilityDropdownRef}
                   renderCustomizedRowChild={(item, index, isSelected) => {
                     return (
                       <View style={[styles.flexCols, { paddingHorizontal: 5 }]}>
                         <Text>{item.label}</Text>
                         <Text
                           style={[
-                            { fontSize: 10, color: theme.foregroundMuted },
+                            { fontSize: 12, color: theme.foregroundMuted },
                           ]}
                         >
                           {item.description}
@@ -560,15 +841,15 @@ export default function NewPostPage() {
                       // borderColor: theme.border,
                       // borderRadius: 5,
                       paddingHorizontal: 5,
-                      width: 80,
-                      height: 42,
+                      width: 90,
+                      height: 45,
                     },
                   ]}
                   renderDropdownIcon={() => {
                     return (
                       <FontAwesome
                         name="chevron-down"
-                        size={12}
+                        size={16}
                         style={{ paddingRight: 5 }}
                         color={theme.foreground}
                       />
@@ -578,7 +859,7 @@ export default function NewPostPage() {
                     {
                       color: theme.foreground,
                       textTransform: "capitalize",
-                      fontSize: 10,
+                      fontSize: 14,
                     },
                   ]}
                   rowStyle={{
@@ -601,7 +882,7 @@ export default function NewPostPage() {
                 />
               </TouchableOpacity>
 
-              <TouchableOpacity
+              {/* <TouchableOpacity
                 style={[
                   styles.flexRow,
                   styles.flexCenter,
@@ -619,6 +900,41 @@ export default function NewPostPage() {
                   size={16}
                   color={theme.foreground}
                 />
+              </TouchableOpacity> */}
+
+              <TouchableOpacity
+                style={[
+                  styles.flexRow,
+                  styles.flexCenter,
+                  {
+                    marginLeft: 5,
+                    backgroundColor: Access
+                      ? theme.accent
+                      : theme.backgroundMuted,
+                    paddingHorizontal: 10,
+                    paddingVertical: 12,
+                    borderRadius: 5,
+                  },
+                ]}
+                onPress={() => {
+                  selectForSharing();
+                }}
+              >
+                {!Access && (
+                  <AntDesign
+                    name="addusergroup"
+                    size={24}
+                    color={theme.foreground}
+                  />
+                )}
+
+                {Access && (
+                  <Feather
+                    name="user-check"
+                    size={24}
+                    color={theme.foreground}
+                  />
+                )}
               </TouchableOpacity>
             </View>
           </View>
@@ -672,8 +988,35 @@ export default function NewPostPage() {
             alignItems: "center",
             width: "100%",
             height: "100%",
+            position: "relative",
           }}
         >
+          {files && files.length > 0 && (
+            <TouchableOpacity
+              style={{
+                position: "absolute",
+                backgroundColor: theme.background,
+                top: 20,
+                right: 20,
+                zIndex: 1000,
+                width: 40,
+                height: 40,
+                borderRadius: 9999,
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+              }}
+              onPress={() => {
+                deleteFileConfirm();
+              }}
+            >
+              <MaterialIcons
+                name="delete-outline"
+                color={theme.destructive}
+                size={24}
+              />
+            </TouchableOpacity>
+          )}
           {Platform.select({ native: true }) && files && files.length > 0 && (
             <MediaGallery
               items={files}
@@ -700,7 +1043,7 @@ export default function NewPostPage() {
           {
             width: "100%",
             position: "absolute",
-            bottom: 50,
+            bottom: keyboardHeight + 50,
             backgroundColor: "transparent",
           },
         ]}

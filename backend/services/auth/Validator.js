@@ -325,4 +325,84 @@ module.exports = class AuthValidator {
       throw error;
     }
   }
+
+  static async validateSearch(values) {
+    const schema = Joi.object({
+      page: Joi.number().default(1).optional(),
+      searchString: Joi.string().allow("").default("").optional(),
+      items: Joi.array()
+        .items(
+          Joi.string().valid(
+            "posts",
+            "users",
+            "files",
+            "folders",
+            "chats",
+            "classes",
+            "programmes",
+            "schools",
+            "faculties"
+          )
+        )
+        .required(),
+    });
+
+    try {
+      const validated = await schema.validateAsync(values);
+      return validated;
+    } catch (error) {
+      console.log("update validation error: ", error);
+      error.status = 400;
+      throw error;
+    }
+  }
+
+  static async validateShare(values) {
+    const schema = Joi.object({
+      items: Joi.object({
+        post: Joi.number().optional(),
+        // files: Joi.array().items(Joi.number()).optional(),
+        // folders: Joi.array().items(Joi.number()).optional(),
+        // polls: Joi.array().items(Joi.number()).optional(),
+        file: Joi.number().optional(),
+        folder: Joi.number().optional(),
+        poll: Joi.number().optional(),
+      }).required(),
+      users: Joi.array().items(Joi.number()).optional(),
+      schools: Joi.array().items(Joi.number()).optional(),
+      classes: Joi.array().items(Joi.number()).optional(),
+      faculties: Joi.array().items(Joi.number()).optional(),
+      programmes: Joi.array().items(Joi.number()).optional(),
+      chats: Joi.array().items(Joi.number()).optional(),
+      action: Joi.string().valid("new", "update").optional().default("new"),
+    });
+
+    try {
+      const validated = await schema.validateAsync(values);
+      return validated;
+    } catch (error) {
+      console.log("share access validation error: ", error);
+      error.status = 400;
+      throw error;
+    }
+  }
+
+  static async validateTogglePublic(values) {
+    const schema = Joi.object({
+      type: Joi.string()
+        .valid("post", "file", "folder")
+
+        .required(),
+      itemId: Joi.number().required(),
+    });
+
+    try {
+      const validated = await schema.validateAsync(values);
+      return validated;
+    } catch (error) {
+      console.log("update validation error: ", error);
+      error.status = 400;
+      throw error;
+    }
+  }
 };

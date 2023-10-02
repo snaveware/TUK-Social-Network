@@ -212,17 +212,6 @@ module.exports = class RTCChatsController {
         data.message
       );
 
-      // console.log(
-      //   "socket rooms: ",
-      //   socket.rooms
-      //   // "socket rooms adapter: ",
-      //   // socket.adaptar.rooms.get(validated.chatId)
-      // );
-
-      // return;
-
-      // Function to check if the socket is in the room
-
       let schoolId;
       let classId;
 
@@ -293,13 +282,28 @@ module.exports = class RTCChatsController {
         const filesAccesses = await prisma.file.findMany({
           where: {
             id: {
-              in: validated.attached,
+              in: validated.attachedFiles,
             },
           },
           select: {
-            id: true,
+            Access: {
+              select: {
+                id: true,
+              },
+            },
           },
         });
+
+        const FormatedAccesses = filesAccesses.map((access) => {
+          return { id: access.Access.id };
+        });
+
+        console.log(
+          "file accessces: ",
+          filesAccesses,
+          "formated: ",
+          FormatedAccesses
+        );
 
         await prisma.chat.update({
           where: {
@@ -307,7 +311,7 @@ module.exports = class RTCChatsController {
           },
           data: {
             AccessGranted: {
-              connect: filesAccesses,
+              connect: FormatedAccesses,
             },
           },
         });
@@ -317,11 +321,79 @@ module.exports = class RTCChatsController {
             return { id };
           }),
         };
+      }
 
-        console.log("final attached files: ", validated.attachedFiles);
+      if (validated.sharedFolderId) {
+        const folderAccess = await prisma.folder.findUnique({
+          where: {
+            id: validated.sharedFolderId,
+          },
+          select: {
+            Access: {
+              select: {
+                id: true,
+              },
+            },
+          },
+        });
+
+        await prisma.chat.update({
+          where: {
+            id: validated.chatId,
+          },
+          data: {
+            AccessGranted: {
+              connect: [
+                {
+                  id: folderAccess.Access.id,
+                },
+              ],
+            },
+          },
+        });
+
+        validated.sharedFolders = {
+          connect: [{ id: validated.sharedFolderId }],
+        };
+        delete validated.sharedFolderId;
       }
 
       console.log("final attached files: ", validated.attachedFiles);
+
+      if (validated.postId) {
+        const postAccess = await prisma.post.findUnique({
+          where: {
+            id: validated.postId,
+          },
+          select: {
+            Access: {
+              select: {
+                id: true,
+              },
+            },
+          },
+        });
+
+        await prisma.chat.update({
+          where: {
+            id: validated.chatId,
+          },
+          data: {
+            AccessGranted: {
+              connect: [
+                {
+                  id: postAccess.Access.id,
+                },
+              ],
+            },
+          },
+        });
+
+        validated.linkedPost = {
+          connect: { id: validated.postId },
+        };
+        delete validated.postId;
+      }
 
       const { chatId, replyingToId, ...otherParams } = validated;
 
@@ -333,7 +405,7 @@ module.exports = class RTCChatsController {
         };
       }
 
-      console.log("other params: ", otherParams);
+      console.log("other validated params: ", otherParams);
 
       if (validated.replyingToId) {
         const replyMessage = await prisma.message.findUnique({
@@ -374,7 +446,32 @@ module.exports = class RTCChatsController {
               readBy: true,
               attachedFiles: true,
               linkedPoll: true,
-              linkedPost: true,
+              linkedPost: {
+                include: {
+                  files: true,
+                  owner: {
+                    select: {
+                      firstName: true,
+                      lastName: true,
+                      profileAvatarId: true,
+                      bio: true,
+                      staffProfileIfIsStaff: true,
+                      studentProfileIfIsStudent: true,
+                    },
+                  },
+                  likers: {
+                    where: {
+                      id: socket.auth.id,
+                    },
+                  },
+                  _count: true,
+                  Access: {
+                    select: {
+                      _count: true,
+                    },
+                  },
+                },
+              },
               replyingTo: {
                 include: {
                   sender: {
@@ -493,7 +590,32 @@ module.exports = class RTCChatsController {
           readBy: true,
           attachedFiles: true,
           linkedPoll: true,
-          linkedPost: true,
+          linkedPost: {
+            include: {
+              files: true,
+              owner: {
+                select: {
+                  firstName: true,
+                  lastName: true,
+                  profileAvatarId: true,
+                  bio: true,
+                  staffProfileIfIsStaff: true,
+                  studentProfileIfIsStudent: true,
+                },
+              },
+              likers: {
+                where: {
+                  id: socket.auth.id,
+                },
+              },
+              _count: true,
+              Access: {
+                select: {
+                  _count: true,
+                },
+              },
+            },
+          },
           replyingTo: {
             include: {
               sender: {
@@ -603,6 +725,9 @@ module.exports = class RTCChatsController {
             contains: searchString,
             mode: "insensitive",
           },
+          chatType: {
+            notIn: ["one_to_chat", "private"],
+          },
           OR: [
             {
               members: {
@@ -670,6 +795,10 @@ module.exports = class RTCChatsController {
               name: "admin",
             },
           },
+          id: {
+            not: socket.auth.id,
+          },
+          status: "active",
           OR: [
             {
               firstName: {
@@ -881,16 +1010,27 @@ module.exports = class RTCChatsController {
 
       console.log("validated: ", validated);
 
-      if (validated.chatId) {
+      if (validated.chatId || validated.schoolId || validated.classId) {
         /**
          * Check the chat exists and if user is a member,
          * If not member create new chat between user and the chat.
          */
-        const _chat = await prisma.chat.findUnique({
-          where: {
-            id: validated.chatId,
-          },
+        const options = {};
 
+        if (validated.chatId) {
+          options.id = validated.chatId;
+        } else if (validated.schoolId) {
+          options.schoolIfSchoolChat = {
+            id: validated.schoolId,
+          };
+        } else if (validated.classId) {
+          options.classIfClassChat = {
+            id: validated.classId,
+          };
+        }
+
+        const _chat = await prisma.chat.findFirst({
+          where: options,
           include: {
             members: {
               select: {
@@ -967,20 +1107,20 @@ module.exports = class RTCChatsController {
           chat = myWithTheChat;
         }
 
-        console.log(
-          "_chat: ",
-          _chat,
-          "my with chat: ",
-          myWithTheChat,
-          "school id: ",
-          schoolId,
-          "class id: ",
-          classId,
-          "_chat members: ",
-          _chat.members,
-          "auth user: ",
-          socket.auth
-        );
+        // console.log(
+        //   "_chat: ",
+        //   _chat,
+        //   "my with chat: ",
+        //   myWithTheChat,
+        //   "school id: ",
+        //   schoolId,
+        //   "class id: ",
+        //   classId,
+        //   "_chat members: ",
+        //   _chat.members,
+        //   "auth user: ",
+        //   socket.auth
+        // );
 
         if (
           !chat &&
@@ -1041,7 +1181,90 @@ module.exports = class RTCChatsController {
          *
          */
 
-        chat = await prisma.chat.findFirst({
+        // chat = await prisma.chat.findFirst({
+        //   where: {
+        //     chatType: "private",
+        //     members: {
+        //       some: {
+        //         id: socket.auth.id,
+        //       },
+        //     },
+        //     members: {
+        //       some: {
+        //         id: validated.otherUserId,
+        //       },
+        //     },
+        //   },
+        // });
+
+        // console.log("chat: ", chat);
+
+        // if (!chat) {
+        //   console.log("chat not found creating chat...");
+        //   const otherUser = await prisma.user.findUnique({
+        //     where: {
+        //       id: validated.otherUserId,
+        //     },
+        //     select: {
+        //       firstName: true,
+        //       lastName: true,
+        //       id: true,
+        //     },
+        //   });
+
+        //   if (!otherUser) {
+        //     throw new Error("Could not find other user");
+        //   }
+
+        //   console.log("other user: ", otherUser);
+
+        //   chat = await prisma.chat.create({
+        //     data: {
+        //       chatType: "private",
+        //       name: `${socket.auth.firstName} ${socket.auth.lastName} and ${otherUser.firstName} ${otherUser.lastName}`,
+        //       description: `chat between ${socket.auth.firstName} ${socket.auth.lastName} and ${otherUser.firstName} ${otherUser.lastName}`,
+        //       members: {
+        //         connect: [
+        //           { id: socket.auth.id },
+        //           { id: validated.otherUserId },
+        //         ],
+        //       },
+        //     },
+        //     include: {
+        //       members: {
+        //         select: {
+        //           id: true,
+        //           firstName: true,
+        //           lastName: true,
+        //           profileAvatar: true,
+        //           studentProfileIfIsStudent: {
+        //             select: {
+        //               registrationNumber: true,
+        //             },
+        //           },
+        //           staffProfileIfIsStaff: {
+        //             select: {
+        //               title: true,
+        //               position: true,
+        //             },
+        //           },
+        //         },
+        //       },
+        //     },
+        //   });
+
+        //   console.log("fnal chat (new): ", chat);
+
+        //   socket.join(chat.id);
+
+        //   // chat.members.map((member) => {
+        //   //   if (member.socketId) {
+        //   //     io.to(member.socketId).emit("new_chat", chat);
+        //   //   }
+        //   // });
+        // }
+
+        const possibleChats = await prisma.chat.findMany({
           where: {
             chatType: "private",
             members: {
@@ -1055,74 +1278,65 @@ module.exports = class RTCChatsController {
               },
             },
           },
+          select: {
+            id: true,
+            members: true,
+          },
         });
 
-        console.log("chat: ", chat);
+        console.log("possible chats: ", possibleChats, "o: ", possibleChats[0]);
+
+        for (let i = 0; i < possibleChats.length; i++) {
+          const element = possibleChats[i];
+          console.log("auth id: ", socket.auth.id);
+          console.log("element members: ", element.members);
+
+          if (
+            element.members &&
+            element.members.length === 2 &&
+            (element.members[0].id === validated.otherUserId ||
+              element.members[0].id === socket.auth.id) &&
+            (element.members[1].id === validated.otherUserId ||
+              element.members[1].id === socket.auth.id)
+          ) {
+            chat = element;
+            break;
+          }
+        }
 
         if (!chat) {
-          console.log("chat not found creaing chat...");
           const otherUser = await prisma.user.findUnique({
             where: {
               id: validated.otherUserId,
             },
             select: {
+              id: true,
               firstName: true,
               lastName: true,
-              id: true,
             },
           });
 
           if (!otherUser) {
-            throw new Error("Could not find other user");
+            RequestHandler.throwError(404, "The user was not found")();
           }
-
-          console.log("other user: ", otherUser);
 
           chat = await prisma.chat.create({
             data: {
-              chatType: "private",
               name: `${socket.auth.firstName} ${socket.auth.lastName} and ${otherUser.firstName} ${otherUser.lastName}`,
-              description: `chat between ${socket.auth.firstName} ${socket.auth.lastName} and ${otherUser.firstName} ${otherUser.lastName}`,
+              description: `A chat between ${socket.auth.firstName} ${socket.auth.lastName} and ${otherUser.firstName} ${otherUser.lastName}`,
               members: {
                 connect: [
-                  { id: socket.auth.id },
-                  { id: validated.otherUserId },
+                  {
+                    id: socket.auth.id,
+                  },
+                  {
+                    id: validated.otherUserId,
+                  },
                 ],
               },
-            },
-
-            include: {
-              members: {
-                select: {
-                  id: true,
-                  firstName: true,
-                  lastName: true,
-                  profileAvatar: true,
-                  studentProfileIfIsStudent: {
-                    select: {
-                      registrationNumber: true,
-                    },
-                  },
-                  staffProfileIfIsStaff: {
-                    select: {
-                      title: true,
-                      position: true,
-                    },
-                  },
-                },
-              },
+              chatType: "private",
             },
           });
-
-          console.log("fnal chat (new): ", chat);
-
-          socket.join(chat.id);
-
-          // chat.members.map((member) => {
-          //   if (member.socketId) {
-          //     io.to(member.socketId).emit("new_chat", chat);
-          //   }
-          // });
         }
       }
 
@@ -1131,10 +1345,13 @@ module.exports = class RTCChatsController {
         throw new Error("Could not resolve chat");
       }
 
-      socket.emit("resolve_chat_response", { chat });
+      socket.emit("resolve_chat_response", { chat, origin: validated.origin });
     } catch (error) {
       console.log("Error resolving chat", error);
-      socket.emit("search_error", error.message);
+      socket.emit("search_error", {
+        error: error.message,
+        // origin: validated.origin,
+      });
     }
   }
 

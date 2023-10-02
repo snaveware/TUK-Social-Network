@@ -2,6 +2,7 @@ const { prisma } = require("../../DatabaseInit");
 const Logger = require("../../Logger");
 const RequestHandler = require("../../RequestHandler");
 const Utils = require("../../Utils");
+const { Config } = require("../../configs");
 const FilesValidator = require("./Validator");
 module.exports = class FilesController {
   static async uploadFile(req, res) {
@@ -177,6 +178,150 @@ module.exports = class FilesController {
     }
   }
 
+  static async getUserFiles(req, res) {
+    try {
+      Logger.info(
+        JSON.stringify({
+          action: "getting file",
+          userId: req.auth.id,
+          folder: req.query.fid,
+        })
+      );
+      const userId = Number(req.params.userId) || req.auth.id;
+
+      if (!userId) {
+        RequestHandler.throwError(400, "User Id is Required")();
+      }
+
+      const page = parseInt(req.query.page) || 1;
+      const pageSize = Config.POSTS_PER_PAGE;
+      const skip = (page - 1) * pageSize;
+
+      let schoolId;
+      let classId;
+      let facultyId;
+
+      if (req.auth.studentProfileIfIsStudent) {
+        classId = req.auth.studentProfileIfIsStudent.classId;
+        schoolId = req.auth.studentProfileIfIsStudent.class.programme.schoolId;
+        facultyId =
+          req.auth.studentProfileIfIsStudent.class.programme.school.facultyId;
+      } else if (req.auth.staffProfileIfIsStaff) {
+        schoolId = req.auth.staffProfileIfIsStaff.schoolId;
+        facultyId = req.auth.staffProfileIfIsStaff.school.facultyId;
+      }
+
+      let options = {};
+
+      if (userId !== req.auth.id) {
+        options = {
+          OR: [
+            {
+              Access: {
+                isPublic: true,
+              },
+            },
+            {
+              Access: {
+                users: {
+                  some: {
+                    id: req.auth.id,
+                  },
+                },
+              },
+            },
+            {
+              Access: {
+                schools: {
+                  some: {
+                    id: schoolId,
+                  },
+                },
+              },
+            },
+            {
+              Access: {
+                faculties: {
+                  some: {
+                    id: facultyId,
+                  },
+                },
+              },
+            },
+            {
+              Access: {
+                classes: {
+                  some: {
+                    id: classId,
+                  },
+                },
+              },
+            },
+            {
+              Access: {
+                chats: {
+                  some: {
+                    members: {
+                      some: {
+                        id: req.auth.id,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            {
+              Access: {
+                chats: {
+                  some: {
+                    classIfClassChat: {
+                      id: classId,
+                    },
+                  },
+                },
+              },
+            },
+          ],
+        };
+      }
+
+      const files = await prisma.file.findMany({
+        where: {
+          ownerId: userId,
+          ...options,
+        },
+        include: {
+          owner: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              staffProfileIfIsStaff: true,
+              studentProfileIfIsStudent: true,
+              profileAvatarId: true,
+            },
+          },
+
+          Access: {
+            select: {
+              isPublic: true,
+            },
+          },
+        },
+        skip,
+        take: pageSize,
+        orderBy: {
+          createdAt: "desc",
+        },
+      });
+
+      RequestHandler.sendSuccess(req, res, files);
+    } catch (error) {
+      console.log("Error getting Files Objects: ", error);
+      RequestHandler.sendError(req, res, error);
+    }
+  }
+
   static async getFileObject(req, res) {
     try {
       Logger.info(
@@ -217,6 +362,11 @@ module.exports = class FilesController {
               staffProfileIfIsStaff: true,
               studentProfileIfIsStudent: true,
               profileAvatarId: true,
+            },
+          },
+          Access: {
+            select: {
+              isPublic: true,
             },
           },
         },
@@ -264,9 +414,55 @@ module.exports = class FilesController {
           id: folderId,
         },
         include: {
-          files: true,
+          files: {
+            include: {
+              owner: {
+                select: {
+                  id: true,
+                  profileAvatarId: true,
+                  firstName: true,
+                  lastName: true,
+                  staffProfileIfIsStaff: true,
+                  studentProfileIfIsStudent: true,
+                },
+              },
+              Access: {
+                select: {
+                  isPublic: true,
+                },
+              },
+            },
+            orderBy: {
+              createdAt: "desc",
+            },
+          },
+          owner: {
+            select: {
+              id: true,
+              profileAvatarId: true,
+              firstName: true,
+              lastName: true,
+              staffProfileIfIsStaff: true,
+              studentProfileIfIsStudent: true,
+            },
+          },
+          ownerAsRootFolder: {
+            select: {
+              id: true,
+              profileAvatarId: true,
+              firstName: true,
+              lastName: true,
+              staffProfileIfIsStaff: true,
+              studentProfileIfIsStudent: true,
+            },
+          },
           childFolders: true,
           parentFolder: true,
+          Access: {
+            select: {
+              isPublic: true,
+            },
+          },
         },
       });
 
@@ -285,7 +481,7 @@ module.exports = class FilesController {
     try {
       const fileId = Number(req.params.fileId);
 
-      if (!fileId) {
+      if (!fileId || isNaN(fileId)) {
         RequestHandler.throwError(400, "File ID is required")();
       }
 
@@ -303,6 +499,10 @@ module.exports = class FilesController {
           ownerId: true,
         },
       });
+
+      if (!file) {
+        RequestHandler.throwError(404, "File Not Found")();
+      }
 
       if (file.ownerId !== req.auth.id) {
         RequestHandler.throwError(403, "You can only delete your own files")();
@@ -408,6 +608,8 @@ module.exports = class FilesController {
           id: folderId,
         },
       });
+
+      RequestHandler.sendSuccess(req, res, deletion);
     } catch (error) {
       console.log("Error deleting folder: ", error);
       RequestHandler.sendError(req, res, error);

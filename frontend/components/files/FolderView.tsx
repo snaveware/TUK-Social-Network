@@ -13,8 +13,13 @@ import {
   useRouter,
 } from "expo-router";
 import Config from "../../Config";
-import Utils from "../../Utils";
-import { Image, Platform, TouchableOpacity } from "react-native";
+import Utils, { BodyRequestMethods } from "../../Utils";
+import {
+  Image,
+  Platform,
+  TouchableOpacity,
+  RefreshControl,
+} from "react-native";
 import { Video } from "expo-av";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import VideoPlayer from "../VideoPlayer";
@@ -23,12 +28,13 @@ const Favicon = require("../../assets/images/favicon.png");
 import FileCard from "./FileCard";
 import FolderCard from "./FolderCard";
 import Dismissable from "../Dismissable";
+import Modal, { ModalVariant } from "../Modal";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 
-export default function FolderView({ user }: { user: any }) {
+export default function FolderView({ folderId }: { folderId: string }) {
   const { theme } = useContext(AppThemeContext);
+  const params = useLocalSearchParams();
   const { user: authUser, accessToken } = useContext(AuthContext);
-
-  const [activeFolderId, setActiveFolderId] = useState<any>(user.rootFolderId);
   const [folder, setFolder] = useState<any>();
   const [error, setError] = useState<string>();
   const [loading, setLoading] = useState<boolean>(false);
@@ -37,66 +43,78 @@ export default function FolderView({ user }: { user: any }) {
   );
   const navigation = useNavigation();
   const router = useRouter();
-  console.log("folder: ", user.rootFolderId);
 
-  const [dismissableMessage, setDismissableMessage] = useState<string>();
+  // const [dismissableMessage, setDismissableMessage] = useState<string>();
 
-  const [dismissableVariant, setDismissableVariant] = useState<
-    "info" | "danger" | "success"
-  >("info");
+  // const [dismissableVariant, setDismissableVariant] = useState<
+  //   "info" | "danger" | "success"
+  // >("info");
+
+  const [modalText, setModalText] = useState<string>("");
+  const [modalVariant, setModalVariant] = useState<ModalVariant>();
+
+  const [showModal, setShowModal] = useState<boolean>(false);
 
   useEffect(() => {
     if (folder) {
       navigation.setOptions({
-        // title: "Files",
-        headerLeft: () => {
+        title: folder?.path,
+      });
+    }
+    confirmSharing();
+  }, [folder]);
+
+  useEffect(() => {
+    if (folderId) {
+      navigation.addListener("focus", () => {
+        if (folderId) {
+          fetchFolder();
+        }
+      });
+
+      fetchFolder();
+      navigation.setOptions({
+        headerRight: () => {
           return (
-            <View
-              style={[
-                styles.flexRow,
-                styles.flexCenter,
-                { backgroundColor: "transparent", marginLeft: 15 },
-              ]}
+            <Link
+              href={{
+                pathname: "/files/NewFolder",
+                params: {
+                  folderId: folderId,
+                },
+              }}
+              style={{ marginRight: 20 }}
+              asChild
             >
-              {/* {folder?.parentFolderId && (
-                <AntDesign
-                  onPress={() => {
-                    setActiveFolderId(folder.parentFolderId);
-                  }}
-                  name="arrowleft"
-                  size={24}
-                  color={theme.secondary}
-                  style={{ marginRight: 10 }}
-                />
-              )} */}
-              <Image source={Favicon} style={{ width: 36, height: 36 }} />
-            </View>
+              <AntDesign name="addfolder" size={24} color={theme.foreground} />
+            </Link>
           );
         },
       });
     }
-  }, [folder]);
+  }, []);
 
-  useEffect(() => {
-    setDismissableMessage(undefined);
-    if (activeFolderId && accessToken) {
-      fetchFolder();
-      navigation.addListener("focus", () => {
-        fetchFolder();
-      });
-    }
-  }, [activeFolderId, accessToken]);
+  const deleteFolderConfirm = () => {
+    setModalText("Are you sure you want to delete this folder?");
+    setShowModal(true);
+    setModalVariant(ModalVariant.confirmation);
+  };
+
+  const onModalConfirm = () => {
+    deleteFolder();
+  };
 
   async function fetchFolder() {
     try {
-      console.log("active folder id: ", activeFolderId);
-      if (!activeFolderId) {
-        setDismissableMessage("Not active folder id");
-        setDismissableVariant("danger");
+      console.log("active folder id: ", folderId);
+      if (!folderId) {
+        setModalText("No Folder Id");
+        setModalVariant(ModalVariant.danger);
+        setShowModal(true);
       }
       if (loading) return;
       setLoading(true);
-      const URL = `${Config.API_URL}/files/folder?fid=${activeFolderId}&t=${accessToken}`;
+      const URL = `${Config.API_URL}/files/folder?fid=${folderId}&t=${accessToken}`;
 
       const results = await Utils.makeGetRequest(URL);
 
@@ -105,13 +123,18 @@ export default function FolderView({ user }: { user: any }) {
       if (results.success) {
         setFolder(results.data);
       } else {
-        setDismissableVariant("danger");
-        setDismissableMessage(results.message);
+        setModalText(results.message);
+        setModalVariant(ModalVariant.danger);
+        setShowModal(true);
       }
       setLoading(false);
     } catch (error) {
       setLoading(false);
       console.log("error fetching folder: ", error);
+
+      setModalText("Network Error, Please check your internet");
+      setModalVariant(ModalVariant.danger);
+      setShowModal(true);
     }
   }
 
@@ -119,31 +142,149 @@ export default function FolderView({ user }: { user: any }) {
     console.log("deleting folder--------");
     if (loading) return;
     setLoading(true);
-    setDismissableMessage(undefined);
     try {
-      const URL = `${Config.API_URL}/files/folder/${activeFolderId}`;
+      const URL = `${Config.API_URL}/files/folder/${folderId}`;
       console.log("delete folder url: ", URL);
       const results = await Utils.makeDeleteRequest(URL);
 
       console.log("delete folder results: ", results);
 
       if (results.success) {
-        fetchFolder();
+        router.back();
       } else {
-        setDismissableMessage(results.message);
-        setDismissableVariant("danger");
+        setModalText(results.message);
+        setModalVariant(ModalVariant.danger);
+        setShowModal(true);
       }
+
       setLoading(false);
     } catch (error) {
       setLoading(false);
-      console.log("Network Error deleting message");
-      setDismissableMessage("Network Error, Please check your internet");
-      setDismissableVariant("danger");
+
+      console.log("Network Error deleting folder");
+      setModalText("Network Error, Please check your internet");
+      setModalVariant(ModalVariant.danger);
+      setShowModal(true);
     }
   }
 
+  async function confirmSharing() {
+    // console.log("(folder)confirming share.....");
+    const storedSelectionId = await AsyncStorage.getItem("selectionId");
+    let selection: any = await AsyncStorage.getItem("selectedSearch");
+
+    if (selection && storedSelectionId === `folder_${folderId}`) {
+      console.log("confirmed share...");
+      setLoading(true);
+      try {
+        selection = JSON.parse(selection);
+
+        const body = {
+          items: {
+            folder: folderId,
+          },
+          users: selection.users,
+          schools: selection.schools,
+          classes: selection.classes,
+          faculties: selection.faculties,
+          programmes: selection.programmes,
+          chats: selection.chats,
+        };
+
+        const URL = `${Config.API_URL}/auth/users/share`;
+
+        const results = await Utils.makeBodyRequest({
+          URL,
+          method: BodyRequestMethods.PUT,
+          body: body,
+        });
+        if (results.success) {
+          setModalText("Successfully shared the folder");
+          setModalVariant(ModalVariant.success);
+          setShowModal(true);
+        } else {
+          setModalText(results.message);
+          setModalVariant(ModalVariant.danger);
+          setShowModal(true);
+        }
+        setLoading(false);
+        AsyncStorage.removeItem("selectedSearch");
+        AsyncStorage.removeItem("selectionId");
+      } catch (error) {
+        AsyncStorage.removeItem("selectedSearch");
+        AsyncStorage.removeItem("selectionId");
+        setModalText(
+          "A network error occured while trying to share, please check your network and try again"
+        );
+        setModalVariant(ModalVariant.danger);
+        setShowModal(true);
+        setLoading(false);
+        console.log("error Sharing folder");
+      }
+    }
+  }
+
+  async function togglePublic() {
+    if (loading) return;
+    setLoading(true);
+
+    try {
+      const URL = `${Config.API_URL}/auth/users/togglepublic`;
+      const results = await Utils.makeBodyRequest({
+        URL,
+        method: BodyRequestMethods.PUT,
+        body: {
+          type: "folder",
+          itemId: folderId,
+        },
+      });
+
+      if (results.success) {
+        fetchFolder();
+        setModalText(results.data.message);
+        setModalVariant(ModalVariant.success);
+        setShowModal(true);
+      } else {
+        setModalText(results.message);
+        setModalVariant(ModalVariant.danger);
+        setShowModal(true);
+      }
+
+      setLoading(false);
+    } catch (error) {
+      setLoading(false);
+      setModalText(
+        "A network error occurred, please check your internet and try again"
+      );
+      setModalVariant(ModalVariant.danger);
+      setShowModal(true);
+      console.log("error toggling folder public");
+    }
+  }
+
+  function selectForSharing() {
+    router.setParams({ selectionId: `folder_${folderId}` });
+    router.push({
+      pathname: "/select",
+      params: { selectionId: `folder_${folderId}` },
+    });
+  }
+
   return (
-    <View>
+    <KeyboardAwareScrollView
+      style={{ paddingLeft: 10, backgroundColor: theme.background, flex: 1 }}
+      // showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl refreshing={loading} onRefresh={fetchFolder} />
+      }
+    >
+      <Modal
+        showModal={showModal}
+        setShowModal={setShowModal}
+        variant={modalVariant}
+        message={modalText}
+        onConfirm={onModalConfirm}
+      />
       <View
         style={[
           GlobalStyles.flexRow,
@@ -152,87 +293,107 @@ export default function FolderView({ user }: { user: any }) {
             alignItems: "center",
             paddingTop: 20,
           },
+
           styles.padding,
         ]}
       >
-        {folder?.parentFolderId && (
-          <AntDesign
-            onPress={() => {
-              setActiveFolderId(folder.parentFolderId);
-              console.log(
-                "back folder: ",
-                folder.parentFolderId,
-                "folder: ",
-                folder,
-                "active: ",
-                activeFolderId
-              );
-            }}
-            name="arrowleft"
-            size={24}
-            color={theme.secondary}
-            style={{ marginRight: 10 }}
-          />
-        )}
-
         <Text
           ellipsizeMode="head"
           numberOfLines={1}
           style={[styles.title, styles.padding, { width: "50%" }]}
         >
-          {folder?.path ||
-            `${
-              authUser?.id === user?.id
-                ? "My Drive"
-                : user.firstName + user.lastName + "'s Drive"
-            }`}
+          {folder && folder?.id === authUser?.rootFolderId
+            ? "My Drive"
+            : folder?.name}
         </Text>
 
-        {user?.id === authUser?.id && (
+        {(folder?.ownerId === authUser?.id ||
+          folder?.ownerAsRootFolder?.id === authUser?.id) && (
           <View
             style={[
               GlobalStyles.flexRow,
               { justifyContent: "center", alignItems: "center" },
             ]}
           >
+            <Link
+              href={{
+                pathname: "/files/NewFolder",
+                params: {
+                  folderId: folder?.id,
+                },
+              }}
+              style={{ marginRight: 20 }}
+              asChild
+            >
+              <AntDesign name="addfolder" size={24} color={theme.foreground} />
+            </Link>
+
             <AntDesign
               onPress={() =>
                 router.push({
                   pathname: "/files/NewFile",
-                  params: { folderId: activeFolderId },
+                  params: { folderId: folderId },
                 })
               }
               name="addfile"
               size={24}
               color={theme.foreground}
-              style={{ marginRight: 15 }}
+              style={{ marginHorizontal: 5 }}
             />
-            {/* <AntDesign
-              name="sharealt"
-              size={24}
-              style={{ marginHorizontal: 15 }}
-              color={theme.foreground}
-            /> */}
+
             {folder?.path && (
-              <MaterialIcons
-                name="delete-outline"
-                size={30}
-                onPress={deleteFolder}
-                color={theme.destructive}
-              />
+              <>
+                <AntDesign
+                  name="sharealt"
+                  size={24}
+                  style={{ marginHorizontal: 5 }}
+                  color={theme.foreground}
+                  onPress={selectForSharing}
+                />
+                <MaterialIcons
+                  name="delete-outline"
+                  size={30}
+                  onPress={deleteFolderConfirm}
+                  color={theme.destructive}
+                  style={{ marginHorizontal: 5 }}
+                />
+              </>
             )}
+            {folder &&
+              folder?.id !== authUser?.rootFolderId &&
+              folder?.Access?.isPublic && (
+                <MaterialIcons
+                  onPress={() => togglePublic()}
+                  name="public"
+                  size={24}
+                  color={theme.foreground}
+                  style={{ marginHorizontal: 5 }}
+                />
+              )}
+
+            {folder &&
+              folder?.id !== authUser?.rootFolderId &&
+              !folder?.Access?.isPublic && (
+                <MaterialIcons
+                  onPress={() => togglePublic()}
+                  name="public-off"
+                  size={24}
+                  color={theme.foreground}
+                  style={{ marginHorizontal: 5 }}
+                />
+              )}
           </View>
         )}
       </View>
 
-      {dismissableMessage && (
+      {/* {dismissableMessage && (
         <Dismissable
           onDismiss={() => setDismissableMessage(undefined)}
           isDismissed={dismissableMessage ? true : false}
           variant={dismissableVariant}
           message={dismissableMessage}
         />
-      )}
+      )} */}
 
       {folder?.childFolders && folder?.childFolders?.length > 0 && (
         <Text
@@ -259,23 +420,7 @@ export default function FolderView({ user }: { user: any }) {
           folder?.childFolders?.length > 0 &&
           folder.childFolders.map((childFolder: any, index: number) => {
             return (
-              <TouchableOpacity
-                key={index}
-                onPress={() => {
-                  setActiveFolderId(childFolder.id);
-                }}
-                style={[
-                  styles.flexCols,
-                  styles.padding,
-                  styles.margin,
-                  {
-                    borderWidth: 1,
-                    borderColor: theme.border,
-                    borderRadius: 2,
-                    overflow: "hidden",
-                  },
-                ]}
-              >
+              <TouchableOpacity key={index}>
                 <FolderCard folder={childFolder} />
               </TouchableOpacity>
             );
@@ -296,7 +441,7 @@ export default function FolderView({ user }: { user: any }) {
         style={[
           {
             display: "flex",
-            flexDirection: "row-reverse",
+            flexDirection: "row",
             justifyContent: "flex-start",
             alignItems: "center",
             flexWrap: "wrap",
@@ -307,10 +452,19 @@ export default function FolderView({ user }: { user: any }) {
           folder?.files &&
           folder?.files?.length > 0 &&
           folder.files.map((file: any, index: number) => {
-            return <FileCard key={index} file={file} />;
+            return (
+              <FileCard
+                key={index}
+                file={file}
+                onRefresh={fetchFolder}
+                onDelete={() => {
+                  fetchFolder();
+                }}
+              />
+            );
           })}
       </View>
-    </View>
+    </KeyboardAwareScrollView>
   );
 }
 

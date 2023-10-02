@@ -77,12 +77,28 @@ async function authenticate(req) {
         role: true,
         preferences: true,
         rootFolder: true,
-        staffProfileIfIsStaff: true,
+        staffProfileIfIsStaff: {
+          include: {
+            school: {
+              include: {
+                faculty: true,
+              },
+            },
+          },
+        },
         studentProfileIfIsStudent: {
           include: {
             class: {
               include: {
-                programme: true,
+                programme: {
+                  include: {
+                    school: {
+                      include: {
+                        faculty: true,
+                      },
+                    },
+                  },
+                },
               },
             },
           },

@@ -34,7 +34,7 @@ export default function LoginCodeScreen({ navigation }: any) {
 
   useEffect(() => {
     if (isLoggedIn) {
-      router.push("/(tabs)");
+      router.replace("/(tabs)");
     }
 
     setVerificationToken(params.verificationToken);

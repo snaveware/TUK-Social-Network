@@ -74,22 +74,28 @@ export default function ChatsShareScreen() {
     });
 
     socket.on("resolve_chat_response", (data) => {
-      console.log("resolve chat response: ", data);
+      if (data.origin !== "chat_share") {
+        return;
+      }
+
+      console.log("resolve chat response: (chats share screen) ", data);
 
       if (Platform.select({ ios: true, android: true })) {
         router.back();
         router.push({
           pathname: `/chats/${data.chat.id}`,
           params: {
-            shareMessage: params.shareMessage,
+            // shareMessage: params.shareMessage,
             targetChatId: data.chat.id,
+            chatId: data.chat.id,
+            message: params.message,
           },
         });
       } else {
         router.push({
           pathname: `/(tabs)/ChatsTab`,
           params: {
-            shareMessage: params.shareMessage,
+            // message: params.message,
             targetChatId: data.chat.id,
             chatId: data.chat.id,
           },
@@ -99,8 +105,11 @@ export default function ChatsShareScreen() {
       setLoading(false);
     });
 
-    socket.on("search_error", (error) => {
-      console.log("search error: ", error);
+    socket.on("search_error", (data) => {
+      if (data.origin !== "chat_share") {
+        return;
+      }
+      console.log("search error: ", data.error);
       setLoading(false);
     });
   }, []);
@@ -123,7 +132,10 @@ export default function ChatsShareScreen() {
   }
 
   function onUserSelect(user: PostOwner) {
-    socket.emit("resolve_chat", { otherUserId: user?.id });
+    socket.emit("resolve_chat", {
+      otherUserId: user?.id,
+      origin: "chat_share",
+    });
   }
 
   return (
@@ -236,7 +248,7 @@ export default function ChatsShareScreen() {
           setKeyboardHeight(0);
         }}
       >
-        <SearchChatsList chats={chats} />
+        <SearchChatsList resolveOrigin="chat_share" chats={chats} />
         <SearchusersList onSelect={onUserSelect} users={users} />
       </KeyboardAwareScrollView>
     </View>

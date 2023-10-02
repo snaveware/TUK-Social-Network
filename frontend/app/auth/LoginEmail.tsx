@@ -23,10 +23,18 @@ export default function LoginEmailScreen({ navigation }: any) {
   const { theme } = useContext(AppThemeContext);
 
   useEffect(() => {
-    if (isLoggedIn) {
-      router.push("/(tabs)");
-    }
+    confirmLogin();
   }, []);
+
+  async function confirmLogin() {
+    const user = await AsyncStorage.getItem("user");
+    const accessToken = await AsyncStorage.getItem("accessToken");
+    const refreshToken = await AsyncStorage.getItem("refreshToken");
+
+    if (user && accessToken && refreshToken) {
+      router.replace("/(tabs)");
+    }
+  }
 
   async function sendEmail() {
     if (loading) return;

@@ -69,7 +69,7 @@ export default function ChatTopBar({
       _chatName = chat.name;
     }
 
-    console.log("chat image source: ", chat.id, _chatImageSourceId);
+    // console.log("chat image source: ", chat.id, _chatImageSourceId);
 
     if (_chatImageSourceId) {
       setChatImageSource(
@@ -91,12 +91,16 @@ export default function ChatTopBar({
             : undefined,
           justifyContent: "space-between",
           alignItems: "center",
+          marginBottom: 1,
 
           backgroundColor: theme.backgroundMuted,
           borderLeftWidth: Platform.select({ ios: true, android: true })
             ? 0
             : 1,
           borderLeftColor: theme.foregroundMuted,
+          height: Platform.select({ ios: true, android: true })
+            ? undefined
+            : 60,
         },
       ]}
     >

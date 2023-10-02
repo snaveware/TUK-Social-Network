@@ -14,13 +14,12 @@ console.log("environment = ", environment);
 // };
 
 let Config: ConfigKeys = {
-  API_URL: "https://tuchat.snaveware.com",
+  API_URL: "https://tuksocial.snaveware.com",
 };
 
 if (environment == "development") {
   Config = {
-    API_URL: "http://192.168.1.101:5000",
-    // API_URL: "http://172.20.10.3:5000",
+    API_URL: "http://192.168.43.130:5000",
   };
 }
 

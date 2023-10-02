@@ -49,48 +49,48 @@ export default class Utils {
 
     // console.log("Main Response: ", response);
 
-    if (!response.ok && response.status == 401) {
-      /**
-       * Refresh
-       */
-      const response = await Utils.refreshToken();
+    // if (!response.ok && response.status == 401) {
+    /**
+     * Refresh
+     */
+    // const response = await Utils.refreshToken();
 
-      //   console.log("Refresh Response: ", response);
+    //   console.log("Refresh Response: ", response);
 
-      if (!response.ok && response.status === 401) {
-        /**
-         * Delete Tokens
-         * Redirect To Login
-         */
-        await AsyncStorage.removeItem("accessToken");
-        await AsyncStorage.removeItem("refreshToken");
-        await AsyncStorage.removeItem("user");
-        // location.pathname = "/auth/login";
-        return;
-      }
+    // if (!response.ok && response.status === 401) {
+    /**
+     * Delete Tokens
+     * Redirect To Login
+     */
+    // await AsyncStorage.removeItem("accessToken");
+    // await AsyncStorage.removeItem("refreshToken");
+    // await AsyncStorage.removeItem("user");
+    // location.pathname = "/auth/login";
+    // return;
+    // }
 
-      const refreshResults = await response.json();
+    // const refreshResults = await response.json();
 
-      await AsyncStorage.setItem(
-        "accessToken",
-        refreshResults.data.accessToken
-      );
-      await AsyncStorage.setItem(
-        "refreshToken",
-        refreshResults.data.refreshToken
-      );
+    // await AsyncStorage.setItem(
+    // "accessToken",
+    // refreshResults.data.accessToken
+    // );
+    // await AsyncStorage.setItem(
+    // "refreshToken",
+    // refreshResults.data.refreshToken
+    // );
 
-      const mainRequestResponse = await requestFunction();
+    // const mainRequestResponse = await requestFunction();
 
-      if (!mainRequestResponse.ok) {
-        /**
-         * unlikely. Means that the new tokens do not work
-         */
-        // location.pathname = "/auth/login";
-      }
+    // if (!mainRequestResponse.ok) {
+    /**
+     * unlikely. Means that the new tokens do not work
+     */
+    // location.pathname = "/auth/login";
+    // }
 
-      return await mainRequestResponse.json();
-    }
+    // return await mainRequestResponse.json();
+    // }
 
     return await response.json();
   }
@@ -176,11 +176,11 @@ export default class Utils {
       label: "Event Post",
       description: "Inform people about an event",
     },
-    {
-      name: "poll",
-      label: "Poll Post",
-      description: "Focused on getting answers to a poll question",
-    },
+    // {
+    //   name: "poll",
+    //   label: "Poll Post",
+    //   description: "Focused on getting answers to a poll question",
+    // },
   ];
   static postVisibilities = [
     {
@@ -328,5 +328,25 @@ export default class Utils {
         givenDate.getMonth() + 1
       }-${givenDate.getFullYear()} ${givenDate.getHours()}:${givenDate.getMinutes()}`;
     }
+  }
+
+  static formatNumberWithSuffix(number: number) {
+    if (!number || isNaN(number)) {
+      return "0";
+    }
+    if (number < 1000) {
+      return number.toString();
+    }
+    const suffixes = ["", "k", "M", "B", "T"];
+
+    // Determine the appropriate suffix index based on the magnitude
+    const magnitude = Math.floor(Math.log10(number) / 3);
+    const suffixIndex = Math.min(magnitude, suffixes.length - 1);
+
+    // Calculate the value divided by the appropriate factor
+    const formattedNumber = (number / Math.pow(10, suffixIndex * 3)).toFixed(1);
+
+    // Combine the formatted number with the suffix
+    return formattedNumber + suffixes[suffixIndex];
   }
 }

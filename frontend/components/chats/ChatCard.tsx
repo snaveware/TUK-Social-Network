@@ -59,6 +59,8 @@ export type ChatCardMessage = {
   viewedBy: number[];
   _counts: ChatCounts;
   status: MessageStatus;
+  attachedFiles?: { name: string }[];
+  postId: number;
 };
 
 export type Chat = {
@@ -127,7 +129,7 @@ export default function ChatCard(props: ChatCardProps) {
       _chatName = chat.name;
     }
 
-    console.log("chat image source: ", chat.id, _chatImageSourceId);
+    // console.log("chat image source: ", chat.id, _chatImageSourceId);
 
     if (_chatImageSourceId) {
       setChatImageSource(
@@ -157,12 +159,11 @@ export default function ChatCard(props: ChatCardProps) {
         styles.flexRow,
         {
           justifyContent: "flex-start",
-          paddingTop: 10,
+          alignItems: "center",
           paddingLeft: 10,
-          paddingRight: 20,
-          paddingBottom: 5,
-          marginVertical: 5,
-          width: SCREEN_WIDTH - 10,
+          // paddingRight: 20,
+
+          width: SCREEN_WIDTH - 12,
 
           backgroundColor:
             params && params.chatId && Number(params.chatId) === chat.id
@@ -171,38 +172,43 @@ export default function ChatCard(props: ChatCardProps) {
         },
       ]}
     >
-      {/* <Avatar
-        text={`${chatName?.[0] || ":"} ${chatName?.[1] || ")"}`}
-        imageSource={chatImageSource ? chatImageSource : undefined}
-        style={{ width: 50, height: 50 }}
-        textStyles={{ fontSize: 12 }}
-      /> */}
-
       <Avatar
         text={`${chatName?.[0] || ":"} ${chatName?.[1] || ")"}`}
         imageSource={chatImageSource ? chatImageSource : undefined}
-        style={{ width: 50, height: 50 }}
-        textStyles={{ fontSize: 12 }}
+        style={{ width: 60, height: 60, borderColor: theme.accent }}
+        textStyles={{ fontSize: 20 }}
       />
 
       <View
-        style={{
-          borderBottomColor: theme.border,
-          borderBottomWidth: 1,
-          width: "87%",
-          marginHorizontal: 10,
-          backgroundColor: "transparent",
-        }}
+        style={[
+          styles.flexCols,
+          {
+            justifyContent: "flex-start",
+            borderBottomColor: theme.border,
+            borderBottomWidth: 1,
+
+            height: 80,
+            paddingHorizontal: 10,
+
+            paddingVertical: 10,
+            backgroundColor: "transparent",
+            flex: 1,
+          },
+        ]}
       >
         <View
           style={[
             styles.flexRow,
-            { justifyContent: "space-between", backgroundColor: "transparent" },
+            {
+              justifyContent: "space-between",
+              backgroundColor: "transparent",
+              marginBottom: 5,
+            },
           ]}
         >
           <Text
             style={{
-              fontSize: 16,
+              fontSize: 18,
               fontWeight: "500",
             }}
             selectable={false}
@@ -213,8 +219,8 @@ export default function ChatCard(props: ChatCardProps) {
             <Text
               style={[
                 {
-                  fontSize: 10,
-                  color: theme.foregroundMuted,
+                  fontSize: 12,
+                  color: theme.accent,
                   paddingHorizontal: 10,
                 },
               ]}
@@ -234,7 +240,10 @@ export default function ChatCard(props: ChatCardProps) {
           <View
             style={[
               styles.flexRow,
-              { paddingVertical: 5, backgroundColor: "transparent" },
+              {
+                // paddingVertical: 5,
+                backgroundColor: "transparent",
+              },
             ]}
           >
             {chat?.messages?.[0] &&
@@ -249,27 +258,42 @@ export default function ChatCard(props: ChatCardProps) {
               )}
             {chat?.messages?.[0] &&
               chat?.messages?.[0].status !== "deleted" && (
-                <Text
-                  style={{
-                    fontSize: 12,
-                    fontWeight: "500",
-                    color: theme.foregroundMuted,
-                    width: Platform.select({ ios: true, android: true })
-                      ? "90%"
-                      : 350,
-                    minHeight: 40,
-                  }}
-                  selectable={false}
-                >
-                  {chat?.chatType !== ChatTypes.private &&
-                  chat?.messages?.[0]?.sender?.firstName
-                    ? chat?.messages?.[0]?.sender?.firstName + ": "
-                    : ""}
-                  {chat?.messages?.[0]?.message.length > 80
-                    ? chat?.messages?.[0]?.message.substring(0, 80) + "..."
-                    : chat?.messages?.[0]?.message}
-                </Text>
+                <>
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      fontWeight: "500",
+                      color: theme.foregroundMuted,
+                      width: Platform.select({ ios: true, android: true })
+                        ? "85%"
+                        : 350,
+                    }}
+                    selectable={false}
+                  >
+                    {chat?.chatType !== ChatTypes.private &&
+                    chat?.messages?.[0]?.sender?.firstName
+                      ? chat?.messages?.[0]?.sender?.firstName + ": "
+                      : ""}
+                    {chat?.messages?.[0]?.message.length > 50
+                      ? chat?.messages?.[0]?.message.trim().substring(0, 50) +
+                        "..."
+                      : chat?.messages?.[0]?.message}
+                    {chat.messages[0].attachedFiles?.[0] &&
+                    chat.messages[0].attachedFiles[0].name
+                      ? chat.messages[0].attachedFiles[0].name.length > 30
+                        ? " :" + chat.messages[0].attachedFiles[0].name
+                        : ": " +
+                          chat.messages[0].attachedFiles[0].name.substring(
+                            0,
+                            30
+                          ) +
+                          "..."
+                      : ""}
+                    {chat?.messages[0].postId ? " Shared Post " : ""}
+                  </Text>
+                </>
               )}
+
             {chat?.messages?.[0] &&
               chat?.messages?.[0].status === "deleted" && (
                 <View
@@ -309,8 +333,7 @@ export default function ChatCard(props: ChatCardProps) {
                 {
                   height: 20,
                   borderRadius: 9999,
-                  paddingHorizontal: 5,
-                  marginHorizontal: 10,
+                  paddingHorizontal: 10,
                   backgroundColor: theme.accent,
                   minWidth: 20,
                 },

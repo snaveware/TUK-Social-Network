@@ -12,13 +12,14 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { AntDesign } from "@expo/vector-icons";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import Modal, { ModalVariant } from "../Modal";
-import Utils from "../../Utils";
+import Utils, { BodyRequestMethods } from "../../Utils";
 import { WebView } from "react-native-webview";
 import * as FileSystem from "expo-file-system";
 import Constants from "expo-constants";
 import * as Linking from "expo-linking";
 import * as WebBrowser from "expo-web-browser";
 import Button from "../Button";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function FileView({ file }: { file: any }) {
   const { theme } = useContext(AppThemeContext);
@@ -36,19 +37,16 @@ export default function FileView({ file }: { file: any }) {
 
   const router = useRouter();
 
+  const navigation = useNavigation();
+
   const [modalText, setModalText] = useState<string>("");
   const [modalVariant, setModalVariant] = useState<ModalVariant>();
 
   const [showModal, setShowModal] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
 
-  const navigation = useNavigation();
-
-  const _handlePressButtonAsync = async () => {
-    let result = await WebBrowser.openBrowserAsync(
-      `${Config.API_URL}/files?fid=${file.id}&t=${accessToken}`
-    );
-    setResult(result);
+  const onModalConfirm = () => {
+    deleteFile();
   };
 
   const deleteFileConfirm = () => {
@@ -79,15 +77,11 @@ export default function FileView({ file }: { file: any }) {
       setLoading(false);
     } catch (error) {
       setLoading(false);
-      console.log("Network Error deleting message");
+      console.log("Network Error deleting file");
       setModalText("Network Error, Please check your internet");
       setModalVariant(ModalVariant.danger);
       setShowModal(true);
     }
-  };
-
-  const shareFile = () => {
-    console.log("share file..........", file.id);
   };
 
   const downloadFile = async () => {
@@ -146,8 +140,11 @@ export default function FileView({ file }: { file: any }) {
     // Linking.openURL(`${Config.API_URL}/files?fid=${file.id}&t=${accessToken}`);
   };
 
-  const onModalConfirm = () => {
-    deleteFile();
+  const _handlePressButtonAsync = async () => {
+    let result = await WebBrowser.openBrowserAsync(
+      `${Config.API_URL}/files?fid=${file.id}&t=${accessToken}`
+    );
+    setResult(result);
   };
 
   useEffect(() => {
@@ -188,7 +185,7 @@ export default function FileView({ file }: { file: any }) {
                 {file.owner?.id === authUser?.id && (
                   <>
                     <AntDesign
-                      onPress={shareFile}
+                      // onPress={selectForSharing}
                       name="sharealt"
                       size={24}
                       style={{ marginHorizontal: 15 }}

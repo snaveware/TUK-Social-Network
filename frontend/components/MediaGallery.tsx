@@ -26,17 +26,19 @@ const MediaGallery = ({
   items,
   activeIndex,
   setActiveIndex,
+  size,
 }: {
   items: GalleryItem[];
   activeIndex?: number;
   setActiveIndex?: any;
+  size?: number;
 }) => {
   const scrollViewRef = useRef(null);
 
   const { theme } = useContext(AppThemeContext);
 
   const [SCREEN_WIDTH, setScreenWidth] = useState(
-    Dimensions.get("window").width
+    size ? size : Dimensions.get("window").width
   );
 
   const [token, setToken] = useState<string | undefined>();
@@ -51,7 +53,7 @@ const MediaGallery = ({
   };
 
   Dimensions.addEventListener("change", ({ window, screen }) => {
-    setScreenWidth(window.width);
+    setScreenWidth(size ? size : window.width);
   });
 
   const videoRef = useRef<Video>(null);
@@ -70,7 +72,20 @@ const MediaGallery = ({
 
   const renderItems = () => {
     return items.map((item, index) => (
-      <View key={index} style={[styles.itemContainer, { width: SCREEN_WIDTH }]}>
+      <View
+        key={index}
+        style={[
+          styles.itemContainer,
+          {
+            // width: size ? "100%" : SCREEN_WIDTH,
+            width: size ? size : SCREEN_WIDTH,
+            justifyContent: "center",
+            alignItems: "center",
+
+            backgroundColor: theme.backgroundMuted,
+          },
+        ]}
+      >
         {item.type == "image" && (
           <Image
             source={{
@@ -78,7 +93,17 @@ const MediaGallery = ({
                 ? `${Config.API_URL}/files/?fid=${item.id}&t=${token}`
                 : item.uri,
             }}
-            style={{ width: "100%", height: 500, resizeMode: "cover" }}
+            style={{
+              // width: size ? size : "100%",
+              width: size ? size : SCREEN_WIDTH,
+              height: size ? size : 500,
+              minWidth: size ? size : SCREEN_WIDTH,
+              minHeight: size ? size : 500,
+              maxWidth: size ? size : SCREEN_WIDTH,
+              maxHeight: size ? size : 500,
+              resizeMode: "cover",
+              margin: "auto",
+            }}
           />
         )}
 
@@ -91,8 +116,9 @@ const MediaGallery = ({
                   : item.uri,
               }}
               style={{
-                width: "100%",
-                height: 500,
+                // width: size ? size : "100%",
+                width: size ? size : SCREEN_WIDTH,
+                height: size ? size : 500,
                 backgroundColor: theme.secondary,
               }}
               resizeMode={ResizeMode.COVER}
@@ -122,13 +148,17 @@ const MediaGallery = ({
   };
 
   return (
-    <View style={[{ maxWidth: SCREEN_WIDTH, flex: 1, overflow: "hidden" }]}>
+    <View
+      style={[
+        { maxWidth: size ? size : SCREEN_WIDTH, flex: 1, overflow: "hidden" },
+      ]}
+    >
       <ScrollView
         ref={scrollViewRef}
         style={[
           {
             backgroundColor: theme.background,
-            minWidth: SCREEN_WIDTH,
+            minWidth: size ? size : SCREEN_WIDTH,
             overflow: "hidden",
           },
         ]}
@@ -137,7 +167,7 @@ const MediaGallery = ({
         showsHorizontalScrollIndicator={false}
         onMomentumScrollEnd={(event) => {
           const offsetX = event.nativeEvent.contentOffset.x;
-          const index = Math.round(offsetX / SCREEN_WIDTH);
+          const index = Math.round(offsetX / (size ? size : SCREEN_WIDTH));
           if (setActiveIndex) {
             setActiveIndex(index);
           }
@@ -155,10 +185,12 @@ export const WebMediaGallery = ({
   items,
   activeIndex,
   setActiveIndex,
+  size,
 }: {
   items: GalleryItem[];
   activeIndex: number;
   setActiveIndex: (index: number) => void;
+  size?: number;
 }) => {
   const { theme } = useContext(AppThemeContext);
   const scrollViewRef = useRef<ScrollView>(null);
@@ -167,7 +199,7 @@ export const WebMediaGallery = ({
   //   Dimensions.get("window").width
   // );
 
-  const SCREEN_WIDTH = 500;
+  const SCREEN_WIDTH = size ? size : 500;
 
   // Dimensions.addEventListener("change", ({ window, screen }) => {
   //   setScreenWidth(window.width);
@@ -202,7 +234,7 @@ export const WebMediaGallery = ({
     const nextIndex = activeIndex + 1;
     if (nextIndex < items.length) {
       scrollViewRef.current?.scrollTo({
-        x: nextIndex * SCREEN_WIDTH,
+        x: nextIndex * (size ? size : SCREEN_WIDTH),
         animated: true,
       });
       if (setActiveIndex) {
@@ -215,7 +247,7 @@ export const WebMediaGallery = ({
     const prevIndex = activeIndex - 1;
     if (prevIndex >= 0) {
       scrollViewRef.current?.scrollTo({
-        x: prevIndex * SCREEN_WIDTH,
+        x: prevIndex * (size ? size : SCREEN_WIDTH),
         animated: true,
       });
       setActiveIndex?.(prevIndex);
@@ -230,7 +262,7 @@ export const WebMediaGallery = ({
           styles.itemContainer,
           {
             flex: 1,
-            width: SCREEN_WIDTH,
+            width: size ? size : SCREEN_WIDTH,
             display: "flex",
             flexDirection: "row",
             justifyContent: "center",
@@ -247,8 +279,8 @@ export const WebMediaGallery = ({
                 : item.uri,
             }}
             style={{
-              width: 500,
-              height: 500,
+              width: size ? size : 500,
+              height: size ? size : 500,
 
               resizeMode: "cover",
             }}
@@ -266,8 +298,8 @@ export const WebMediaGallery = ({
               }}
               style={{
                 flex: 1,
-                minWidth: 500,
-                minHeight: 500,
+                minWidth: size ? size : 500,
+                minHeight: size ? size : 500,
               }}
               resizeMode={ResizeMode.COVER}
               ref={videoRef}
@@ -296,13 +328,17 @@ export const WebMediaGallery = ({
   };
 
   return (
-    <View style={[{ maxWidth: SCREEN_WIDTH, flex: 1, overflow: "hidden" }]}>
+    <View
+      style={[
+        { maxWidth: size ? size : SCREEN_WIDTH, flex: 1, overflow: "hidden" },
+      ]}
+    >
       {/* <View style={styles.galleryContainer}> */}
       <ScrollView
         ref={scrollViewRef}
         style={[
           {
-            minWidth: SCREEN_WIDTH,
+            minWidth: size ? size : SCREEN_WIDTH,
             overflow: "hidden",
             position: "relative",
             backgroundColor: theme.background,
@@ -313,14 +349,19 @@ export const WebMediaGallery = ({
         showsHorizontalScrollIndicator={false}
         onMomentumScrollEnd={(event) => {
           const offsetX = event.nativeEvent.contentOffset.x;
-          const index = Math.round(offsetX / SCREEN_WIDTH);
+          const index = Math.round(offsetX / (size ? size : SCREEN_WIDTH));
           setActiveIndex?.(index);
         }}
       >
         {token && renderItems()}
       </ScrollView>
       {/* </View> */}
-      <View style={[styles.navigationContainer, { width: SCREEN_WIDTH - 50 }]}>
+      <View
+        style={[
+          styles.navigationContainer,
+          { width: (size ? size : SCREEN_WIDTH) - 50 },
+        ]}
+      >
         <View>
           {activeIndex! > 0 && (
             <TouchableOpacity
@@ -364,10 +405,10 @@ export const WebMediaGallery = ({
 
 const styles = StyleSheet.create({
   ...GlobalStyles,
-  galleryContainer: {
-    height: 500,
-    overflow: "hidden",
-  },
+  // galleryContainer: {
+  //   height: 500,
+  //   overflow: "hidden",
+  // },
 
   navigationContainer: {
     flexDirection: "row",

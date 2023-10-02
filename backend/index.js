@@ -93,21 +93,35 @@ if (Config.NODE_ENV === "development" || Config.NODE_ENV === "testing") {
         include: {
           studentProfileIfIsStudent: true,
           staffProfileIfIsStaff: true,
+          repostedPosts: true,
         },
       });
-      // const studentsProfiles = await prisma.studentProfile.findMany();
-      // const staffProfile = await prisma.staffProfile.findMany();
+
       const chats = await prisma.chat.findMany({
         include: {
           messages: {
             include: {
               linkedPoll: true,
               linkedPost: true,
-              attachedFiles: true,
+              attachedFiles: {
+                include: {
+                  owner: {
+                    select: {
+                      id: true,
+                      profileAvatarId: true,
+                      firstName: true,
+                      lastName: true,
+                      staffProfileIfIsStaff: true,
+                      studentProfileIfIsStudent: true,
+                    },
+                  },
+                },
+              },
               sender: true,
               readBy: true,
             },
           },
+          admins: true,
           schoolIfSchoolChat: true,
           classIfClassChat: true,
           roleIfRoleChat: true,
@@ -117,11 +131,25 @@ if (Config.NODE_ENV === "development" || Config.NODE_ENV === "testing") {
       const posts = await prisma.post.findMany({
         include: {
           owner: true,
-          files: true,
+          files: {
+            include: {
+              owner: {
+                select: {
+                  id: true,
+                  profileAvatarId: true,
+                  firstName: true,
+                  lastName: true,
+                  staffProfileIfIsStaff: true,
+                  studentProfileIfIsStudent: true,
+                },
+              },
+            },
+          },
+          reposters: true,
           comments: true,
         },
       });
-      // const comments = await prisma.comment.findMany();
+
       const notifications = await prisma.notification.findMany();
       const preferences = await prisma.preferences.findMany();
       const faculties = await prisma.faculty.findMany({
@@ -137,33 +165,35 @@ if (Config.NODE_ENV === "development" || Config.NODE_ENV === "testing") {
           },
         },
       });
-      // const schools = await prisma.school.findMany();
-      // const programmes = await prisma.programme.findMany();
-      // const classes = await prisma.class.findMany();
+
       const folders = await prisma.folder.findMany({
         include: {
-          files: true,
+          files: {
+            include: {
+              owner: {
+                select: {
+                  id: true,
+                  profileAvatarId: true,
+                  firstName: true,
+                  lastName: true,
+                  staffProfileIfIsStaff: true,
+                  studentProfileIfIsStudent: true,
+                },
+              },
+            },
+          },
         },
         include: {
           owner: true,
         },
       });
-      // const files = await prisma.file.findMany();
 
       return {
         users,
-        // studentsProfiles,
-        // staffProfile,
         chats,
         posts,
-        // comments,
         faculties,
-        // schools,
-        // programmes,
-        // classes,
         folders,
-
-        // files,
         preferences,
         notifications,
       };
@@ -179,7 +209,11 @@ if (Config.NODE_ENV === "development" || Config.NODE_ENV === "testing") {
  * Using root for health check
  */
 app.get("/", (req, res) => {
-  RequestHandler.sendSuccess(req, res, "Carfast API Server is Up and Running");
+  RequestHandler.sendSuccess(
+    req,
+    res,
+    "Tuksocial API Server is Up and Running"
+  );
 });
 
 /**

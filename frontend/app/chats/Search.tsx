@@ -84,7 +84,14 @@ export default function ChatsSearchScreen() {
     // });
 
     socket.on("resolve_chat_response", (data) => {
-      console.log("resolve chat response: ", data);
+      if (data.origin !== "chat_search") {
+        return;
+      }
+
+      console.log(
+        "resolve chat response (chat search): "
+        // , data
+      );
 
       if (Platform.select({ ios: true, android: true })) {
         router.back();
@@ -99,8 +106,11 @@ export default function ChatsSearchScreen() {
       setLoading(false);
     });
 
-    socket.on("search_error", (error) => {
-      console.log("search error: ", error);
+    socket.on("search_error", (data) => {
+      if (data.origin !== "chat_search") {
+        return;
+      }
+      console.log("search error: ", data.error);
       setLoading(false);
     });
   }, []);
@@ -133,7 +143,10 @@ export default function ChatsSearchScreen() {
   }
 
   function onUserSelect(user: PostOwner) {
-    socket.emit("resolve_chat", { otherUserId: user?.id });
+    socket.emit("resolve_chat", {
+      otherUserId: user?.id,
+      origin: "chat_search",
+    });
   }
 
   return (

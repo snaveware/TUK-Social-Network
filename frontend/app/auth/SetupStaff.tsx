@@ -82,7 +82,7 @@ export default function SetupStaff() {
 
   useEffect(() => {
     if (isLoggedIn) {
-      router.push("/(tabs)");
+      router.replace("/(tabs)");
     }
     getSchools();
   }, []);
@@ -144,7 +144,7 @@ export default function SetupStaff() {
           router.push("/auth/LoginEmail");
           return;
         }
-        router.push("/(tabs)");
+        router.replace("/(tabs)");
       } else {
         setErrors({
           global: results.message,

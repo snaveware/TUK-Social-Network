@@ -80,7 +80,7 @@ export default function NotificationsScreen() {
 
   return (
     <KeyboardAwareScrollView
-      showsVerticalScrollIndicator={false}
+      // showsVerticalScrollIndicator={false}
       style={{ flex: 1, backgroundColor: theme.background }}
     >
       {notifications &&

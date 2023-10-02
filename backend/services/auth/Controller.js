@@ -7,6 +7,7 @@ const jwt = require("jsonwebtoken");
 const { v4: uuid, validate } = require("uuid");
 const { Mail } = require("../mail");
 const { randomInt } = require("crypto");
+const { promises } = require("dns");
 
 module.exports = class AuthController {
   static async sendEmailCode(req, res) {
@@ -51,7 +52,7 @@ module.exports = class AuthController {
                 path: "",
                 Access: {
                   create: {
-                    isPublic: true,
+                    isPublic: false,
                     itemType: "folder",
                   },
                 },
@@ -133,14 +134,40 @@ module.exports = class AuthController {
         RequestHandler.throwError(400, "Invalid Token")();
       }
 
+      console.log("login token extractions: ", tokenExtractions);
+
       const user = await prisma.user.findUnique({
         where: {
           id: tokenExtractions.userId,
         },
         include: {
           role: true,
-          studentProfileIfIsStudent: true,
-          staffProfileIfIsStaff: true,
+          staffProfileIfIsStaff: {
+            include: {
+              school: {
+                include: {
+                  faculty: true,
+                },
+              },
+            },
+          },
+          studentProfileIfIsStudent: {
+            include: {
+              class: {
+                include: {
+                  programme: {
+                    include: {
+                      school: {
+                        include: {
+                          faculty: true,
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
           preferences: true,
           rootFolder: true,
           _count: true,
@@ -160,7 +187,7 @@ module.exports = class AuthController {
         },
       });
 
-      console.log("Two Step user: ", user);
+      console.log("Two Step (login) user: ", user);
 
       if (!user) {
         RequestHandler.throwError(
@@ -251,8 +278,8 @@ module.exports = class AuthController {
         },
       });
 
-      res.set("Authorization", `Bearer ${accessToken}`);
-      res.set("Refresh", refreshToken);
+      // res.set("Authorization", `Bearer ${accessToken}`);
+      // res.set("Refresh", refreshToken);
 
       RequestHandler.sendSuccess(req, res, {
         user,
@@ -366,8 +393,8 @@ module.exports = class AuthController {
         },
       });
 
-      res.set("Authorization", `Bearer ${accessToken}`);
-      res.set("Refresh", refreshToken);
+      // res.set("Authorization", `Bearer ${accessToken}`);
+      // res.set("Refresh", refreshToken);
 
       RequestHandler.sendSuccess(req, res, { accessToken, refreshToken });
     } catch (error) {
@@ -549,7 +576,7 @@ module.exports = class AuthController {
         },
       });
 
-      await prisma.user.update({
+      user = await prisma.user.update({
         where: {
           id: user.id,
         },
@@ -566,8 +593,32 @@ module.exports = class AuthController {
         },
         include: {
           role: true,
-          studentProfileIfIsStudent: true,
-          staffProfileIfIsStaff: true,
+          staffProfileIfIsStaff: {
+            include: {
+              school: {
+                include: {
+                  faculty: true,
+                },
+              },
+            },
+          },
+          studentProfileIfIsStudent: {
+            include: {
+              class: {
+                include: {
+                  programme: {
+                    include: {
+                      school: {
+                        include: {
+                          faculty: true,
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
           preferences: true,
           rootFolder: true,
           _count: true,
@@ -594,8 +645,8 @@ module.exports = class AuthController {
         },
       });
 
-      res.set("Authorization", `Bearer ${accessToken}`);
-      res.set("Refresh", refreshToken);
+      // res.set("Authorization", `Bearer ${accessToken}`);
+      // res.set("Refresh", refreshToken);
 
       RequestHandler.sendSuccess(req, res, {
         user,
@@ -747,7 +798,7 @@ module.exports = class AuthController {
         },
       });
 
-      await prisma.user.update({
+      user = await prisma.user.update({
         where: {
           id: user.id,
         },
@@ -764,8 +815,32 @@ module.exports = class AuthController {
         },
         include: {
           role: true,
-          studentProfileIfIsStudent: true,
-          staffProfileIfIsStaff: true,
+          staffProfileIfIsStaff: {
+            include: {
+              school: {
+                include: {
+                  faculty: true,
+                },
+              },
+            },
+          },
+          studentProfileIfIsStudent: {
+            include: {
+              class: {
+                include: {
+                  programme: {
+                    include: {
+                      school: {
+                        include: {
+                          faculty: true,
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
           preferences: true,
           rootFolder: true,
           _count: true,
@@ -792,8 +867,8 @@ module.exports = class AuthController {
         },
       });
 
-      res.set("Authorization", `Bearer ${accessToken}`);
-      res.set("Refresh", refreshToken);
+      // res.set("Authorization", `Bearer ${accessToken}`);
+      // res.set("Refresh", refreshToken);
 
       RequestHandler.sendSuccess(req, res, {
         user,
@@ -817,8 +892,32 @@ module.exports = class AuthController {
 
         include: {
           role: true,
-          studentProfileIfIsStudent: true,
-          staffProfileIfIsStaff: true,
+          staffProfileIfIsStaff: {
+            include: {
+              school: {
+                include: {
+                  faculty: true,
+                },
+              },
+            },
+          },
+          studentProfileIfIsStudent: {
+            include: {
+              class: {
+                include: {
+                  programme: {
+                    include: {
+                      school: {
+                        include: {
+                          faculty: true,
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
           preferences: true,
           rootFolder: true,
           _count: true,
@@ -865,8 +964,32 @@ module.exports = class AuthController {
         },
         include: {
           role: true,
-          studentProfileIfIsStudent: true,
-          staffProfileIfIsStaff: true,
+          staffProfileIfIsStaff: {
+            include: {
+              school: {
+                include: {
+                  faculty: true,
+                },
+              },
+            },
+          },
+          studentProfileIfIsStudent: {
+            include: {
+              class: {
+                include: {
+                  programme: {
+                    include: {
+                      school: {
+                        include: {
+                          faculty: true,
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
           preferences: true,
           rootFolder: true,
           _count: true,
@@ -948,8 +1071,32 @@ module.exports = class AuthController {
           data: userUpdates,
           include: {
             role: true,
-            studentProfileIfIsStudent: true,
-            staffProfileIfIsStaff: true,
+            staffProfileIfIsStaff: {
+              include: {
+                school: {
+                  include: {
+                    faculty: true,
+                  },
+                },
+              },
+            },
+            studentProfileIfIsStudent: {
+              include: {
+                class: {
+                  include: {
+                    programme: {
+                      include: {
+                        school: {
+                          include: {
+                            faculty: true,
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
             preferences: true,
             rootFolder: true,
             _count: true,
@@ -998,8 +1145,32 @@ module.exports = class AuthController {
         },
         include: {
           role: true,
-          studentProfileIfIsStudent: true,
-          staffProfileIfIsStaff: true,
+          staffProfileIfIsStaff: {
+            include: {
+              school: {
+                include: {
+                  faculty: true,
+                },
+              },
+            },
+          },
+          studentProfileIfIsStudent: {
+            include: {
+              class: {
+                include: {
+                  programme: {
+                    include: {
+                      school: {
+                        include: {
+                          faculty: true,
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
           preferences: true,
           rootFolder: true,
           _count: true,
@@ -1068,8 +1239,32 @@ module.exports = class AuthController {
         },
         include: {
           role: true,
-          studentProfileIfIsStudent: true,
-          staffProfileIfIsStaff: true,
+          staffProfileIfIsStaff: {
+            include: {
+              school: {
+                include: {
+                  faculty: true,
+                },
+              },
+            },
+          },
+          studentProfileIfIsStudent: {
+            include: {
+              class: {
+                include: {
+                  programme: {
+                    include: {
+                      school: {
+                        include: {
+                          faculty: true,
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
           preferences: true,
           rootFolder: true,
           _count: true,
@@ -1158,6 +1353,1348 @@ module.exports = class AuthController {
       RequestHandler.sendSuccess(req, res, dismissedNotification);
     } catch (error) {
       console.log("error dismissing notification: ", error);
+      RequestHandler.sendError(req, res, error);
+    }
+  }
+
+  static async search(req, res) {
+    try {
+      Logger.info(JSON.stringify({ action: "search", user: req.auth.id }));
+
+      const validated = await AuthValidator.validateSearch(req.body);
+
+      const page = validated.page || 1;
+
+      const results = {};
+
+      const skip = (page - 1) * Config.N0_OF_ITEMS_PER_SEARCH;
+
+      let schoolId;
+      let classId;
+
+      const accessOptions = {};
+
+      if (req.auth.studentProfileIfIsStudent) {
+        classId = req.auth.studentProfileIfIsStudent.classId;
+        schoolId = req.auth.studentProfileIfIsStudent.class.programme.schoolId;
+      } else if (req.auth.staffProfileIfIsStaff) {
+        schoolId = req.auth.staffProfileIfIsStaff.schoolId;
+      }
+
+      if (validated.items.includes("users")) {
+        const options = { OR: [] };
+
+        if (validated.searchString) {
+          options.OR.push({
+            firstName: {
+              contains: validated.searchString,
+              mode: "insensitive",
+            },
+          });
+
+          options.OR.push({
+            lastName: {
+              contains: validated.searchString,
+              mode: "insensitive",
+            },
+          });
+        }
+
+        if (options.OR.length < 1) {
+          delete options.OR;
+        }
+
+        results.users = await prisma.user.findMany({
+          where: {
+            role: {
+              NOT: {
+                name: "admin",
+              },
+            },
+
+            status: "active",
+
+            ...options,
+          },
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            profileAvatarId: true,
+            staffProfileIfIsStaff: {
+              select: {
+                position: true,
+              },
+            },
+            studentProfileIfIsStudent: {
+              select: {
+                schoolId: true,
+                registrationNumber: true,
+              },
+            },
+          },
+          take: Config.N0_OF_ITEMS_PER_SEARCH,
+          skip: skip,
+          orderBy: {
+            createdAt: "desc",
+          },
+        });
+      }
+
+      if (validated.items.includes("files")) {
+        const options = { OR: [] };
+
+        if (validated.searchString) {
+          options.OR.push({
+            name: {
+              contains: validated.searchString,
+              mode: "insensitive",
+            },
+          });
+
+          options.OR.push({
+            path: {
+              contains: validated.searchString,
+              mode: "insensitive",
+            },
+          });
+
+          options.OR.push({
+            owner: {
+              firstName: {
+                contains: validated.searchString,
+                mode: "insensitive",
+              },
+            },
+          });
+
+          options.OR.push({
+            owner: {
+              lastName: {
+                contains: validated.searchString,
+                mode: "insensitive",
+              },
+            },
+          });
+        }
+
+        if (options.OR.length < 1) {
+          delete options.OR;
+        }
+
+        results.files = await prisma.file.findMany({
+          where: {
+            OR: [
+              {
+                ownerId: req.auth.id,
+              },
+              {
+                Access: {
+                  isPublic: true,
+                },
+              },
+              {
+                Access: {
+                  users: {
+                    some: {
+                      id: req.auth.id,
+                    },
+                  },
+                },
+              },
+              {
+                Access: {
+                  classes: {
+                    some: {
+                      id: classId,
+                    },
+                  },
+                },
+              },
+              {
+                Access: {
+                  schools: {
+                    some: {
+                      id: schoolId,
+                    },
+                  },
+                },
+              },
+            ],
+            ...options,
+          },
+          include: {
+            owner: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                profileAvatarId: true,
+                staffProfileIfIsStaff: {
+                  select: {
+                    position: true,
+                  },
+                },
+                studentProfileIfIsStudent: {
+                  select: {
+                    schoolId: true,
+                    registrationNumber: true,
+                  },
+                },
+              },
+            },
+          },
+          take: Config.N0_OF_ITEMS_PER_SEARCH,
+          skip: skip,
+          orderBy: {
+            createdAt: "desc",
+          },
+        });
+      }
+
+      if (validated.items.includes("folders")) {
+        const options = { OR: [] };
+
+        if (validated.searchString) {
+          options.OR.push({
+            name: {
+              contains: validated.searchString,
+              mode: "insensitive",
+            },
+          });
+
+          options.OR.push({
+            path: {
+              contains: validated.searchString,
+              mode: "insensitive",
+            },
+          });
+
+          options.OR.push({
+            owner: {
+              firstName: {
+                contains: validated.searchString,
+                mode: "insensitive",
+              },
+            },
+          });
+
+          options.OR.push({
+            owner: {
+              lastName: {
+                contains: validated.searchString,
+                mode: "insensitive",
+              },
+            },
+          });
+        }
+
+        if (options.OR.length < 1) {
+          delete options.OR;
+        }
+
+        results.folders = await prisma.folder.findMany({
+          where: {
+            OR: [
+              {
+                ownerId: req.auth.id,
+              },
+              {
+                Access: {
+                  isPublic: true,
+                },
+              },
+              {
+                Access: {
+                  users: {
+                    some: {
+                      id: req.auth.id,
+                    },
+                  },
+                },
+              },
+              {
+                Access: {
+                  classes: {
+                    some: {
+                      id: classId,
+                    },
+                  },
+                },
+              },
+              {
+                Access: {
+                  schools: {
+                    some: {
+                      id: schoolId,
+                    },
+                  },
+                },
+              },
+            ],
+
+            ownerAsRootFolder: {
+              is: null,
+            },
+
+            ...options,
+          },
+
+          include: {
+            owner: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                profileAvatarId: true,
+                staffProfileIfIsStaff: {
+                  select: {
+                    position: true,
+                  },
+                },
+                studentProfileIfIsStudent: {
+                  select: {
+                    schoolId: true,
+                    registrationNumber: true,
+                  },
+                },
+              },
+            },
+          },
+          take: Config.N0_OF_ITEMS_PER_SEARCH,
+          skip: skip,
+          orderBy: {
+            createdAt: "desc",
+          },
+        });
+      }
+
+      if (validated.items.includes("posts")) {
+        const options = { OR: [] };
+
+        if (validated.searchString) {
+          options.OR.push({
+            caption: {
+              contains: validated.searchString,
+              mode: "insensitive",
+            },
+          });
+          options.OR.push({
+            owner: {
+              firstName: {
+                contains: validated.searchString,
+                mode: "insensitive",
+              },
+            },
+          });
+
+          options.OR.push({
+            owner: {
+              lastName: {
+                contains: validated.searchString,
+                mode: "insensitive",
+              },
+            },
+          });
+        }
+
+        if (options.OR.length < 1) {
+          delete options.OR;
+        }
+
+        results.posts = await prisma.post.findMany({
+          where: {
+            OR: [
+              {
+                ownerId: req.auth.id,
+              },
+              {
+                Access: {
+                  isPublic: true,
+                },
+              },
+              {
+                Access: {
+                  users: {
+                    some: {
+                      id: req.auth.id,
+                    },
+                  },
+                },
+              },
+              {
+                Access: {
+                  classes: {
+                    some: {
+                      id: classId || null,
+                    },
+                  },
+                },
+              },
+              {
+                Access: {
+                  schools: {
+                    some: {
+                      id: schoolId,
+                    },
+                  },
+                },
+              },
+            ],
+            ...options,
+          },
+
+          include: {
+            files: true,
+            _count: true,
+            owner: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                profileAvatarId: true,
+                studentProfileIfIsStudent: {
+                  select: {
+                    registrationNumber: true,
+                  },
+                },
+                staffProfileIfIsStaff: {
+                  select: {
+                    title: true,
+                    position: true,
+                  },
+                },
+              },
+            },
+            likers: {
+              where: {
+                id: req.auth.id,
+              },
+              select: {
+                id: true,
+              },
+            },
+            Access: {
+              select: {
+                _count: true,
+              },
+            },
+          },
+          take: Config.N0_OF_ITEMS_PER_SEARCH,
+          skip: skip,
+          orderBy: {
+            createdAt: "desc",
+          },
+        });
+      }
+
+      if (validated.items.includes("programmes")) {
+        const options = { OR: [] };
+
+        if (validated.searchString) {
+          options.OR.push({
+            name: {
+              contains: validated.searchString,
+              mode: "insensitive",
+            },
+          });
+
+          options.OR.push({
+            abbreviation: {
+              contains: validated.searchString,
+              mode: "insensitive",
+            },
+          });
+        }
+
+        if (options.OR.length < 1) {
+          delete options.OR;
+        }
+        results.programmes = await prisma.programme.findMany({
+          where: options,
+          skip: skip,
+          take: Config.N0_OF_ITEMS_PER_SEARCH,
+          orderBy: {
+            createdAt: "desc",
+          },
+        });
+      }
+
+      if (validated.items.includes("schools")) {
+        const options = { OR: [] };
+        if (validated.searchString) {
+          options.OR.push({
+            name: {
+              contains: validated.searchString,
+              mode: "insensitive",
+            },
+          });
+
+          options.OR.push({
+            abbreviation: {
+              contains: validated.searchString,
+              mode: "insensitive",
+            },
+          });
+        }
+
+        if (options.OR.length < 1) {
+          delete options.OR;
+        }
+        results.schools = await prisma.school.findMany({
+          where: options,
+          skip: skip,
+          take: Config.N0_OF_ITEMS_PER_SEARCH,
+          orderBy: {
+            createdAt: "desc",
+          },
+        });
+      }
+
+      if (validated.items.includes("classes")) {
+        const options = { OR: [] };
+
+        if (validated.searchString) {
+          options.OR.push({
+            name: {
+              contains: validated.searchString,
+              mode: "insensitive",
+            },
+          });
+
+          options.OR.push({
+            abbreviation: {
+              contains: validated.searchString,
+              mode: "insensitive",
+            },
+          });
+        }
+
+        if (options.OR.length < 1) {
+          delete options.OR;
+        }
+
+        results.classes = await prisma.class.findMany({
+          where: options,
+          include: {
+            programme: true,
+            chat: true,
+          },
+          skip: skip,
+          take: Config.N0_OF_ITEMS_PER_SEARCH,
+
+          orderBy: {
+            createdAt: "desc",
+          },
+        });
+      }
+
+      if (validated.items.includes("faculties")) {
+        const options = { OR: [] };
+
+        if (validated.searchString) {
+          options.OR.push({
+            name: {
+              contains: validated.searchString,
+              mode: "insensitive",
+            },
+          });
+
+          options.OR.push({
+            abbreviation: {
+              contains: validated.searchString,
+              mode: "insensitive",
+            },
+          });
+        }
+
+        if (options.OR.length < 1) {
+          delete options.OR;
+        }
+
+        results.faculties = await prisma.faculty.findMany({
+          where: options,
+          skip: skip,
+          take: Config.N0_OF_ITEMS_PER_SEARCH,
+
+          orderBy: {
+            createdAt: "desc",
+          },
+        });
+      }
+
+      if (validated.items.includes("chats")) {
+        const options = { OR: [] };
+
+        if (validated.searchString) {
+          options.OR.push({
+            name: {
+              contains: validated.searchString,
+              mode: "insensitive",
+            },
+          });
+
+          options.OR.push({
+            description: {
+              contains: validated.searchString,
+              mode: "insensitive",
+            },
+          });
+        }
+
+        if (options.OR.length < 1) {
+          delete options.OR;
+        }
+
+        results.chats = await prisma.chat.findMany({
+          where: {
+            chatType: "group",
+            ...options,
+          },
+          skip: skip,
+          take: Config.N0_OF_ITEMS_PER_SEARCH,
+
+          orderBy: {
+            createdAt: "desc",
+          },
+        });
+      }
+
+      RequestHandler.sendSuccess(req, res, results);
+    } catch (error) {
+      console.log("error searching", error);
+      RequestHandler.sendError(req, res, error);
+    }
+  }
+
+  static async share(req, res) {
+    try {
+      Logger.info(JSON.stringify({ action: "share", user: req.auth.id }));
+
+      const validated = await AuthValidator.validateShare(req.body);
+
+      let schoolId;
+      let classId;
+
+      if (req.auth.studentProfileIfIsStudent) {
+        classId = req.auth.studentProfileIfIsStudent.classId;
+        schoolId = req.auth.studentProfileIfIsStudent.class.programme.schoolId;
+      } else if (req.auth.staffProfileIfIsStaff) {
+        schoolId = req.auth.staffProfileIfIsStaff.schoolId;
+      }
+
+      console.log("Validate: ", validated);
+
+      const data = {
+        chats: {
+          connect: [],
+        },
+      };
+
+      if (validated.users && validated.users.length > 0) {
+        data.users = {
+          connect: validated.users.map((id) => ({ id })),
+        };
+
+        // const userChats = await prisma.chat.findMany({
+        //   where: {
+        //     chatType: "private",
+        //     OR: [
+        //       {
+        //         members: {
+        //           every: {
+        //             id: {
+        //               in: validated.users,
+        //             },
+        //           },
+        //         },
+        //       },
+        //       {
+        //         members: {
+        //           every: {
+        //             id: req.auth.id,
+        //           },
+        //         },
+        //       },
+        //     ],
+        //   },
+        //   select: {
+        //     id: true,
+        //   },
+        // });
+
+        await Promise.all(
+          validated.users.map(async (userId) => {
+            let chatWithUser;
+            const possibleChatsWithUser = await prisma.chat.findMany({
+              where: {
+                chatType: "private",
+                members: {
+                  some: {
+                    id: req.auth.id,
+                  },
+                },
+                members: {
+                  some: {
+                    id: userId,
+                  },
+                },
+              },
+              select: {
+                id: true,
+                members: true,
+              },
+            });
+
+            console.log(
+              "possible chats: ",
+              possibleChatsWithUser,
+              "o: ",
+              possibleChatsWithUser[0]
+            );
+
+            for (let i = 0; i < possibleChatsWithUser.length; i++) {
+              const element = possibleChatsWithUser[i];
+              console.log("auth id: ", req.auth.id);
+              console.log("element members: ", element.members);
+
+              if (
+                element.members &&
+                element.members.length === 2 &&
+                (element.members[0].id === userId ||
+                  element.members[0].id === req.auth.id) &&
+                (element.members[1].id === userId ||
+                  element.members[1].id === req.auth.id)
+              ) {
+                chatWithUser = element;
+                break;
+              }
+            }
+
+            if (!chatWithUser) {
+              const otherUser = await prisma.user.findUnique({
+                where: {
+                  id: userId,
+                },
+                select: {
+                  id: true,
+                  firstName: true,
+                  lastName: true,
+                },
+              });
+
+              if (!otherUser) {
+                RequestHandler.throwError(404, "The user was not found")();
+              }
+
+              chatWithUser = await prisma.chat.create({
+                data: {
+                  name: `${req.auth.firstName} ${req.auth.lastName} and ${otherUser.firstName} ${otherUser.lastName}`,
+                  description: `A chat between ${req.auth.firstName} ${req.auth.lastName} and ${otherUser.firstName} ${otherUser.lastName}`,
+                  members: {
+                    connect: [
+                      {
+                        id: req.auth.id,
+                      },
+                      {
+                        id: userId,
+                      },
+                    ],
+                  },
+                  chatType: "private",
+                },
+              });
+            }
+
+            data.chats.connect.push({ id: chatWithUser.id });
+
+            console.log("chat with user: ", chatWithUser);
+          })
+        );
+
+        // console.log("urser chats: ", userChats);
+
+        // data.chats = {
+        //   connect: userChats.map((chat) => ({
+        //     id: chat.id,
+        //   })),
+        // };
+      }
+
+      if (validated.chats && validated.chats.length > 0) {
+        data.chats = {
+          connect: validated.chats.map((id) => ({ id })),
+        };
+      }
+
+      if (validated.schools && validated.schools.length > 0) {
+        data.schools = {
+          connect: validated.schools.map((id) => ({ id })),
+        };
+        const schoolChats = await prisma.chat.findMany({
+          where: {
+            schoolIfSchoolChat: {
+              id: {
+                in: validated.schools,
+              },
+            },
+          },
+          select: {
+            id: true,
+          },
+        });
+
+        data.chats = {
+          connect: schoolChats.map((chat) => ({
+            id: chat.id,
+          })),
+        };
+      }
+
+      if (validated.programmes && validated.programmes.length > 0) {
+        data.programmes = {
+          connect: validated.programmes.map((id) => ({ id })),
+        };
+      }
+
+      if (validated.faculties && validated.faculties.length > 0) {
+        data.faculties = {
+          connect: validated.faculties.map((id) => ({ id })),
+        };
+      }
+
+      if (validated.classes && validated.classes.length > 0) {
+        // data.classes = validated.classes.map((id) => ({ id }));
+        // data.chats = validated.classes.map((id) => ({ id }));
+
+        data.classes = {
+          connect: validated.classes.map((id) => ({ id })),
+        };
+        const classChats = await prisma.chat.findMany({
+          where: {
+            classIfClassChat: {
+              id: {
+                in: validated.classes,
+              },
+            },
+          },
+          select: {
+            id: true,
+          },
+        });
+
+        data.chats = {
+          connect: classChats.map((chat) => ({
+            id: chat.id,
+          })),
+        };
+      }
+
+      // console.log(
+      //   "access data :",
+      //   data,
+      //   "chat connects: ",
+      //   data.chats.connect,
+      //   "user connects",
+      //   data.users.connect,
+      //   "classes connects: ",
+      //   data.classes,
+      //   "validated ",
+      //   validated
+      // );
+
+      console.log("Data.chats: ", data.chats);
+
+      if (validated.items.file) {
+        const file = await prisma.file.findUnique({
+          where: {
+            id: validated.items.file,
+          },
+          select: {
+            id: true,
+            accessId: true,
+            ownerId: true,
+          },
+        });
+
+        console.log("file: ", file);
+
+        if (!file) {
+          RequestHandler.throwError(404, "File not found")();
+        }
+
+        await prisma.access.update({
+          where: {
+            id: file.accessId,
+            OR: [
+              {
+                isPublic: true,
+              },
+              {
+                fileIfItemIsFile: {
+                  ownerId: req.auth.id,
+                },
+              },
+              {
+                users: {
+                  some: {
+                    id: req.auth.id,
+                  },
+                },
+              },
+              {
+                classes: {
+                  some: {
+                    id: classId,
+                  },
+                },
+              },
+              {
+                schools: {
+                  some: {
+                    id: schoolId,
+                  },
+                },
+              },
+            ],
+          },
+          data: data,
+        });
+
+        if (data.chats && data.chats.connect && data.chats.connect.length > 0) {
+          await Promise.all(
+            data.chats.connect.map(async (chatConnId) => {
+              await prisma.chat.update({
+                where: {
+                  id: chatConnId.id,
+                },
+                data: {
+                  messages: {
+                    create: {
+                      sender: {
+                        connect: {
+                          id: file.ownerId,
+                        },
+                      },
+                      message: "Shared A File",
+                      attachedFiles: {
+                        connect: [
+                          {
+                            id: file.id,
+                          },
+                        ],
+                      },
+                    },
+                  },
+                  updatedAt: new Date(),
+                },
+              });
+            })
+          );
+        }
+      }
+
+      if (validated.items.post) {
+        const post = await prisma.post.findUnique({
+          where: {
+            id: validated.items.post,
+          },
+          select: {
+            id: true,
+            accessId: true,
+            ownerId: true,
+          },
+        });
+
+        console.log("post: ", post);
+
+        if (!post) {
+          RequestHandler.throwError(404, "Post not found ")();
+        }
+
+        await prisma.access.update({
+          where: {
+            id: post.accessId,
+            OR: [
+              {
+                isPublic: true,
+              },
+              {
+                postIfItemIsPost: {
+                  ownerId: req.auth.id,
+                },
+              },
+              {
+                users: {
+                  some: {
+                    id: req.auth.id,
+                  },
+                },
+              },
+              {
+                classes: {
+                  some: {
+                    id: classId,
+                  },
+                },
+              },
+              {
+                schools: {
+                  some: {
+                    id: schoolId,
+                  },
+                },
+              },
+            ],
+          },
+          data: data,
+        });
+
+        console.log("Data: ", data.chats);
+
+        if (data.chats && data.chats.connect && data.chats.connect.length > 0) {
+          await Promise.all(
+            data.chats.connect.map(async (chatConnId) => {
+              await prisma.chat.update({
+                where: {
+                  id: chatConnId.id,
+                },
+                data: {
+                  messages: {
+                    create: {
+                      sender: {
+                        connect: {
+                          id: post.ownerId,
+                        },
+                      },
+                      message:
+                        validated.action === "update" ? "updated post" : "",
+                      linkedPost: {
+                        connect: {
+                          id: post.id,
+                        },
+                      },
+                    },
+                  },
+                  updatedAt: new Date(),
+                },
+              });
+            })
+          );
+        }
+      }
+
+      if (validated.items.folder) {
+        const folder = await prisma.folder.findUnique({
+          where: {
+            id: validated.items.folder,
+          },
+          select: {
+            id: true,
+            accessId: true,
+            ownerId: true,
+          },
+        });
+
+        console.log("folder: ", folder);
+
+        if (!folder) {
+          RequestHandler.throwError(404, "Folder not found")();
+        }
+
+        await prisma.access.update({
+          where: {
+            id: folder.accessId,
+            OR: [
+              {
+                isPublic: true,
+              },
+              {
+                folderIfItemIsFolder: {
+                  ownerId: req.auth.id,
+                },
+              },
+              {
+                users: {
+                  some: {
+                    id: req.auth.id,
+                  },
+                },
+              },
+              {
+                classes: {
+                  some: {
+                    id: classId,
+                  },
+                },
+              },
+              {
+                schools: {
+                  some: {
+                    id: schoolId,
+                  },
+                },
+              },
+            ],
+          },
+          data: data,
+        });
+
+        if (data.chats && data.chats.connect && data.chats.connect.length > 0) {
+          await Promise.all(
+            data.chats.connect.map(async (chatConnId) => {
+              await prisma.chat.update({
+                where: {
+                  id: chatConnId.id,
+                },
+                data: {
+                  messages: {
+                    create: {
+                      sender: {
+                        connect: {
+                          id: folder.ownerId,
+                        },
+                      },
+                      message: "Shared a Folder",
+                      sharedFolders: {
+                        connect: [
+                          {
+                            id: folder.id,
+                          },
+                        ],
+                      },
+                    },
+                  },
+                  updatedAt: new Date(),
+                },
+              });
+            })
+          );
+        }
+      }
+
+      RequestHandler.sendSuccess(req, res, { message: "updated successfully" });
+    } catch (error) {
+      console.log("error sharing ");
+      RequestHandler.sendError(req, res, error);
+    }
+  }
+
+  static async togglePublic(req, res) {
+    try {
+      Logger.info(
+        JSON.stringify({
+          action: "make public",
+          body: req.body,
+          user: req.auth.id,
+        })
+      );
+
+      let message;
+
+      const validated = await AuthValidator.validateTogglePublic(req.body);
+
+      if (validated.type === "file") {
+        const file = await prisma.file.findUnique({
+          where: {
+            id: validated.itemId,
+            ownerId: req.auth.id,
+          },
+          select: {
+            Access: true,
+            id: true,
+          },
+        });
+
+        if (!file) {
+          RequestHandler.throwError(404, "file not found")();
+        }
+
+        await prisma.access.update({
+          where: {
+            id: file.Access.id,
+          },
+          data: {
+            isPublic: !file.Access.isPublic,
+          },
+        });
+
+        if (!file.Access.isPublic) {
+          message = "The file is now public";
+        } else {
+          message = "Now Only allowed users will be able to access this file";
+        }
+      }
+
+      if (validated.type === "folder") {
+        const folder = await prisma.folder.findUnique({
+          where: {
+            id: validated.itemId,
+            ownerId: req.auth.id,
+          },
+          select: {
+            Access: true,
+            id: true,
+          },
+        });
+
+        if (!folder) {
+          RequestHandler.throwError(404, "file not found")();
+        }
+        console.log("Updating....public");
+        await prisma.access.update({
+          where: {
+            id: folder.Access.id,
+          },
+          data: {
+            isPublic: folder.Access.isPublic ? false : true,
+          },
+        });
+
+        if (!folder.Access.isPublic) {
+          message = "The Folder is now public";
+        } else {
+          message = "Now Only allowed users will be able to acces this folder";
+        }
+      }
+
+      if (validated.type === "post") {
+        const post = await prisma.post.findUnique({
+          where: {
+            id: validated.itemId,
+            ownerId: req.auth.id,
+          },
+          select: {
+            Access: true,
+            id: true,
+          },
+        });
+
+        if (!post) {
+          RequestHandler.throwError(404, "file not found")();
+        }
+
+        await prisma.access.update({
+          where: {
+            id: post.Access.id,
+          },
+          data: {
+            isPublic: !post.Access.isPublic,
+          },
+        });
+
+        if (!post.Access.isPublic) {
+          message = "The post is now public";
+        } else {
+          message = "Now Only allowed users will be able to view this post";
+        }
+      }
+
+      RequestHandler.sendSuccess(req, res, {
+        message: message || "Public toggled successfully",
+      });
+    } catch (error) {
+      console.log("Error making items public: ", error);
+      RequestHandler.sendError(req, res, error);
+    }
+  }
+
+  static async savePost(req, res) {
+    try {
+      const postId = Number(req.params.postId);
+
+      if (!postId) {
+        RequestHandler.throwError(400, "POst id is required")();
+      }
+
+      const post = await prisma.post.findUnique({
+        where: {
+          id: postId,
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      if (!post) {
+        RequestHandler.throwError(404, "Post not found")();
+      }
+
+      const save = await prisma.user.update({
+        where: {
+          id: req.auth.id,
+        },
+        data: {
+          savedPosts: {
+            connect: [
+              {
+                id: post.id,
+              },
+            ],
+          },
+        },
+      });
+
+      RequestHandler.sendSuccess(req, res, save);
+    } catch (error) {
+      console.log("error saving post", error);
+
+      RequestHandler.sendError(req, res, error);
+    }
+  }
+
+  static async rePost(req, res) {
+    try {
+      Logger.info(
+        JSON.stringify({
+          action: "repost",
+          user: req.auth.id,
+          post: req.params.postsId,
+        })
+      );
+
+      const postId = Number(req.params.postId);
+
+      if (!postId) {
+        RequestHandler.throwError(400, "POst id is required")();
+      }
+
+      const post = await prisma.post.findUnique({
+        where: {
+          id: postId,
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      console.log("reposted post: ", post);
+
+      if (!post) {
+        RequestHandler.throwError(404, "Post not found")();
+      }
+
+      const repost = await prisma.user.update({
+        where: {
+          id: req.auth.id,
+        },
+        data: {
+          repostedPosts: {
+            connect: [
+              {
+                id: post.id,
+              },
+            ],
+          },
+        },
+      });
+
+      console.log("repost", repost);
+
+      RequestHandler.sendSuccess(req, res, repost);
+    } catch (error) {
+      console.log("error saving post", error);
+
       RequestHandler.sendError(req, res, error);
     }
   }

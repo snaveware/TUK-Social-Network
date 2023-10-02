@@ -6,6 +6,7 @@ import {
   MaterialIcons,
   MaterialCommunityIcons,
   Entypo,
+  FontAwesome,
 } from "@expo/vector-icons";
 import { Link, useLocalSearchParams, useRouter } from "expo-router";
 import { AppThemeContext } from "../../Theme";
@@ -78,8 +79,14 @@ export default function ChatInfo({
   console.log("chat admins: ", chat?.admins?.[0]);
 
   useEffect(() => {
-    socket.on("resolve_chat_response", (data) => {
-      console.log("resolve chat response: ", data);
+    socket.on("resolve_chat_response (chat info)", (data) => {
+      if (data.origin !== "info") {
+        return;
+      }
+      console.log(
+        "resolve chat response: "
+        // , data
+      );
 
       if (Platform.select({ ios: true, android: true })) {
         router.back();
@@ -91,6 +98,14 @@ export default function ChatInfo({
         });
       }
       // setLoading(false);
+    });
+
+    socket.on("search_error", (data) => {
+      if (data.origin !== "chat_search") {
+        return;
+      }
+
+      console.log("Info search error: ", data.error);
     });
   }, []);
 
@@ -416,7 +431,7 @@ export default function ChatInfo({
   return (
     <KeyboardAwareScrollView
       style={[styles.margin, { flex: 1, position: "relative" }]}
-      showsVerticalScrollIndicator={false}
+      // showsVerticalScrollIndicator={false}
     >
       <Modal
         showModal={showConfirmationModal}
@@ -432,7 +447,12 @@ export default function ChatInfo({
           styles.padding,
           styles.flexCenter,
 
-          { backgroundColor: theme.backgroundMuted, borderRadius: 3 },
+          {
+            backgroundColor: theme.backgroundMuted,
+            borderRadius: 3,
+            borderRightWidth: 1,
+            borderRightColor: theme.background,
+          },
         ]}
       >
         {/* <Avatar
@@ -461,27 +481,29 @@ export default function ChatInfo({
             ]}
             textStyles={{ fontSize: 30 }}
           />
-          <TouchableOpacity
-            style={[
-              styles.flexRow,
-              styles.flexCenter,
-              {
-                position: "absolute",
-                backgroundColor: theme.backgroundMuted,
-                width: 36,
-                height: 36,
-                borderRadius: 9999,
-                bottom: 0,
-                right: 0,
-                zIndex: 10,
-              },
-            ]}
-            onPress={() => {
-              pickImage();
-            }}
-          >
-            <Entypo name="camera" size={20} color={theme.foreground} />
-          </TouchableOpacity>
+          {chat.chatType === ChatTypes.group && isAdmin(authUser) && (
+            <TouchableOpacity
+              style={[
+                styles.flexRow,
+                styles.flexCenter,
+                {
+                  position: "absolute",
+                  backgroundColor: theme.backgroundMuted,
+                  width: 36,
+                  height: 36,
+                  borderRadius: 9999,
+                  bottom: 0,
+                  right: 0,
+                  zIndex: 10,
+                },
+              ]}
+              onPress={() => {
+                pickImage();
+              }}
+            >
+              <Entypo name="camera" size={20} color={theme.foreground} />
+            </TouchableOpacity>
+          )}
         </View>
 
         {!editMode && (
@@ -600,6 +622,66 @@ export default function ChatInfo({
           </View>
         )}
       </View>
+      <TouchableOpacity
+        onPress={() =>
+          router.push({
+            pathname: "/chats/ChatFiles",
+            params: { chatId: chat.id },
+          })
+        }
+        style={[
+          styles.flexRow,
+          styles.padding,
+          styles.marginV,
+          {
+            backgroundColor: theme.backgroundMuted,
+            borderRadius: 3,
+            borderRightWidth: 1,
+            borderRightColor: theme.background,
+          },
+        ]}
+      >
+        <FontAwesome name="files-o" size={24} color={theme.foreground} />
+        <Text
+          style={{
+            marginLeft: 10,
+            color: theme.foreground,
+            fontSize: 16,
+          }}
+        >
+          Files
+        </Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        onPress={() =>
+          router.push({
+            pathname: "/chats/ChatFolders",
+            params: { chatId: chat.id },
+          })
+        }
+        style={[
+          styles.flexRow,
+          styles.padding,
+          styles.marginV,
+          {
+            backgroundColor: theme.backgroundMuted,
+            borderRadius: 3,
+            borderRightWidth: 1,
+            borderRightColor: theme.background,
+          },
+        ]}
+      >
+        <FontAwesome name="folder-open-o" size={24} color={theme.foreground} />
+        <Text
+          style={{
+            marginLeft: 10,
+            color: theme.foreground,
+            fontSize: 16,
+          }}
+        >
+          Folders
+        </Text>
+      </TouchableOpacity>
       {chat.chatType === ChatTypes.group && (
         <>
           {!addUsers && isAdmin(authUser) && (
@@ -609,7 +691,12 @@ export default function ChatInfo({
                 styles.flexRow,
                 styles.padding,
                 styles.marginV,
-                { backgroundColor: theme.backgroundMuted, borderRadius: 3 },
+                {
+                  backgroundColor: theme.backgroundMuted,
+                  borderRadius: 3,
+                  borderRightWidth: 1,
+                  borderRightColor: theme.background,
+                },
               ]}
             >
               <MaterialIcons
@@ -717,7 +804,10 @@ export default function ChatInfo({
                       setIsPopoverOpen(false);
                       return;
                     }
-                    socket.emit("resolve_chat", { otherUserId: user?.id });
+                    socket.emit("resolve_chat", {
+                      otherUserId: user?.id,
+                      origin: "info",
+                    });
                   }
                 }}
                 style={[

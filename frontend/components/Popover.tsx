@@ -22,14 +22,18 @@ export default function Popover({
   isOpen = false,
   setIsOpen,
   onPress,
+  iconSize,
+  position = "top",
 }: {
   variant: "plus" | "text" | "options";
   text?: string;
   children: ReactNode;
   start?: "right" | "left";
+  position?: "top" | "bottom";
   isOpen?: boolean;
   setIsOpen: any;
   onPress?: any;
+  iconSize?: number;
 }) {
   const { theme } = useContext(AppThemeContext);
   const { user, accessToken } = useContext(AuthContext);
@@ -54,6 +58,7 @@ export default function Popover({
         styles.flexCenter,
         {
           position: "relative",
+          backgroundColor: "transparent",
         },
       ]}
     >
@@ -73,10 +78,18 @@ export default function Popover({
           ]}
         >
           {isOpen && (
-            <Feather name="x-circle" size={36} color={theme.foreground} />
+            <Feather
+              name="x-circle"
+              size={iconSize || 36}
+              color={theme.foreground}
+            />
           )}
           {!isOpen && (
-            <MaterialIcons name="add" size={36} color={theme.foreground} />
+            <MaterialIcons
+              name="add"
+              size={iconSize || 36}
+              color={theme.foreground}
+            />
           )}
         </TouchableOpacity>
       )}
@@ -98,12 +111,18 @@ export default function Popover({
           ]}
         >
           {isOpen && (
-            <Feather name="x-circle" size={36} color={theme.foreground} />
+            <Feather
+              selectable={false}
+              name="x-circle"
+              size={iconSize || 36}
+              color={theme.foreground}
+            />
           )}
           {!isOpen && (
             <Entypo
+              selectable={false}
               name="dots-three-vertical"
-              size={24}
+              size={iconSize || 24}
               color={theme.foreground}
             />
           )}
@@ -120,10 +139,11 @@ export default function Popover({
               width: screenWidth,
               height: screenHeight * 2,
               position: "absolute",
-              zIndex: 1,
+              zIndex: -5,
               left: start === "right" ? undefined : -20,
-              right: start == "right" ? -20 : undefined,
-              bottom: -300,
+              right: start == "right" ? -30 : undefined,
+              bottom: position == "top" ? -300 : undefined,
+
               backgroundColor: "transparent",
             },
           ]}
@@ -136,10 +156,11 @@ export default function Popover({
             styles.flexCols,
             {
               position: "absolute",
-              bottom: "100%",
+              bottom: position === "top" ? "100%" : "-100%",
               left: start === "right" ? undefined : 10,
-              right: start === "right" ? 0 : undefined,
-              zIndex: 10,
+              right: start === "right" ? 20 : undefined,
+
+              zIndex: 100,
               shadowColor: theme.border,
               shadowOpacity: 0.8,
               shadowOffset: { width: 0, height: 1000 },

@@ -1,6 +1,6 @@
 import { ThemeDark, ThemeLight } from "../Theme";
 
-const tintColorLight = ThemeLight.primary;
+const tintColorLight = ThemeLight.accent;
 const tintColorDark = ThemeDark.accent;
 
 export default {

@@ -16,8 +16,9 @@ module.exports = class PostsValidator {
         .description("The type of the post"),
 
       visibility: Joi.string()
-        .valid("public", "friends", "faculty", "school")
+        .valid("public", "faculty", "school", "friends")
         .description("The visibility of the post"),
+      isPublic: Joi.boolean().default(false),
     });
 
     try {

@@ -292,7 +292,7 @@ model Chat {
   updatedAt               DateTime              @updatedAt
   manyChatIfOneToChat     Chat?                 @relation(name: "oneToManyChats", fields: [manyChatId], references: [id])
   oneToManyChats          Chat[]                @relation(name: "oneToManyChats")
-  manyChatId              Int?                  @unique
+  manyChatId              Int?
   associatedNotifications Notification[]
   AccessGranted           Access[]
 
@@ -324,10 +324,11 @@ model Message {
   replies                 Message[]      @relation(name: "replies")
   replyingToId            Int?
   linkedPost              Post?          @relation(fields: [postId], references: [id])
-  postId                  Int?           @unique
+  postId                  Int?
   linkedPoll              Poll?          @relation(fields: [linkedPollId], references: [id])
   linkedPollId            Int?           @unique
   attachedFiles           File[]
+  sharedFolders           Folder[]
   senderChatId            Int?
   associatedNotifications Notification[]
 
@@ -390,7 +391,8 @@ model Post {
   visibility              PostVisibility @default(public)
   associatedNotifications Notification[]
   itemtype                ItemTypes      @default(post)
-  Access                  Access         @relation(fields: [id], references: [id])
+  accessId                Int            @unique
+  Access                  Access         @relation(fields: [accessId], references: [id])
 
   @@unique([id, itemtype])
   @@map("posts")
@@ -420,7 +422,8 @@ model Poll {
   options       String[]
   results       Json
   itemtype      ItemTypes @default(poll)
-  Access        Access    @relation(fields: [id], references: [id])
+  accessId      Int       @unique
+  Access        Access    @relation(fields: [accessId], references: [id], onDelete: Cascade)
 
   @@unique([id, itemtype])
   @@map("polls")
@@ -466,7 +469,9 @@ model Folder {
   owner                   User?          @relation(name: "folderOwner", fields: [ownerId], references: [id])
   ownerId                 Int?
   associatedNotifications Notification[]
-  Access                  Access         @relation(fields: [id], references: [id])
+  accessId                Int            @unique
+  Access                  Access         @relation(fields: [accessId], references: [id], onDelete: Cascade)
+  sharedInMessage         Message[]
 
   @@map("folders")
 }
@@ -492,7 +497,8 @@ model File {
   folder                              Folder?              @relation(fields: [folderId], references: [id])
   folderId                            Int?
   associatedNotifications             Notification[]
-  Access                              Access               @relation(fields: [id], references: [id])
+  accessId                            Int                  @unique
+  Access                              Access               @relation(fields: [accessId], references: [id], onDelete: Cascade)
 
   @@map("files")
 }

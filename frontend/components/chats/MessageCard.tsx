@@ -8,7 +8,7 @@ import { StyleSheet } from "react-native";
 import GlobalStyles from "../../GlobalStyles";
 import { AuthContext } from "../../app/_layout";
 import Utils from "../../Utils";
-import { EvilIcons } from "@expo/vector-icons";
+import { AntDesign, EvilIcons } from "@expo/vector-icons";
 import { TouchableOpacity, Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Swipeable from "react-native-gesture-handler/Swipeable";
@@ -18,11 +18,18 @@ import { MaterialIcons } from "@expo/vector-icons";
 import socket from "../../Socket";
 import { useRouter } from "expo-router";
 import FileCard from "../files/FileCard";
+import PostCard from "../posts/PostCard";
+import FolderCard from "../files/FolderCard";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function MessageCard({
   message,
   setReplyMessage,
+  index,
+  onGoTO,
 }: {
+  index?: number;
+  onGoTO?: any;
   message: Message;
   setReplyMessage: any;
 }) {
@@ -37,6 +44,8 @@ export default function MessageCard({
       swipeableRef.current.close(); // Call close method on the ref
     }
   };
+
+  const [loading, setLoading] = useState<boolean>(false);
 
   const [isDeleted, setIsDeleted] = useState<boolean>(
     message?.status === "deleted" ? true : false
@@ -68,11 +77,15 @@ export default function MessageCard({
       </TouchableOpacity>
       <TouchableOpacity
         style={[styles.button, styles.shareButton]}
-        onPress={() => {
+        onPress={async () => {
           closeSwipeable();
+          await AsyncStorage.setItem("shared_message", JSON.stringify(message));
           router.push({
             pathname: "/chats/share",
-            params: { shareMessage: message.message },
+            params: {
+              // shareMessage: message.message,
+              // message: JSON.stringify(message),
+            },
           });
         }}
       >
@@ -192,8 +205,18 @@ export default function MessageCard({
               },
             ]}
           >
+            <Text
+              style={{
+                color: theme.primary,
+                fontSize: 16,
+                paddingHorizontal: 5,
+                paddingBottom: 5,
+              }}
+            >
+              {message?.sender.firstName} {message?.sender?.lastName}
+            </Text>
             {message.replyingTo && (
-              <View
+              <TouchableOpacity
                 style={{
                   backgroundColor: theme.background,
                   borderWidth: 0.5,
@@ -204,7 +227,15 @@ export default function MessageCard({
                   borderStartColor: theme.accent,
                   borderRadius: 5,
                   padding: 5,
+                  marginHorizontal: 5,
                   marginBottom: 5,
+                }}
+                onPress={() => {
+                  console.log("going to : ", index);
+                  if (onGoTO) {
+                    console.log("going to called : ", index);
+                    onGoTO(message.replyingTo);
+                  }
                 }}
               >
                 <Text
@@ -235,7 +266,57 @@ export default function MessageCard({
                     ? message?.replyingTo.message.substring(0, 80)
                     : message?.replyingTo?.message}
                 </Text>
-              </View>
+                {message.replyingTo?.attachedFiles &&
+                  message.replyingTo?.attachedFiles.length > 0 && (
+                    <View
+                      style={[
+                        styles.flexRow,
+                        {
+                          backgroundColor: "transparent",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                        },
+                      ]}
+                    >
+                      <FileCard
+                        size={100}
+                        showLabel={false}
+                        showOptions={false}
+                        addPadding={false}
+                        file={message.replyingTo?.attachedFiles[0]}
+                      />
+
+                      {message.replyingTo?.sharedFolders.length > 1 && (
+                        <Text
+                          style={{
+                            color: theme.foregroundMuted,
+                            marginHorizontal: 5,
+                          }}
+                        >{`+${
+                          message.replyingTo?.attachedFiles?.length - 1
+                        } More`}</Text>
+                      )}
+                    </View>
+                  )}
+
+                {message.replyingTo?.sharedFolders &&
+                  message.replyingTo?.sharedFolders.length > 0 && (
+                    <View
+                      style={[
+                        styles.flexRow,
+                        {
+                          backgroundColor: "transparent",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                        },
+                      ]}
+                    >
+                      <FolderCard
+                        folder={message.replyingTo?.sharedFolders[0]}
+                      />
+                    </View>
+                  )}
+              </TouchableOpacity>
             )}
             {!isDeleted && (
               <View
@@ -256,7 +337,8 @@ export default function MessageCard({
                       maxWidth: Platform.select({ ios: true, android: true })
                         ? undefined
                         : 500,
-                      paddingHorizontal: 20,
+                      paddingHorizontal: 5,
+                      paddingBottom: 5,
                     },
                   ]}
                 >
@@ -276,52 +358,63 @@ export default function MessageCard({
                       },
                     ]}
                   >
-                    {message.attachedFiles
-                      // .slice(
-                      //   0,
-                      //   Math.min(
-                      //     message.attachedFiles.length,
-                      //     Platform.select({ ios: true, android: true }) ? 2 : 3
-                      //   )
-                      // )
-                      .map((file, index) => {
-                        return (
-                          <FileCard
-                            key={index}
-                            file={file}
-                            size={
-                              Platform.select({ ios: true, android: true })
-                                ? 130
-                                : 200
-                            }
-                            showLabel={
-                              file.type === "video" || file.type === "image"
-                                ? false
-                                : true
-                            }
-                            showBorder={false}
-                          />
-                        );
-                      })}
-                    {/* {message.attachedFiles.length >
-                      (Platform.select({ ios: true, android: true })
-                        ? 2
-                        : 3) && (
-                      <Text
-                        style={{
-                          fontSize: 16,
-                          marginRight: 10,
-                          color: theme.accentForeground,
-                        }}
-                      >
-                        +{" "}
-                        {message.attachedFiles?.length -
-                          (Platform.select({ ios: true, android: true })
-                            ? 2
-                            : 3)}{" "}
-                        More
-                      </Text>
-                    )} */}
+                    {message.attachedFiles.map((file, index) => {
+                      return (
+                        <FileCard
+                          key={index}
+                          file={file}
+                          size={
+                            Platform.select({ ios: true, android: true })
+                              ? 130
+                              : 200
+                          }
+                          showLabel={
+                            file.type === "video" || file.type === "image"
+                              ? false
+                              : true
+                          }
+                          addPadding={false}
+                        />
+                      );
+                    })}
+                  </View>
+                )}
+
+                {message.sharedFolders && message.sharedFolders.length > 0 && (
+                  <View
+                    style={[
+                      styles.flexRow,
+                      styles.paddingV,
+                      {
+                        backgroundColor: "transparent",
+                        justifyContent: "space-between",
+                        flexWrap: "wrap",
+                        alignItems: "center",
+                        width: "100%",
+                      },
+                    ]}
+                  >
+                    {message.sharedFolders.map((folder, index) => {
+                      return <FolderCard key={index} folder={folder} />;
+                    })}
+                  </View>
+                )}
+
+                {message.linkedPost && (
+                  <View
+                    style={{
+                      width: 300,
+                      borderRadius: 10,
+                      padding: 5,
+                      margin: 5,
+                    }}
+                  >
+                    <PostCard
+                      post={message.linkedPost}
+                      loading={loading}
+                      setLoading={setLoading}
+                      gallerySize={300}
+                    />
                   </View>
                 )}
               </View>

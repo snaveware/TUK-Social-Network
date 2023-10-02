@@ -53,7 +53,7 @@ export default function SetupStudent() {
 
   useEffect(() => {
     if (isLoggedIn) {
-      router.push("/(tabs)");
+      router.replace("/(tabs)");
     }
     getProgrammes();
   }, []);
@@ -116,7 +116,7 @@ export default function SetupStudent() {
           return;
         }
 
-        router.push("/(tabs)");
+        router.replace("/(tabs)");
       } else {
         setErrors({
           global: results.message,

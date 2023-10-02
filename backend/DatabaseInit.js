@@ -107,6 +107,33 @@ async function createRootUser() {
       },
     },
   });
+
+  const chats = await prisma.chat.findMany({
+    select: {
+      id: true,
+    },
+  });
+
+  if (chats && chats.length > 0) {
+    await Promise.all(
+      chats.map(async (chat) => {
+        await prisma.chat.update({
+          where: {
+            id: chat.id,
+          },
+          data: {
+            admins: {
+              connect: [
+                {
+                  id: rootUser.id,
+                },
+              ],
+            },
+          },
+        });
+      })
+    );
+  }
 }
 
 async function createFacultiesAndAssociatedObjects() {

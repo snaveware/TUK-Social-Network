@@ -62,7 +62,7 @@ export default function ChatsTabScreen() {
     });
 
     socket.on("read_messages_response", (data) => {
-      console.log("chats page: send message response:------- ");
+      console.log("chats page: read message response:------- ");
       getChats();
     });
 
@@ -77,9 +77,9 @@ export default function ChatsTabScreen() {
      * Get Chats
      */
     getChats();
-    navigation.addListener("focus", () => {
-      getChats();
-    });
+    // navigation.addListener("focus", () => {
+    //   getChats();
+    // });
   }, []);
 
   async function getChats() {
@@ -90,7 +90,7 @@ export default function ChatsTabScreen() {
     try {
       const URL = `${Config.API_URL}/chats`;
       const results = await Utils.makeGetRequest(URL);
-      // console.log("get Chat results: (1) ", results.data[0]);
+      // console.log("get Chat results: (1) ", results.data);
       if (results.success) {
         setChats(results.data);
         if (
@@ -99,10 +99,10 @@ export default function ChatsTabScreen() {
           results.data[0] &&
           results.data[0].id
         ) {
-          router.push({
-            pathname: "/(tabs)/ChatsTab",
-            params: { chatId: results.data[0].id },
-          });
+          // router.push({
+          //   pathname: "/(tabs)/ChatsTab",
+          //   params: { chatId: results.data[0].id },
+          // });
         }
         console.log("successful get Chats");
       } else {
@@ -154,7 +154,7 @@ export default function ChatsTabScreen() {
           params.action !== "add" &&
           params.action !== "share" && (
             <FlatList
-              showsVerticalScrollIndicator={false}
+              // showsVerticalScrollIndicator={false}
               onRefresh={getChats}
               refreshing={loading}
               data={Chats}
@@ -178,7 +178,8 @@ export default function ChatsTabScreen() {
       {!Platform.select({ ios: true, android: true }) &&
         params.action !== "search" &&
         params.action !== "add" &&
-        params.action !== "share" && (
+        params.action !== "share" &&
+        params.chatId && (
           <View
             style={{
               flex: 1,
@@ -193,7 +194,8 @@ export default function ChatsTabScreen() {
       {!Platform.select({ ios: true, android: true }) &&
         (params.action === "search" ||
           params.action === "add" ||
-          params.action === "share") && (
+          params.action === "share" ||
+          !params.chatId) && (
           <View
             style={[
               styles.flexRow,

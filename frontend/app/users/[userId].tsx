@@ -3,7 +3,6 @@ import { FlatList, StyleSheet } from "react-native";
 import EditScreenInfo from "../../components/EditScreenInfo";
 import { Text, View } from "../../components/Themed";
 import Button from "../../components/Button";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation, useRouter } from "expo-router";
 import { useContext, useState, useEffect } from "react";
 import { AuthContext, User } from "../_layout";
@@ -17,21 +16,18 @@ import { Entypo } from "@expo/vector-icons";
 import GlobalStyles from "../../GlobalStyles";
 import Utils, { BodyRequestMethods } from "../../Utils";
 import { Ionicons } from "@expo/vector-icons";
-import { TouchableOpacity, Platform } from "react-native";
+import { TouchableOpacity, Platform, RefreshControl } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import socket from "../../Socket";
+
 import FolderView from "../../components/files/FolderView";
+import FileCard from "../../components/files/FileCard";
 
 export default function UserPageScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
 
-  const {
-    user: authUser,
-    setIsLoggedIn,
-    setUser: setAuthUser,
-    accessToken,
-  } = useContext(AuthContext);
+  const { user: authUser, accessToken } = useContext(AuthContext);
   const [user, setUser] = useState<User>();
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
@@ -41,25 +37,34 @@ export default function UserPageScreen() {
   const navigation = useNavigation();
   const [isFollowing, setIsFollowing] = useState<boolean>(false);
 
+  const [files, setFiles] = useState<any[]>();
+
   function onSendMessage() {
     if (loading) return;
     setLoading(true);
-    socket.emit("resolve_chat", { otherUserId: user?.id });
+    socket.emit("resolve_chat", { otherUserId: user?.id, origin: "user_page" });
   }
 
   useEffect(() => {
     socket.on("resolve_chat_response", (data) => {
-      console.log("resolve chat response: ", data);
+      if (data.origin !== "user_page") {
+        return;
+      }
+
+      console.log(
+        "resolve chat response: (user page screen) "
+        // , data
+      );
       router.push(`/chats/${data.chat.id}`);
       setLoading(false);
     });
     getUser();
+    getUserPosts();
   }, []);
 
   useEffect(() => {
     // console.log("user change: ", user);
     if (user) {
-      getUserPosts();
       if (user?.followedBy?.[0] && user?.followedBy?.[0].id === authUser?.id) {
         setIsFollowing(true);
       } else {
@@ -69,15 +74,14 @@ export default function UserPageScreen() {
   }, [user]);
 
   async function getUserPosts() {
-    console.log("...getting posts...");
+    console.log("...getting user posts...");
     if (loading) return;
     setLoading(true);
-    console.log("--get posts,after loading");
 
     try {
-      const URL = `${Config.API_URL}/posts/user/${user?.id}`;
+      const URL = `${Config.API_URL}/posts/user/${params.userId}`;
       const results = await Utils.makeGetRequest(URL);
-      console.log("get post results: ", results);
+      // console.log("get post results: ", results);
       if (results.success) {
         setPosts(results.data);
         console.log("successful get posts");
@@ -92,6 +96,30 @@ export default function UserPageScreen() {
     }
   }
 
+  async function getUserFiles() {
+    console.log("...getting user files ...");
+    if (loading) return;
+    setLoading(true);
+
+    try {
+      const URL = `${Config.API_URL}/files/user/${user?.id}`;
+      const results = await Utils.makeGetRequest(URL);
+      console.log("get user files results: ", results);
+      if (results.success) {
+        setFiles(results.data);
+        console.log("successful get user files (accounts tab)");
+      } else {
+        setError(results.message);
+      }
+
+      setLoading(false);
+    } catch (error) {
+      setLoading(false);
+      setError("Your are not connected to the internet");
+      console.log("Error getting files: ", error);
+    }
+  }
+
   async function getUser() {
     console.log("...getting posts...");
     if (loading) return;
@@ -101,13 +129,14 @@ export default function UserPageScreen() {
       const URL = `${Config.API_URL}/auth/user/${params.userId}`;
       const results = await Utils.makeGetRequest(URL);
       // console.log("get user results: ", results);
-      setLoading(false);
       if (results.success) {
         setUser(results.data);
-        console.log("successful get user");
+
+        console.log("successful get user (single user page)");
       } else {
         setError(results.message);
       }
+      setLoading(false);
     } catch (error) {
       setLoading(false);
       setError("Your are not connected to the internet");
@@ -148,7 +177,21 @@ export default function UserPageScreen() {
 
   return (
     <KeyboardAwareScrollView
-      style={{ flex: 1, backgroundColor: theme.background }}
+      style={{ flex: 1, backgroundColor: theme.background, width: "100%" }}
+      //showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl
+          refreshing={loading}
+          onRefresh={() => {
+            getUser();
+            if (activeTab === "files") {
+              getUserFiles();
+            } else {
+              getUserPosts();
+            }
+          }}
+        />
+      }
     >
       <View style={[{ flex: 1 }]}>
         <View>
@@ -160,12 +203,25 @@ export default function UserPageScreen() {
                   }
                 : Background
             }
-            style={[{ height: 250, width: "100%" }]}
+            style={[
+              {
+                height: Platform.select({ ios: true, android: true })
+                  ? 250
+                  : 300,
+                width: "100%",
+              },
+            ]}
           />
           <View
             style={[
               styles.flexRow,
-              { flexWrap: "nowrap", justifyContent: "space-between" },
+              {
+                flexWrap: "nowrap",
+                justifyContent: "space-between",
+                paddingHorizontal: Platform.select({ ios: true, android: true })
+                  ? undefined
+                  : 100,
+              },
             ]}
           >
             <View
@@ -338,6 +394,9 @@ export default function UserPageScreen() {
               position: "relative",
               top: -120,
               width: "50%",
+              paddingHorizontal: Platform.select({ ios: true, android: true })
+                ? undefined
+                : 100,
             },
           ]}
         >
@@ -379,78 +438,275 @@ export default function UserPageScreen() {
             {user?.roleName}
           </Text>
         </View>
-        {user?.bio && (
-          <Text
-            style={[
-              {
-                paddingHorizontal: 8,
-                fontSize: 14,
-                fontWeight: "400",
-                paddingVertical: 10,
-                textTransform: "capitalize",
+        <View
+          style={{
+            paddingHorizontal: Platform.select({ ios: true, android: true })
+              ? 10
+              : 100,
+          }}
+        >
+          {user?.staffProfileIfIsStaff?.school?.faculty && (
+            <View
+              style={{
                 position: "relative",
                 top: -130,
+                padding: Platform.select({ ios: true, android: true })
+                  ? undefined
+                  : 30,
+              }}
+            >
+              {/* <Text
+              style={[
+                styles.title,
+                {
+                  paddingLeft: 10,
+                },
+              ]}
+            >
+              School
+            </Text> */}
+              <Text
+                style={[
+                  {
+                    fontSize: 16,
+                    fontWeight: "500",
+                    paddingVertical: 10,
+                    textTransform: "capitalize",
+                  },
+                ]}
+              >
+                {user?.staffProfileIfIsStaff?.school?.faculty?.name}
+              </Text>
+              <Text
+                style={[
+                  {
+                    fontSize: 16,
+                    fontWeight: "500",
+                    paddingVertical: 10,
+                    textTransform: "capitalize",
+                  },
+                ]}
+              >
+                {user?.staffProfileIfIsStaff?.school.name}
+              </Text>
+            </View>
+          )}
+
+          {user?.studentProfileIfIsStudent?.class?.programme?.school
+            ?.faculty && (
+            <View
+              style={{
+                position: "relative",
+                top: -130,
+              }}
+            >
+              {/* <Text
+              style={[
+                styles.title,
+                {
+                  paddingLeft: 10,
+                },
+              ]}
+            >
+              School
+            </Text> */}
+
+              <Text
+                style={[
+                  {
+                    fontSize: 16,
+                    fontWeight: "500",
+                    paddingVertical: 10,
+                    textTransform: "capitalize",
+                  },
+                ]}
+              >
+                {
+                  user?.studentProfileIfIsStudent?.class?.programme?.school
+                    ?.name
+                }
+              </Text>
+              <Text
+                style={[
+                  {
+                    fontSize: 16,
+                    fontWeight: "500",
+                    paddingVertical: 10,
+                    textTransform: "capitalize",
+                  },
+                ]}
+              >
+                {
+                  user?.studentProfileIfIsStudent?.class?.programme?.school
+                    ?.faculty?.name
+                }
+              </Text>
+            </View>
+          )}
+          {user?.bio && (
+            <View
+              style={{
+                position: "relative",
+                top: -130,
+              }}
+            >
+              <Text style={[styles.title]}>Bio</Text>
+              <Text
+                style={[
+                  {
+                    fontSize: 14,
+                    fontWeight: "400",
+                    paddingVertical: 10,
+                    textTransform: "capitalize",
+                  },
+                ]}
+              >
+                {user?.bio}
+              </Text>
+            </View>
+          )}
+        </View>
+      </View>
+      <View
+        style={{
+          padding: Platform.select({ ios: true, android: true })
+            ? undefined
+            : 30,
+        }}
+      >
+        <View
+          style={[
+            styles.flexRow,
+
+            {
+              justifyContent: "center",
+              // borderWidth: 1,
+              // borderColor: theme.border,
+              borderBottomWidth: 1,
+              borderBottomColor: theme.primary,
+
+              backgroundColor: theme.backgroundMuted,
+              borderRadius: 2,
+              position: "relative",
+              top: -120,
+            },
+          ]}
+        >
+          <TouchableOpacity
+            onPress={() => {
+              setActiveTab("posts");
+              if (navigation) {
+                navigation.setOptions({
+                  title: "Account",
+                });
+              } else {
+                console.log("-----no navigation-------");
+              }
+            }}
+            style={[
+              {
+                paddingHorizontal: 70,
+                paddingVertical: 10,
+                backgroundColor:
+                  activeTab === "posts" ? theme.primary : undefined,
+                // borderWidth: activeTab === "posts" ? 0 : 10,
+                // borderColor:
+                //   activeTab === "posts" ? theme.primary : theme.background,
+                borderColor: theme.primary,
+                borderLeftWidth: Platform.select({ ios: true, android: true })
+                  ? undefined
+                  : 1,
               },
             ]}
           >
-            {user.bio}
-          </Text>
-        )}
-      </View>
+            <Text
+              style={{
+                color:
+                  activeTab === "posts"
+                    ? theme.primaryForeground
+                    : theme.foreground,
+              }}
+            >
+              Posts
+            </Text>
+          </TouchableOpacity>
 
-      <View
-        style={[
-          styles.flexRow,
+          <TouchableOpacity
+            onPress={() => {
+              getUserFiles();
+              setActiveTab("files");
+            }}
+            style={[
+              {
+                paddingHorizontal: 70,
+                paddingVertical: 10,
+                backgroundColor:
+                  activeTab === "files" ? theme.primary : undefined,
+                borderColor: theme.primary,
+                borderRightWidth: Platform.select({ ios: true, android: true })
+                  ? undefined
+                  : 1,
+              },
+            ]}
+          >
+            <Text
+              style={{
+                color:
+                  activeTab === "files"
+                    ? theme.primaryForeground
+                    : theme.foreground,
+              }}
+            >
+              Files
+            </Text>
+          </TouchableOpacity>
+        </View>
 
-          {
-            justifyContent: "space-around",
-            borderWidth: 1,
-            borderColor: theme.border,
-            borderRadius: 2,
+        <View
+          style={{
             position: "relative",
-            top: -120,
-          },
-        ]}
-      >
-        <TouchableOpacity
-          onPress={() => {
-            setActiveTab("posts");
-            navigation.setOptions({
-              title: "Account",
-            });
+            top: -100,
+            display: "flex",
+            alignItems: "center",
           }}
-          style={[
-            {
-              paddingHorizontal: 50,
-              paddingVertical: 10,
-              backgroundColor:
-                activeTab === "posts" ? theme.primary : theme.background,
-            },
-          ]}
         >
-          <Text>Posts</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => setActiveTab("files")}
-          style={[
-            {
-              paddingHorizontal: 50,
-              paddingVertical: 10,
-              backgroundColor:
-                activeTab === "files" ? theme.primary : theme.background,
-            },
-          ]}
-        >
-          <Text>Files</Text>
-        </TouchableOpacity>
-      </View>
-
-      <View style={{ position: "relative", top: -100 }}>
-        {activeTab === "posts" &&
-          posts?.map((post, index) => {
-            return <PostCard key={index} post={post} />;
-          })}
-        {activeTab === "files" && user && <FolderView user={user} />}
+          {activeTab === "posts" &&
+            posts &&
+            posts?.map((post, index) => {
+              return (
+                <PostCard
+                  loading={loading}
+                  setLoading={setLoading}
+                  key={index}
+                  post={post}
+                />
+              );
+            })}
+          {activeTab === "files" && (
+            <View
+              style={[
+                styles.flexRow,
+                {
+                  justifyContent: "space-around",
+                  alignItems: "center",
+                  flexWrap: "wrap",
+                  backgroundColor: "transparent",
+                },
+              ]}
+            >
+              {files?.map((file, index) => {
+                return (
+                  <FileCard
+                    key={index}
+                    file={file}
+                    showLabel={file.type === "word" || file.type === "pdf"}
+                    showOptions={false}
+                  />
+                );
+              })}
+            </View>
+          )}
+        </View>
       </View>
     </KeyboardAwareScrollView>
   );

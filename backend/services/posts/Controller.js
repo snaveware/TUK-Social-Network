@@ -10,11 +10,51 @@ module.exports = class PostsController {
       Logger.info(JSON.stringify({ action: "create post", user: req.auth.id }));
       const validated = await PostsValidator.validateCreate(req.body);
 
+      let schoolId;
+      let classId;
+      let facultyId;
+
+      const accessOptions = {};
+
+      if (req.auth.studentProfileIfIsStudent) {
+        classId = req.auth.studentProfileIfIsStudent.classId;
+        schoolId = req.auth.studentProfileIfIsStudent.class.programme.schoolId;
+        facultyId =
+          req.auth.studentProfileIfIsStudent.class.programme.school.facultyId;
+      } else if (req.auth.staffProfileIfIsStaff) {
+        schoolId = req.auth.staffProfileIfIsStaff.schoolId;
+        facultyId = req.auth.staffProfileIfIsStaff.school.facultyId;
+      }
+
       const files = validated.files.map((id) => ({ id }));
 
       console.log("files: ", files);
 
-      await prisma.access.updateMany({
+      const accessData = {};
+
+      if (validated.visibility === "public") {
+        accessData.isPublic = true;
+      } else if (validated.visibility === "faculty") {
+        accessData.faculties = {
+          connect: [
+            {
+              id: facultyId,
+            },
+          ],
+        };
+        accessData.isPublic = false;
+      } else if (validated.visibility === "school") {
+        accessData.schools = {
+          connect: [
+            {
+              id: schoolId,
+            },
+          ],
+        };
+        accessData.isPublic = false;
+      }
+
+      const accesses = await prisma.access.findMany({
         where: {
           fileIfItemIsFile: {
             id: {
@@ -22,10 +62,21 @@ module.exports = class PostsController {
             },
           },
         },
-        data: {
-          isPublic: true,
+        select: {
+          id: true,
         },
       });
+
+      await Promise.all(
+        accesses.map(async (access) => {
+          await prisma.access.update({
+            where: {
+              id: access.id,
+            },
+            data: accessData,
+          });
+        })
+      );
 
       const createdPost = await prisma.post.create({
         data: {
@@ -40,7 +91,7 @@ module.exports = class PostsController {
           Access: {
             create: {
               itemType: "post",
-              isPublic: true,
+              ...accessData,
             },
           },
           files: {
@@ -73,8 +124,29 @@ module.exports = class PostsController {
               id: true,
             },
           },
+          Access: {
+            select: {
+              id: true,
+              _count: true,
+            },
+          },
         },
       });
+
+      if (!createdPost) {
+        RequestHandler.throwError(
+          500,
+          "An error occured while creating the post"
+        )();
+      }
+
+      // await prisma.access.update({
+      //   where: {
+      //     id: createdPost.accessId,
+      //   },
+      //   data: accessData,
+      // });
+
       RequestHandler.sendSuccess(req, res, createdPost);
     } catch (error) {
       console.log("Error creatiing post", error);
@@ -89,7 +161,101 @@ module.exports = class PostsController {
       const pageSize = Config.POSTS_PER_PAGE;
       const skip = (page - 1) * pageSize;
 
+      let schoolId;
+      let classId;
+      let facultyId;
+
+      const accessOptions = {};
+
+      if (req.auth.studentProfileIfIsStudent) {
+        classId = req.auth.studentProfileIfIsStudent.classId;
+        schoolId = req.auth.studentProfileIfIsStudent.class.programme.schoolId;
+        facultyId =
+          req.auth.studentProfileIfIsStudent.class.programme.school.facultyId;
+      } else if (req.auth.staffProfileIfIsStaff) {
+        schoolId = req.auth.staffProfileIfIsStaff.schoolId;
+        facultyId = req.auth.staffProfileIfIsStaff.school.facultyId;
+      }
+
       const posts = await prisma.post.findMany({
+        where: {
+          OR: [
+            {
+              owner: {
+                followedBy: {
+                  some: {
+                    id: req.auth.id,
+                  },
+                },
+              },
+            },
+            {
+              Access: {
+                isPublic: true,
+              },
+            },
+            {
+              Access: {
+                users: {
+                  some: {
+                    id: req.auth.id,
+                  },
+                },
+              },
+            },
+            {
+              Access: {
+                schools: {
+                  some: {
+                    id: schoolId,
+                  },
+                },
+              },
+            },
+            {
+              Access: {
+                faculties: {
+                  some: {
+                    id: facultyId,
+                  },
+                },
+              },
+            },
+            {
+              Access: {
+                classes: {
+                  some: {
+                    id: classId,
+                  },
+                },
+              },
+            },
+            {
+              Access: {
+                chats: {
+                  some: {
+                    members: {
+                      some: {
+                        id: req.auth.id,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            {
+              Access: {
+                chats: {
+                  some: {
+                    classIfClassChat: {
+                      id: classId,
+                    },
+                  },
+                },
+              },
+            },
+          ],
+        },
         skip,
         take: pageSize,
         orderBy: { createdAt: "desc" },
@@ -123,6 +289,11 @@ module.exports = class PostsController {
               id: true,
             },
           },
+          Access: {
+            select: {
+              _count: true,
+            },
+          },
         },
       });
 
@@ -144,7 +315,18 @@ module.exports = class PostsController {
 
       const posts = await prisma.post.findMany({
         where: {
-          ownerId: userId,
+          OR: [
+            {
+              ownerId: userId,
+            },
+            {
+              reposters: {
+                some: {
+                  id: userId,
+                },
+              },
+            },
+          ],
         },
         skip,
         take: pageSize,
@@ -172,6 +354,94 @@ module.exports = class PostsController {
             },
           },
           likers: {
+            where: {
+              id: req.auth.id,
+            },
+            select: {
+              id: true,
+            },
+          },
+
+          Access: {
+            select: {
+              _count: true,
+            },
+          },
+          reposters: {
+            where: {
+              id: userId,
+            },
+            select: {
+              id: true,
+            },
+          },
+        },
+      });
+
+      RequestHandler.sendSuccess(req, res, posts);
+    } catch (error) {
+      console.log("Error getting posts", error);
+      RequestHandler.sendError(req, res, error);
+    }
+  }
+
+  static async getSavedPosts(req, res) {
+    try {
+      Logger.info(
+        JSON.stringify({ action: "get saved posts", user: req.auth.id })
+      );
+      const page = parseInt(req.query.page) || 1;
+      const pageSize = Config.POSTS_PER_PAGE;
+      const skip = (page - 1) * pageSize;
+
+      const posts = await prisma.post.findMany({
+        where: {
+          savedBy: {
+            some: {
+              id: req.auth.id,
+            },
+          },
+        },
+        skip,
+        take: pageSize,
+        orderBy: { createdAt: "desc" },
+        include: {
+          files: true,
+          _count: true,
+          owner: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              profileAvatarId: true,
+              studentProfileIfIsStudent: {
+                select: {
+                  registrationNumber: true,
+                },
+              },
+              staffProfileIfIsStaff: {
+                select: {
+                  title: true,
+                  position: true,
+                },
+              },
+            },
+          },
+          likers: {
+            where: {
+              id: req.auth.id,
+            },
+            select: {
+              id: true,
+            },
+          },
+
+          Access: {
+            select: {
+              _count: true,
+            },
+          },
+          reposters: {
             where: {
               id: req.auth.id,
             },
@@ -209,7 +479,29 @@ module.exports = class PostsController {
           id: postId,
         },
         include: {
-          files: true,
+          files: {
+            include: {
+              owner: {
+                select: {
+                  id: true,
+                  firstName: true,
+                  lastName: true,
+                  profileAvatarId: true,
+                  studentProfileIfIsStudent: {
+                    select: {
+                      registrationNumber: true,
+                    },
+                  },
+                  staffProfileIfIsStaff: {
+                    select: {
+                      title: true,
+                      position: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
           comments: {
             include: {
               commentor: {
@@ -265,6 +557,17 @@ module.exports = class PostsController {
               id: true,
             },
           },
+          Access: {
+            include: {
+              _count: true,
+              faculties: true,
+              schools: true,
+              chats: true,
+              programmes: true,
+              users: true,
+              classes: true,
+            },
+          },
         },
       });
 
@@ -304,6 +607,11 @@ module.exports = class PostsController {
               id: true,
             },
           },
+          Access: {
+            select: {
+              _count: true,
+            },
+          },
         },
       });
 
@@ -340,6 +648,11 @@ module.exports = class PostsController {
             },
             select: {
               id: true,
+            },
+          },
+          Access: {
+            select: {
+              _count: true,
             },
           },
         },
@@ -398,6 +711,11 @@ module.exports = class PostsController {
               id: true,
             },
           },
+          Access: {
+            select: {
+              _count: true,
+            },
+          },
         },
       });
 
@@ -431,6 +749,11 @@ module.exports = class PostsController {
             },
             select: {
               id: true,
+            },
+          },
+          Access: {
+            select: {
+              _count: true,
             },
           },
         },
@@ -732,6 +1055,201 @@ module.exports = class PostsController {
       RequestHandler.sendSuccess(req, res, updatedComment);
     } catch (error) {
       console.log("error unliking Comment: ", error);
+      RequestHandler.sendError(req, res, error);
+    }
+  }
+
+  static async updatePost(req, res) {
+    try {
+      Logger.info(JSON.stringify({ action: "update post", user: req.auth.id }));
+
+      const validated = await PostsValidator.validateCreate(req.body);
+
+      const postId = Number(req.params.postId);
+
+      if (!postId) {
+        RequestHandler.throwError(400, "Post id is required")();
+      }
+
+      const post = await prisma.post.findUnique({
+        where: {
+          id: postId,
+        },
+      });
+
+      if (!post) {
+        RequestHandler.throwError(400, "Post is required");
+      }
+
+      if (post.ownerId !== req.auth.id) {
+        RequestHandler.throwError(403, "You can only update your own posts")();
+      }
+      let schoolId;
+      let classId;
+      let facultyId;
+
+      const accessOptions = {};
+
+      if (req.auth.studentProfileIfIsStudent) {
+        classId = req.auth.studentProfileIfIsStudent.classId;
+        schoolId = req.auth.studentProfileIfIsStudent.class.programme.schoolId;
+        facultyId =
+          req.auth.studentProfileIfIsStudent.class.programme.school.facultyId;
+      } else if (req.auth.staffProfileIfIsStaff) {
+        schoolId = req.auth.staffProfileIfIsStaff.schoolId;
+        facultyId = req.auth.staffProfileIfIsStaff.school.facultyId;
+      }
+
+      const files = validated.files.map((id) => ({ id }));
+
+      console.log("files: ", files);
+
+      const accessData = {};
+
+      if (validated.visibility === "public") {
+        accessData.isPublic = true;
+      } else if (validated.visibility === "faculty") {
+        accessData.faculties = {
+          connect: [
+            {
+              id: facultyId,
+            },
+          ],
+        };
+        accessData.isPublic = false;
+      } else if (validated.visibility === "school") {
+        accessData.schools = {
+          connect: [
+            {
+              id: schoolId,
+            },
+          ],
+        };
+        accessData.isPublic = false;
+      }
+
+      const accesses = await prisma.access.findMany({
+        where: {
+          fileIfItemIsFile: {
+            id: {
+              in: validated.files,
+            },
+          },
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      await Promise.all(
+        accesses.map(async (access) => {
+          await prisma.access.update({
+            where: {
+              id: access.id,
+            },
+            data: accessData,
+          });
+        })
+      );
+
+      const updation = await prisma.post.update({
+        where: {
+          id: postId,
+        },
+        data: {
+          caption: validated.caption,
+          visibility: validated.visibility,
+          type: validated.type,
+          owner: {
+            connect: {
+              id: req.auth.id,
+            },
+          },
+          Access: {
+            create: {
+              itemType: "post",
+              ...accessData,
+            },
+          },
+          files: {
+            connect: files,
+          },
+        },
+        include: {
+          files: true,
+          owner: {
+            select: {
+              firstName: true,
+              lastName: true,
+              profileAvatarId: true,
+
+              studentProfileIfIsStudent: {
+                select: {
+                  registrationNumber: true,
+                },
+              },
+              staffProfileIfIsStaff: {
+                select: {
+                  title: true,
+                  position: true,
+                },
+              },
+            },
+          },
+          likers: {
+            select: {
+              id: true,
+            },
+          },
+          Access: {
+            select: {
+              id: true,
+              _count: true,
+            },
+          },
+        },
+      });
+
+      RequestHandler.sendSuccess(req, res, updation);
+    } catch (error) {
+      console.log("error updating post");
+      RequestHandler.sendError(req, res, error);
+    }
+  }
+
+  static async deletePost(req, res) {
+    try {
+      Logger.info(JSON.stringify({ action: "delete post", user: req.auth.id }));
+
+      const postId = Number(req.params.postId);
+
+      if (!postId) {
+        RequestHandler.throwError(400, "Post id is required")();
+      }
+
+      const post = await prisma.post.findUnique({
+        where: {
+          id: postId,
+        },
+      });
+
+      if (!post) {
+        RequestHandler.throwError(404, "Post not found");
+      }
+
+      if (post.ownerId !== req.auth.id) {
+        RequestHandler.throwError(403, "You can only delete your own posts")();
+      }
+
+      const deletion = await prisma.post.delete({
+        where: {
+          id: postId,
+        },
+      });
+
+      RequestHandler.sendSuccess(req, res, deletion);
+    } catch (error) {
+      console.log("error updating post");
       RequestHandler.sendError(req, res, error);
     }
   }

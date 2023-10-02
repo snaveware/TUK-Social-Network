@@ -1,4 +1,4 @@
-import { FlatList, StyleSheet } from "react-native";
+import { FlatList, StyleSheet, RefreshControl } from "react-native";
 import { Text, View, TextInput } from "../../components/Themed";
 import Button, { ButtonVariant } from "../../components/Button";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -31,7 +31,7 @@ export type profileInput = {
   coverImageId?: string;
 };
 
-export default function SettingsTabScreen() {
+export default function UpdateProfileScreen() {
   const router = useRouter();
   const { user, setIsLoggedIn, setUser, accessToken } = useContext(AuthContext);
   console.log("user: ", user, "access", accessToken);
@@ -72,7 +72,7 @@ export default function SettingsTabScreen() {
   ];
 
   useEffect(() => {
-    // getUser();
+    getUser();
   }, []);
 
   useEffect(() => {
@@ -134,10 +134,8 @@ export default function SettingsTabScreen() {
     }
   }, [user]);
 
-  function onLogout() {
-    AsyncStorage.removeItem("user");
-    AsyncStorage.removeItem("acessToken");
-    AsyncStorage.removeItem("refreshToken");
+  async function onLogout() {
+    await AsyncStorage.clear();
     setIsLoggedIn(false);
     setUser(null);
     router.push("/auth/LoginEmail");
@@ -162,7 +160,7 @@ export default function SettingsTabScreen() {
   }
 
   async function getUser() {
-    console.log("...getting user?...");
+    console.log("...getting user (update profile pag)?...");
     if (loading) return;
     setLoading(true);
 
@@ -175,10 +173,11 @@ export default function SettingsTabScreen() {
           setUser(results.data);
           AsyncStorage.setItem("user", JSON.stringify(results.data));
         }
-        console.log("successful get user");
+        console.log("successful get user (update profile page)");
       } else {
         setError(results.message);
       }
+
       setLoading(false);
     } catch (error) {
       setLoading(false);
@@ -336,19 +335,22 @@ export default function SettingsTabScreen() {
     }
   }
 
-  if (!user?.firstName) {
-    getUser();
-    return (
-      <View style={[styles.padding, { backgroundColor: theme.background }]}>
-        <Text>Loading...</Text>
-      </View>
-    );
-  }
+  // if (!user?.firstName) {
+  //   getUser();
+  //   return (
+  //     <View style={[styles.padding, { backgroundColor: theme.background }]}>
+  //       <Text>Loading...</Text>
+  //     </View>
+  //   );
+  // }
 
   return (
     <KeyboardAwareScrollView
       style={{ flex: 1, backgroundColor: theme.background }}
-      showsVerticalScrollIndicator={false}
+      // showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl refreshing={loading} onRefresh={getUser} />
+      }
     >
       <View>
         <View>
@@ -382,8 +384,8 @@ export default function SettingsTabScreen() {
               ]}
             >
               <Avatar
-                text={`${user?.firstName[0] || ":"} ${
-                  user?.lastName[0] || ")"
+                text={`${user?.firstName?.[0] || ":"} ${
+                  user?.lastName?.[0] || ")"
                 }`}
                 imageSource={profileAvatarImageSource}
                 style={[

@@ -6,9 +6,9 @@ import {
   ThemeProvider,
 } from "@react-navigation/native";
 import { useFonts } from "expo-font";
-import { SplashScreen, Stack, useRouter } from "expo-router";
+import { Link, SplashScreen, Stack, useRouter } from "expo-router";
 import { createContext, useEffect, useState } from "react";
-import { useColorScheme } from "react-native";
+import { Image, useColorScheme } from "react-native";
 import DefaultAppTheme, {
   AppThemeContext,
   AppThemeContextInterface,
@@ -18,11 +18,13 @@ import DefaultAppTheme, {
 
 import GlobalStyles from "../GlobalStyles";
 import { StyleSheet } from "react-native";
-import { Appearance } from "react-native";
+import { Appearance, Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AutocompleteDropdownContextProvider } from "react-native-autocomplete-dropdown";
-import { StatusBar } from "expo-status-bar";
+import { StatusBar, setStatusBarStyle } from "expo-status-bar";
 import { PostOwner } from "../components/posts/PostCard";
+import { View } from "../components/Themed";
+const Favicon = require("../assets/images/favicon.png");
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -73,6 +75,7 @@ export type StaffProfile = {
   schoolId: number;
   facultyId: number;
   createdAt: string;
+  school?: { faculty?: any } | any;
   updatedAt: string;
 };
 
@@ -83,6 +86,7 @@ export type StudentProfile = {
   updatedAt: string;
   schoolId: string;
   classId: number;
+  class: { programme: { school: { faculty: any } } } | any;
 };
 
 export type Role = {
@@ -215,6 +219,32 @@ function RootLayoutNav() {
 
   useEffect(() => {
     restoreStoredUser();
+
+    if (Platform.OS === "web") {
+      const style = document.createElement("style");
+      style.innerHTML = `
+      ::-webkit-scrollbar {
+        width: 10px;
+      }
+  
+      ::-webkit-scrollbar-thumb {
+        background-color: ${theme.backgroundMuted};
+        
+        border-radius: 5px;
+
+      }
+  
+      ::-webkit-scrollbar-track {
+        background-color: transparent;
+        margin-block: 5px;
+      }
+      body {
+        overflow: hidden;
+      }
+    `;
+
+      document.head.appendChild(style);
+    }
   }, []);
 
   async function restoreStoredUser() {
@@ -255,6 +285,10 @@ function RootLayoutNav() {
             <AppThemeContext.Provider value={{ theme, setTheme }}>
               <StatusBar style={"auto"} />
 
+              {colorScheme === "light" && Platform.OS === "android" && (
+                <StatusBar style={"dark"} />
+              )}
+
               <Stack>
                 <Stack.Screen
                   name="auth/LoginEmail"
@@ -263,6 +297,11 @@ function RootLayoutNav() {
                 <Stack.Screen
                   name="auth/LoginCode"
                   options={{ headerShown: false }}
+                />
+
+                <Stack.Screen
+                  name="select"
+                  options={{ presentation: "modal", title: "Select" }}
                 />
 
                 <Stack.Screen
@@ -280,12 +319,53 @@ function RootLayoutNav() {
                   options={{ presentation: "modal", title: "Search" }}
                 />
                 <Stack.Screen name="posts/New" />
+                <Stack.Screen name="posts/Edit" />
 
                 <Stack.Screen
                   name="users/[userId]"
                   options={{
                     title: "User Profile",
                     headerTitle: " User Profile",
+                  }}
+                />
+
+                <Stack.Screen
+                  name="users/UpdateProfile"
+                  options={{
+                    title: "Update Profile",
+
+                    headerRight: () => (
+                      <Link
+                        href="/users/UpdateProfile"
+                        style={[
+                          styles.flexRow,
+                          { backgroundColor: "transparent" },
+                        ]}
+                        asChild
+                      >
+                        <FontAwesome
+                          name="bell"
+                          size={28}
+                          color={theme.foreground}
+                        />
+                      </Link>
+                    ),
+                    headerLeft: () => {
+                      return (
+                        <View
+                          style={[
+                            styles.flexRow,
+                            styles.flexCenter,
+                            { backgroundColor: "transparent", marginLeft: 15 },
+                          ]}
+                        >
+                          <Image
+                            source={Favicon}
+                            style={{ width: 36, height: 36 }}
+                          />
+                        </View>
+                      );
+                    },
                   }}
                 />
 
@@ -297,11 +377,30 @@ function RootLayoutNav() {
                 <Stack.Screen
                   name="chats/New"
                   options={{
-                    title: "New Chats",
-                    headerTitle: "New Chat",
+                    title: "New Group",
+                    headerTitle: "New Group",
                     presentation: "modal",
                   }}
                 />
+
+                <Stack.Screen
+                  name="chats/ChatFiles"
+                  options={{
+                    title: "Chat Files",
+                    headerTitle: "Chat Files",
+                    presentation: "modal",
+                  }}
+                />
+
+                <Stack.Screen
+                  name="chats/ChatFolders"
+                  options={{
+                    title: "Chat Folders",
+                    headerTitle: "Chat Folders",
+                    presentation: "modal",
+                  }}
+                />
+
                 <Stack.Screen
                   name="chats/share"
                   options={{
@@ -339,6 +438,8 @@ function RootLayoutNav() {
                   name="files/[fileId]"
                   options={{ presentation: "modal" }}
                 />
+
+                <Stack.Screen name="files/folders/[folderId]" />
 
                 <Stack.Screen
                   name="Notifications"

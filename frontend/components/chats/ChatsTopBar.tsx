@@ -26,6 +26,8 @@ export default function ChatsTopBar({
   const params = useLocalSearchParams();
   const router = useRouter();
 
+  console.log("params: ", params);
+
   return (
     <View
       style={[
@@ -34,12 +36,14 @@ export default function ChatsTopBar({
         {
           justifyContent: "space-between",
           alignItems: "center",
+          marginBottom: 1,
           backgroundColor: theme.backgroundMuted,
           borderRightWidth: Platform.select({ ios: true, android: true })
             ? 0
             : 1,
           borderRightColor: theme.foregroundMuted,
           width: "100%",
+          height: 60,
         },
       ]}
     >
@@ -47,7 +51,7 @@ export default function ChatsTopBar({
         style={[
           styles.flexRow,
           styles.flexCenter,
-          { backgroundColor: "transparent", marginLeft: 15, width: "100%" },
+          { backgroundColor: "transparent", marginLeft: 15 },
         ]}
       >
         {params.action !== "search" &&
@@ -97,7 +101,7 @@ export default function ChatsTopBar({
                   styles.flexRow,
                   styles.flexCenter,
                   {
-                    marginRight: 20,
+                    marginHorizontal: 20,
                     backgroundColor: "transparent",
                   },
                 ]}
@@ -147,7 +151,7 @@ export default function ChatsTopBar({
                 <MaterialIcons
                   name="search"
                   size={30}
-                  color={theme.foreground}
+                  color={theme.accent}
                   style={{
                     marginHorizontal: 15,
                     fontWeight: "bold",

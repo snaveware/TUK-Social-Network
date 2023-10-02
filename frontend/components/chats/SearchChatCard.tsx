@@ -10,7 +10,13 @@ import { useRouter } from "expo-router";
 import Config from "../../Config";
 import socket from "../../Socket";
 
-export default function SearchChatCard({ chat }: { chat?: Chat }) {
+export default function SearchChatCard({
+  chat,
+  onSelect,
+}: {
+  chat?: Chat;
+  onSelect: any;
+}) {
   const { theme } = useContext(AppThemeContext);
 
   const { user, accessToken } = useContext(AuthContext);
@@ -66,7 +72,7 @@ export default function SearchChatCard({ chat }: { chat?: Chat }) {
   return (
     <TouchableOpacity
       onPress={() => {
-        socket.emit("resolve_chat", { chatId: chat?.id });
+        onSelect(chat);
       }}
       style={[
         styles.flexRow,

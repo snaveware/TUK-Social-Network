@@ -56,7 +56,7 @@ export default function Avatar(props: AvatarProps) {
 
   let color = theme.foreground;
 
-  let borderColor = theme.primary;
+  let borderColor = theme.accent;
 
   if (variant) {
     if (variant === "text") {
@@ -80,6 +80,7 @@ export default function Avatar(props: AvatarProps) {
 
   if (hasImage) {
     backgroundColor = "transparent";
+    borderColor = "transparent";
   }
 
   if (textColor) {
@@ -93,7 +94,7 @@ export default function Avatar(props: AvatarProps) {
         {
           backgroundColor: backgroundColor,
           borderRadius: 9999,
-          borderWidth: 2,
+          borderWidth: hasImage ? 0 : 2,
           borderColor: borderColor,
           width: 60,
           height: 60,
@@ -122,8 +123,8 @@ export default function Avatar(props: AvatarProps) {
         <Image
           style={[
             {
-              width: "90%",
-              height: "90%",
+              width: "100%",
+              height: "100%",
               borderRadius: 9999,
             },
             imageStyles,

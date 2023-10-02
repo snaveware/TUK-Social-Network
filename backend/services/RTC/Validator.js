@@ -77,6 +77,14 @@ module.exports = class ChatsValidator {
           "array.items": "{#label} should contain only integers",
         }),
 
+      sharedFolderId: Joi.number()
+        .integer()
+        .optional()
+        .label("shared Files")
+        .messages({
+          "array.base": "{#label} should be an array",
+          "array.items": "{#label} should contain only integers",
+        }),
       replyingToId: Joi.number()
         .integer()
         .optional()
@@ -121,9 +129,19 @@ module.exports = class ChatsValidator {
         "any.required": "{#label} is required.",
         "number.base": "{#label} must be a number.",
       }),
+
       otherUserId: Joi.number().optional().label("Other User ID").messages({
         "number.base": "{#label} must be a number.",
       }),
+
+      classId: Joi.number().optional().label("Class Id").messages({
+        "number.base": "{#label} must be a number.",
+      }),
+
+      schoolId: Joi.number().optional().label("School").messages({
+        "number.base": "{#label} must be a number.",
+      }),
+      origin: Joi.string().required(),
     });
 
     try {

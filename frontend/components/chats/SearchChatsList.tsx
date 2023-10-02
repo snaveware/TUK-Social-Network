@@ -4,12 +4,27 @@ import { Chat } from "./ChatCard";
 import { StyleSheet } from "react-native";
 import GlobalStyles from "../../GlobalStyles";
 import SearchChatCard from "./SearchChatCard";
+import socket from "../../Socket";
 
-export default function SearchChatsList({ chats }: { chats?: Chat[] }) {
+export default function SearchChatsList({
+  chats,
+  resolveOrigin = "chat_search",
+}: {
+  chats?: Chat[];
+  resolveOrigin?: string;
+}) {
+  const onChatSelect = (chat: Chat) => {
+    socket.emit("resolve_chat", {
+      chatId: chat?.id,
+      origin: resolveOrigin,
+    });
+  };
   return (
     <View style={{ flex: 1 }}>
       {chats?.map((chat, index) => {
-        return <SearchChatCard key={index} chat={chat} />;
+        return (
+          <SearchChatCard onSelect={onChatSelect} key={index} chat={chat} />
+        );
       })}
     </View>
   );

@@ -203,6 +203,54 @@ module.exports = class ChatsHTTPController {
                   studentProfileIfIsStudent: true,
                 },
               },
+              attachedFiles: {
+                include: {
+                  owner: {
+                    select: {
+                      id: true,
+                      firstName: true,
+                      lastName: true,
+                      profileAvatarId: true,
+                      bio: true,
+                      studentProfileIfIsStudent: {
+                        select: {
+                          registrationNumber: true,
+                        },
+                      },
+                      staffProfileIfIsStaff: {
+                        select: {
+                          title: true,
+                          position: true,
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+              sharedFolders: {
+                include: {
+                  owner: {
+                    select: {
+                      id: true,
+                      firstName: true,
+                      lastName: true,
+                      profileAvatarId: true,
+                      bio: true,
+                      studentProfileIfIsStudent: {
+                        select: {
+                          registrationNumber: true,
+                        },
+                      },
+                      staffProfileIfIsStaff: {
+                        select: {
+                          title: true,
+                          position: true,
+                        },
+                      },
+                    },
+                  },
+                },
+              },
             },
             take: 1,
           },
@@ -342,6 +390,7 @@ module.exports = class ChatsHTTPController {
               messages: true,
             },
           },
+
           messages: {
             orderBy: {
               createdAt: "desc",
@@ -366,9 +415,57 @@ module.exports = class ChatsHTTPController {
                   type: true,
                 },
               },
-
+              sharedFolders: {
+                include: {
+                  owner: {
+                    select: {
+                      id: true,
+                      firstName: true,
+                      lastName: true,
+                      profileAvatarId: true,
+                      bio: true,
+                      studentProfileIfIsStudent: {
+                        select: {
+                          registrationNumber: true,
+                        },
+                      },
+                      staffProfileIfIsStaff: {
+                        select: {
+                          title: true,
+                          position: true,
+                        },
+                      },
+                    },
+                  },
+                },
+              },
               linkedPoll: true,
-              linkedPost: true,
+              linkedPost: {
+                include: {
+                  files: true,
+                  owner: {
+                    select: {
+                      firstName: true,
+                      lastName: true,
+                      profileAvatarId: true,
+                      bio: true,
+                      staffProfileIfIsStaff: true,
+                      studentProfileIfIsStudent: true,
+                    },
+                  },
+                  likers: {
+                    where: {
+                      id: req.auth.id,
+                    },
+                  },
+                  _count: true,
+                  Access: {
+                    select: {
+                      _count: true,
+                    },
+                  },
+                },
+              },
               chat: true,
               readBy: true,
               replyingTo: {
@@ -383,6 +480,31 @@ module.exports = class ChatsHTTPController {
                       studentProfileIfIsStudent: true,
                     },
                   },
+                  attachedFiles: true,
+                  sharedFolders: {
+                    include: {
+                      owner: {
+                        select: {
+                          id: true,
+                          firstName: true,
+                          lastName: true,
+                          profileAvatarId: true,
+                          bio: true,
+                          studentProfileIfIsStudent: {
+                            select: {
+                              registrationNumber: true,
+                            },
+                          },
+                          staffProfileIfIsStaff: {
+                            select: {
+                              title: true,
+                              position: true,
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
                 },
               },
             },
@@ -394,6 +516,170 @@ module.exports = class ChatsHTTPController {
       RequestHandler.sendSuccess(req, res, chat);
     } catch (error) {
       console.log("Error getting user chats", error);
+      RequestHandler.sendError(req, res, error);
+    }
+  }
+
+  static async getMessages(req, res) {
+    try {
+      Logger.info(
+        JSON.stringify({
+          action: "get one chat messages",
+          user: req.auth.id,
+          chat: req.params.chatId,
+        })
+      );
+
+      const chatId = Number(req.params.chatId);
+      if (!chatId) {
+        RequestHandler.throwError(400, "Chat Id is required")();
+      }
+
+      const page = parseInt(req.query.page) || 1;
+      const pageSize = Config.NO_OF_MESSAGES_PER_REQUEST;
+      const skip = (page - 1) * pageSize;
+
+      console.log("page size skip", page, pageSize, skip);
+
+      let schoolId;
+      let classId;
+
+      if (req.auth.studentProfileIfIsStudent) {
+        classId = req.auth.studentProfileIfIsStudent.classId;
+        schoolId = req.auth.studentProfileIfIsStudent.class.programme.schoolId;
+      } else if (req.auth.staffProfileIfIsStaff) {
+        schoolId = req.auth.staffProfileIfIsStaff.schoolId;
+      }
+
+      const messages = await prisma.message.findMany({
+        where: {
+          chatId: chatId,
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+        include: {
+          sender: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              profileAvatarId: true,
+              bio: true,
+              studentProfileIfIsStudent: true,
+              staffProfileIfIsStaff: true,
+            },
+          },
+          attachedFiles: {
+            select: {
+              name: true,
+              path: true,
+              id: true,
+              type: true,
+            },
+          },
+          sharedFolders: {
+            include: {
+              owner: {
+                select: {
+                  id: true,
+                  firstName: true,
+                  lastName: true,
+                  profileAvatarId: true,
+                  bio: true,
+                  studentProfileIfIsStudent: {
+                    select: {
+                      registrationNumber: true,
+                    },
+                  },
+                  staffProfileIfIsStaff: {
+                    select: {
+                      title: true,
+                      position: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+          linkedPoll: true,
+          linkedPost: {
+            include: {
+              files: true,
+              owner: {
+                select: {
+                  firstName: true,
+                  lastName: true,
+                  profileAvatarId: true,
+                  bio: true,
+                  staffProfileIfIsStaff: true,
+                  studentProfileIfIsStudent: true,
+                },
+              },
+              likers: {
+                where: {
+                  id: req.auth.id,
+                },
+              },
+              _count: true,
+              Access: {
+                select: {
+                  _count: true,
+                },
+              },
+            },
+          },
+          chat: true,
+          readBy: true,
+          replyingTo: {
+            include: {
+              sender: {
+                select: {
+                  firstName: true,
+                  lastName: true,
+                  profileAvatarId: true,
+                  bio: true,
+                  staffProfileIfIsStaff: true,
+                  studentProfileIfIsStudent: true,
+                },
+              },
+              attachedFiles: true,
+              sharedFolders: {
+                include: {
+                  owner: {
+                    select: {
+                      id: true,
+                      firstName: true,
+                      lastName: true,
+                      profileAvatarId: true,
+                      bio: true,
+                      studentProfileIfIsStudent: {
+                        select: {
+                          registrationNumber: true,
+                        },
+                      },
+                      staffProfileIfIsStaff: {
+                        select: {
+                          title: true,
+                          position: true,
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        skip: skip,
+        take: Config.NO_OF_MESSAGES_PER_REQUEST,
+      });
+
+      console.log("messages: ", messages);
+
+      RequestHandler.sendSuccess(req, res, messages);
+    } catch (error) {
+      console.log("Error getting user messages", error);
       RequestHandler.sendError(req, res, error);
     }
   }
@@ -417,7 +703,7 @@ module.exports = class ChatsHTTPController {
 
       let chat;
 
-      console.log("validated: ", validated);
+      console.log("validated (): ", validated);
 
       if (validated.chatId) {
         /**
@@ -573,9 +859,25 @@ module.exports = class ChatsHTTPController {
          *
          */
 
-        chat = await prisma.chat.findFirst({
+        // chat = await prisma.chat.findFirst({
+        //   where: {
+        //     id: validated.chatId,
+        //     members: {
+        //       some: {
+        //         id: req.auth.id,
+        //       },
+        //     },
+        //     members: {
+        //       some: {
+        //         id: validated.otherUserId,
+        //       },
+        //     },
+        //   },
+        // });
+
+        const possibleChats = await prisma.chat.findMany({
           where: {
-            id: validated.chatId,
+            chatType: "private",
             members: {
               some: {
                 id: req.auth.id,
@@ -587,58 +889,117 @@ module.exports = class ChatsHTTPController {
               },
             },
           },
+          select: {
+            id: true,
+            members: true,
+          },
         });
+
+        console.log("possible chats: ", possibleChats, "o: ", possibleChats[0]);
+
+        for (let i = 0; i < possibleChats.length; i++) {
+          const element = possibleChats[i];
+          console.log("auth id: ", req.auth.id);
+          console.log("element members: ", element.members);
+
+          if (
+            element.members &&
+            element.members.length === 2 &&
+            (element.members[0].id === validated.otherUserId ||
+              element.members[0].id === req.auth.id) &&
+            (element.members[1].id === validated.otherUserId ||
+              element.members[1].id === req.auth.id)
+          ) {
+            chat = element;
+            break;
+          }
+        }
 
         if (!chat) {
           const otherUser = await prisma.user.findUnique({
             where: {
-              id: validated.otherUserId,
+              id: userId,
             },
             select: {
+              id: true,
               firstName: true,
               lastName: true,
-              id: true,
             },
           });
 
           if (!otherUser) {
-            RequestHandler.throwError(400, "Could not find other user")();
+            RequestHandler.throwError(404, "The user was not found")();
           }
 
           chat = await prisma.chat.create({
             data: {
-              chatType: "private",
               name: `${req.auth.firstName} ${req.auth.lastName} and ${otherUser.firstName} ${otherUser.lastName}`,
-              description: `chat between ${req.auth.firstName} ${req.auth.lastName} and ${otherUser.firstName} ${otherUser.lastName}`,
+              description: `A chat between ${req.auth.firstName} ${req.auth.lastName} and ${otherUser.firstName} ${otherUser.lastName}`,
               members: {
-                connect: [{ id: req.auth.id }, { id: validated.otherUserId }],
-              },
-            },
-
-            include: {
-              members: {
-                select: {
-                  id: true,
-                  firstName: true,
-                  lastName: true,
-                  profileAvatarId: true,
-                  bio: true,
-                  studentProfileIfIsStudent: {
-                    select: {
-                      registrationNumber: true,
-                    },
+                connect: [
+                  {
+                    id: req.auth.id,
                   },
-                  staffProfileIfIsStaff: {
-                    select: {
-                      title: true,
-                      position: true,
-                    },
+                  {
+                    id: validated.otherUserId,
                   },
-                },
+                ],
               },
+              chatType: "private",
             },
           });
         }
+
+        // if (!chat) {
+        //   const otherUser = await prisma.user.findUnique({
+        //     where: {
+        //       id: validated.otherUserId,
+        //     },
+        //     select: {
+        //       firstName: true,
+        //       lastName: true,
+        //       id: true,
+        //     },
+        //   });
+
+        //   if (!otherUser) {
+        //     RequestHandler.throwError(400, "Could not find other user")();
+        //   }
+
+        //   chat = await prisma.chat.create({
+        //     data: {
+        //       chatType: "private",
+        //       name: `${req.auth.firstName} ${req.auth.lastName} and ${otherUser.firstName} ${otherUser.lastName}`,
+        //       description: `chat between ${req.auth.firstName} ${req.auth.lastName} and ${otherUser.firstName} ${otherUser.lastName}`,
+        //       members: {
+        //         connect: [{ id: req.auth.id }, { id: validated.otherUserId }],
+        //       },
+        //     },
+
+        //     include: {
+        //       members: {
+        //         select: {
+        //           id: true,
+        //           firstName: true,
+        //           lastName: true,
+        //           profileAvatarId: true,
+        //           bio: true,
+        //           studentProfileIfIsStudent: {
+        //             select: {
+        //               registrationNumber: true,
+        //             },
+        //           },
+        //           staffProfileIfIsStaff: {
+        //             select: {
+        //               title: true,
+        //               position: true,
+        //             },
+        //           },
+        //         },
+        //       },
+        //     },
+        //   });
+        // }
       }
 
       console.log("chat: ", chat);
@@ -649,7 +1010,7 @@ module.exports = class ChatsHTTPController {
 
       RequestHandler.sendSuccess(req, res, chat);
     } catch (error) {
-      console.log("Error resolving chat", error);
+      console.log("Error resolving chat: ", error);
       RequestHandler.sendError(req, res, error);
     }
   }
@@ -837,6 +1198,106 @@ module.exports = class ChatsHTTPController {
       RequestHandler.sendSuccess(req, res, chat);
     } catch (error) {
       console.log("Error creatiing chat", error);
+      RequestHandler.sendError(req, res, error);
+    }
+  }
+
+  static async getChatFiles(req, res) {
+    try {
+      console.log("chat params: ", req.params);
+      Logger.info(
+        JSON.stringify({ action: "get one Chat Files", user: req.auth.id })
+      );
+
+      const chatId = Number(req.params.chatId);
+      if (!chatId) {
+        RequestHandler.throwError(400, "Chat Id is required")();
+      }
+
+      const chatAccessGrantend = await prisma.chat.findFirst({
+        where: {
+          id: chatId,
+        },
+        include: {
+          AccessGranted: {
+            select: {
+              id: true,
+            },
+          },
+        },
+      });
+
+      if (!chatAccessGrantend) {
+        RequestHandler.throwError(404, "Chat not found")();
+      }
+
+      const accessIds = chatAccessGrantend.AccessGranted.map((access) => {
+        return access.id;
+      });
+
+      const files = await prisma.file.findMany({
+        where: {
+          accessId: {
+            in: accessIds,
+          },
+        },
+      });
+
+      console.log("chat Files: ", files);
+
+      RequestHandler.sendSuccess(req, res, files);
+    } catch (error) {
+      console.log("Error getting user chats", error);
+      RequestHandler.sendError(req, res, error);
+    }
+  }
+
+  static async getChatFolders(req, res) {
+    try {
+      console.log("chat params: ", req.params);
+      Logger.info(
+        JSON.stringify({ action: "get one Chat Folders", user: req.auth.id })
+      );
+
+      const chatId = Number(req.params.chatId);
+      if (!chatId) {
+        RequestHandler.throwError(400, "Chat Id is required")();
+      }
+
+      const chatAccessGrantend = await prisma.chat.findFirst({
+        where: {
+          id: chatId,
+        },
+        include: {
+          AccessGranted: {
+            select: {
+              id: true,
+            },
+          },
+        },
+      });
+
+      if (!chatAccessGrantend) {
+        RequestHandler.throwError(404, "Chat not found")();
+      }
+
+      const accessIds = chatAccessGrantend.AccessGranted.map((access) => {
+        return access.id;
+      });
+
+      const folders = await prisma.folder.findMany({
+        where: {
+          accessId: {
+            in: accessIds,
+          },
+        },
+      });
+
+      console.log("chat Folders: ", folders);
+
+      RequestHandler.sendSuccess(req, res, folders);
+    } catch (error) {
+      console.log("Error getting user chats", error);
       RequestHandler.sendError(req, res, error);
     }
   }

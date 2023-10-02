@@ -11,6 +11,8 @@ import { Image } from "react-native";
 const Favicon = require("../../assets/images/favicon.png");
 import Colors from "../../constants/Colors";
 import { useContext } from "react";
+import { Entypo } from "@expo/vector-icons";
+import { AppThemeContext } from "../../Theme";
 
 /**
  * You can explore the built-in icon families and icons on the web at https://icons.expo.fyi/
@@ -24,10 +26,12 @@ function TabBarIcon(props: {
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
+  const { theme } = useContext(AppThemeContext);
   return (
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: Colors[colorScheme ?? "light"].tint,
+        tabBarHideOnKeyboard: true,
       }}
     >
       <Tabs.Screen
@@ -35,72 +39,99 @@ export default function TabLayout() {
         options={{
           title: "Posts",
           headerTitleAlign: "center",
+          headerShown: false,
           tabBarIcon: ({ color }) => <TabBarIcon name="home" color={color} />,
-          headerRight: () => (
-            <View style={[styles.flexRow, { backgroundColor: "transparent" }]}>
-              <Link href="Notifications" asChild>
-                <Pressable>
-                  {({ pressed }) => (
-                    <FontAwesome
-                      name="bell"
-                      size={28}
-                      color={Colors[colorScheme ?? "light"].text}
-                      style={{ opacity: pressed ? 0.5 : 1 }}
-                    />
-                  )}
-                </Pressable>
-              </Link>
-              <Link href="posts/Search" asChild>
-                <Pressable>
-                  {({ pressed }) => (
-                    <MaterialIcons
-                      name="search"
-                      size={32}
-                      color={Colors[colorScheme ?? "light"].text}
-                      style={{
-                        marginHorizontal: 15,
-                        fontWeight: "bold",
-                        opacity: pressed ? 0.5 : 1,
-                      }}
-                    />
-                  )}
-                </Pressable>
-              </Link>
+          // headerRight: () => (
+          //   <View style={[styles.flexRow, { justifyContent: "space-between",alignItems: "center"}]}>
+          //     {/* <View
+          //       style={[
+          //         styles.flexRow,
+          //         styles.flexCenter,
+          //         { backgroundColor: "transparent", marginLeft: 15 },
+          //       ]}
+          //     >
+          //       <Image source={Favicon} style={{ width: 36, height: 36 }} />
+          //     </View> */}
 
-              <Link href="/posts/New" asChild>
-                <Pressable>
-                  {({ pressed }) => (
-                    <FontAwesome
-                      name="plus"
-                      size={30}
-                      color={Colors[colorScheme ?? "light"].text}
-                      style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
-                    />
-                  )}
-                </Pressable>
-              </Link>
-            </View>
+          //     <View>
+
+          //     <Link href="Notifications" asChild>
+          //       <Pressable>
+          //         {({ pressed }) => (
+          //           <FontAwesome
+          //             name="bell"
+          //             size={28}
+          //             color={Colors[colorScheme ?? "light"].text}
+          //             style={{ opacity: pressed ? 0.5 : 1 }}
+          //           />
+          //         )}
+          //       </Pressable>
+          //     </Link>
+          //     <Link href="posts/Search" asChild>
+          //       <Pressable>
+          //         {({ pressed }) => (
+          //           <MaterialIcons
+          //             name="search"
+          //             size={32}
+          //             color={Colors[colorScheme ?? "light"].text}
+          //             style={{
+          //               marginHorizontal: 15,
+          //               fontWeight: "bold",
+          //               opacity: pressed ? 0.5 : 1,
+          //             }}
+          //           />
+          //         )}
+          //       </Pressable>
+          //     </Link>
+
+          //     <Link href="/posts/New" asChild>
+          //       <Pressable>
+          //         {({ pressed }) => (
+          //           <FontAwesome
+          //             name="plus"
+          //             size={30}
+          //             color={Colors[colorScheme ?? "light"].text}
+          //             style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
+          //           />
+          //         )}
+          //       </Pressable>
+          //     </Link>
+          //     </View>
+          //   </View>
+          // ),
+          // headerLeft: () => {
+          //   return (
+          //     <View
+          //       style={[
+          //         styles.flexRow,
+          //         styles.flexCenter,
+          //         { backgroundColor: "transparent", marginLeft: 15 },
+          //       ]}
+          //     >
+          //       <Image source={Favicon} style={{ width: 36, height: 36 }} />
+          //     </View>
+          //   );
+          // },
+        }}
+      />
+
+      <Tabs.Screen
+        name="SearchTab"
+        options={{
+          title: "Account",
+          tabBarLabel: "Search",
+          headerShown: false,
+          tabBarIcon: ({ color }) => (
+            <FontAwesome name="search" size={25} color={color} />
           ),
-          headerLeft: () => {
-            return (
-              <View
-                style={[
-                  styles.flexRow,
-                  styles.flexCenter,
-                  { backgroundColor: "transparent", marginLeft: 15 },
-                ]}
-              >
-                <Image source={Favicon} style={{ width: 36, height: 36 }} />
-              </View>
-            );
-          },
         }}
       />
       <Tabs.Screen
         name="ChatsTab"
         options={{
-          title: "Chats",
+          title: "TUchat",
           tabBarLabel: "Chats",
+          headerTitleAlign: "left",
           headerShown: Platform.select({ ios: true, android: true })
             ? true
             : false,
@@ -114,10 +145,10 @@ export default function TabLayout() {
               <Link href="/Notifications" asChild>
                 <Pressable>
                   {({ pressed }) => (
-                    <FontAwesome
-                      name="bell"
-                      size={28}
-                      color={Colors[colorScheme ?? "light"].text}
+                    <MaterialIcons
+                      name="notifications-none"
+                      size={35}
+                      color={theme.accent}
                       style={{ opacity: pressed ? 0.5 : 1 }}
                     />
                   )}
@@ -128,8 +159,8 @@ export default function TabLayout() {
                   {({ pressed }) => (
                     <MaterialIcons
                       name="search"
-                      size={32}
-                      color={Colors[colorScheme ?? "light"].text}
+                      size={35}
+                      color={theme.accent}
                       style={{
                         marginHorizontal: 15,
                         fontWeight: "bold",
@@ -143,10 +174,10 @@ export default function TabLayout() {
               <Link href="chats/New" asChild>
                 <Pressable>
                   {({ pressed }) => (
-                    <FontAwesome
-                      name="plus"
+                    <MaterialIcons
+                      name="add-comment"
                       size={30}
-                      color={Colors[colorScheme ?? "light"].text}
+                      color={theme.accent}
                       style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
                     />
                   )}
@@ -172,10 +203,11 @@ export default function TabLayout() {
       <Tabs.Screen
         name="FilesTab"
         options={{
-          title: "Files",
-          tabBarLabel: "Files",
+          title: "Drive",
+          headerShown: false,
+          tabBarLabel: "Drive",
           tabBarIcon: ({ color }) => {
-            return <MaterialIcons name="file-copy" color={color} size={25} />;
+            return <Entypo name="google-drive" size={25} color={color} />;
           },
         }}
       />
@@ -184,92 +216,10 @@ export default function TabLayout() {
         options={{
           title: "Account",
           tabBarLabel: "Account",
+          headerShown: false,
           tabBarIcon: ({ color }) => (
             <MaterialIcons name="account-circle" color={color} size={25} />
           ),
-          headerRight: () => (
-            <View style={[styles.flexRow, { backgroundColor: "transparent" }]}>
-              <Link href="Notifications" asChild>
-                <Pressable>
-                  {({ pressed }) => (
-                    <FontAwesome
-                      name="bell"
-                      size={28}
-                      color={Colors[colorScheme ?? "light"].text}
-                      style={{ opacity: pressed ? 0.5 : 1 }}
-                    />
-                  )}
-                </Pressable>
-              </Link>
-              <Link href="posts/Search" asChild>
-                <Pressable>
-                  {({ pressed }) => (
-                    <MaterialIcons
-                      name="search"
-                      size={32}
-                      color={Colors[colorScheme ?? "light"].text}
-                      style={{
-                        marginHorizontal: 15,
-                        fontWeight: "bold",
-                        opacity: pressed ? 0.5 : 1,
-                      }}
-                    />
-                  )}
-                </Pressable>
-              </Link>
-            </View>
-          ),
-          headerLeft: () => {
-            return (
-              <View
-                style={[
-                  styles.flexRow,
-                  styles.flexCenter,
-                  { backgroundColor: "transparent", marginLeft: 15 },
-                ]}
-              >
-                <Image source={Favicon} style={{ width: 36, height: 36 }} />
-              </View>
-            );
-          },
-        }}
-      />
-      <Tabs.Screen
-        name="SettingsTab"
-        options={{
-          title: "Settings",
-          tabBarIcon: ({ color }) => (
-            <MaterialIcons name="settings" color={color} size={25} />
-          ),
-          headerRight: () => (
-            <View style={[styles.flexRow, { backgroundColor: "transparent" }]}>
-              <Link href="/Notifications" asChild>
-                <Pressable>
-                  {({ pressed }) => (
-                    <FontAwesome
-                      name="bell"
-                      size={28}
-                      color={Colors[colorScheme ?? "light"].text}
-                      style={{ opacity: pressed ? 0.5 : 1 }}
-                    />
-                  )}
-                </Pressable>
-              </Link>
-            </View>
-          ),
-          headerLeft: () => {
-            return (
-              <View
-                style={[
-                  styles.flexRow,
-                  styles.flexCenter,
-                  { backgroundColor: "transparent", marginLeft: 15 },
-                ]}
-              >
-                <Image source={Favicon} style={{ width: 36, height: 36 }} />
-              </View>
-            );
-          },
         }}
       />
     </Tabs>

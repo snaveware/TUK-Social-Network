@@ -9,6 +9,13 @@ router.put(
   AuthController.unFollowUser
 );
 
+router.put("/users/togglepublic", AuthMiddleware, AuthController.togglePublic);
+
+router.put("/users/share", AuthMiddleware, AuthController.share);
+
+router.put("/users/savepost/:postId", AuthMiddleware, AuthController.savePost);
+router.put("/users/repost/:postId", AuthMiddleware, AuthController.rePost);
+
 router.get(
   "/user/notifications",
   AuthMiddleware,
@@ -20,7 +27,7 @@ router.put(
   AuthMiddleware,
   AuthController.dismissNotification
 );
-
+router.post("/user/search", AuthMiddleware, AuthController.search);
 router.put("/user/:userId", AuthMiddleware, AuthController.updateUser);
 
 router.get("/user/:userId", AuthMiddleware, AuthController.getUser);

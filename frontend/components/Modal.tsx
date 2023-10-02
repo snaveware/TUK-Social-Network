@@ -113,7 +113,7 @@ export default function Modal({
             }}
           />
         </View>
-        <Text style={[styles.paddingH, { color: color }]}>{message}</Text>
+        <Text style={[{ color: color, padding: 20 }]}>{message}</Text>
         {children && <>{children}</>}
         {variant == "confirmation" && (
           <View style={[styles.padding, styles.flexRow, styles.flexCenter]}>

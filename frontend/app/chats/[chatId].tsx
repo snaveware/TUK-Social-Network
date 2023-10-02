@@ -29,7 +29,7 @@ import {
   ChatTypes,
 } from "../../components/chats/ChatCard";
 import socket from "../../Socket";
-import { Post } from "../../components/posts/PostCard";
+import PostCard, { Post } from "../../components/posts/PostCard";
 import MessageCard from "../../components/chats/MessageCard";
 import Config from "../../Config";
 import Utils from "../../Utils";
@@ -54,6 +54,9 @@ import { extractAsset } from "../../uploadFile";
 import * as ImagePicker from "expo-image-picker";
 import Modal, { ModalVariant } from "../../components/Modal";
 import FileCard from "../../components/files/FileCard";
+import { transform } from "@babel/core";
+import FolderCard from "../../components/files/FolderCard";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export enum MessageStatus {
   pending = "pending",
@@ -99,6 +102,7 @@ export type Message = {
   linkedPoll?: Poll;
   linkedPollId?: number;
   chat?: Chat;
+  sharedFolders: any[];
 };
 
 export type FullChart = {
@@ -119,6 +123,7 @@ export type FullChart = {
 
 export default function SingleChatScreen() {
   const params = useLocalSearchParams();
+  const router = useRouter();
   const navigation = useNavigation();
   const [loading, setLoading] = useState<boolean>(false);
   const [picking, setPicking] = useState<boolean>(false);
@@ -141,6 +146,7 @@ export default function SingleChatScreen() {
   // console.log("params chat id: ", params.chatId);
 
   const [replyMessage, setReplyMessage] = useState<Message>();
+  const [sharedMessage, setSharedMessage] = useState<Message>();
 
   const [keyboardHeight, setKeyboardHeight] = useState(0);
 
@@ -149,6 +155,27 @@ export default function SingleChatScreen() {
 
   const [showModal, setShowModal] = useState<boolean>(false);
   const [files, setFiles] = useState<any[]>([]);
+  const [flatlistRef, setFlatlistRef] = useState<any>();
+  const [loadingMore, setLoadingMore] = useState<boolean>(false);
+  const [activePage, setActivePage] = useState<number>(1);
+
+  function scrollToAnIndex(item: any) {
+    console.log("In scroll to index: ");
+    if (chat?.messages) {
+      for (let i = 0; i < chat?.messages?.length; i++) {
+        const element = chat.messages[i];
+
+        if (chat.messages[i].id === item.id) {
+          flatlistRef.scrollToIndex({
+            index: i,
+            animated: true,
+            viewPosition: 0.5,
+          });
+          return;
+        }
+      }
+    }
+  }
 
   // const [SCREEN_HEIGHT, SET_SCREEN_HEIGHT] = useState(
   //   Dimensions.get("window").height
@@ -158,19 +185,24 @@ export default function SingleChatScreen() {
   const inputRef = createRef<RNTextInput>();
 
   useEffect(() => {
+    console.log("repy message changed: ", replyMessage);
     if (replyMessage) {
-      console.log("repy message changed: ", replyMessage);
+      console.log("repy message changed with value: ", replyMessage);
       setKeyboardHeight(270);
       inputRef.current?.focus();
     }
   }, [replyMessage]);
 
-  // useEffect(() => {
-  //   getChat();
-  //   navigation.addListener("focus", () => {
-  //     getChat();
-  //   });
-  // }, [params]);
+  useEffect(() => {
+    console.log("new message changed: ", newMessage);
+  }, [newMessage]);
+
+  useEffect(() => {
+    getChat();
+    // navigation.addListener("focus", () => {
+    //   getChat();
+    // });
+  }, [params.chatId]);
 
   useEffect(() => {
     getChat();
@@ -182,12 +214,20 @@ export default function SingleChatScreen() {
         if (data.message.chatId !== prevValues?.id) {
           return prevValues;
         } else {
-          return {
-            ...prevValues,
-            messages: [data.message, ...prevValues.messages],
-          };
+          if (Platform.select({ web: true })) {
+            return {
+              ...prevValues,
+              messages: [...prevValues.messages, data.message],
+            };
+          } else {
+            return {
+              ...prevValues,
+              messages: [data.message, ...prevValues.messages],
+            };
+          }
         }
       });
+
       // console.log("single chat - receive message: ", data, "chat: ", chat);
     });
 
@@ -199,10 +239,17 @@ export default function SingleChatScreen() {
       setFiles([]);
 
       setChat((prevValues: any) => {
-        return {
-          ...prevValues,
-          messages: [data.message, ...prevValues.messages],
-        };
+        if (Platform.select({ web: true })) {
+          return {
+            ...prevValues,
+            messages: [...prevValues.messages, data.message],
+          };
+        } else {
+          return {
+            ...prevValues,
+            messages: [data.message, ...prevValues.messages],
+          };
+        }
       });
 
       setNewMessage({
@@ -210,7 +257,10 @@ export default function SingleChatScreen() {
         status: "pending",
         chatId: chat?.id,
       });
+
       setReplyMessage(undefined);
+      setSharedMessage(undefined);
+      AsyncStorage.removeItem("shared_message");
       // console.log("single chat: send message response: ", data);
     });
 
@@ -242,43 +292,46 @@ export default function SingleChatScreen() {
 
   useEffect(() => {
     if (chat) {
-      if (
-        params.shareMessage &&
-        typeof params.shareMessage === "string" &&
-        Number(params.targetChatId) === chat?.id
-      ) {
-        setNewMessage((prevValues: any) => {
-          return {
-            ...prevValues,
-            chatId: chat.id,
-            message: params.shareMessage,
-          };
-        });
-
-        setKeyboardHeight(270);
-        inputRef.current?.focus();
-      } else {
-        setNewMessage((prevValues: newMessage) => {
-          return {
-            ...prevValues,
-            chatId: chat.id,
-          };
-        });
-      }
-
-      // socket.emit("send_message", {
-      //   message: {
-      //     chatId: chat?.id,
-      //     message: "A new chat message. Newest at 1",
-      //   },
-      // });
+      resolveSharedMessage();
       console.log("......reading messageS.......");
       socket.emit("read_messages", { chatId: chat.id });
+
+      if (flatlistRef && Platform.select({ web: true }) && activePage < 2) {
+        flatlistRef.scrollToEnd(false);
+      }
     }
   }, [chat]);
 
+  async function resolveSharedMessage() {
+    const sharedMessage = await AsyncStorage.getItem("shared_message");
+    console.log("message to share: ", sharedMessage);
+    if (sharedMessage) {
+      const message = JSON.parse(sharedMessage);
+      setSharedMessage(message);
+      setNewMessage((prevValues: any) => {
+        return {
+          ...prevValues,
+          chatId: chat?.id,
+          message: message.message,
+        };
+      });
+
+      if (message.attachedFiles) {
+        setFiles(message.attachedFiles);
+      }
+    } else {
+      setNewMessage((prevValues: newMessage) => {
+        return {
+          ...prevValues,
+          chatId: chat?.id,
+        };
+      });
+    }
+  }
+
   async function sendMessage() {
-    if (sending) return;
+    if (sending || !chat?.id) return;
+
     setSending(true);
     if (
       (!newMessage.message || newMessage.message.trim().length < 1) &&
@@ -317,12 +370,27 @@ export default function SingleChatScreen() {
 
     console.log("uploaded files: ", _files, "full: ------", _fullFiles);
 
-    const message = {
+    const message: any = {
       message: newMessage.message,
       chatId: newMessage.chatId,
       replyingToId: replyMessage ? replyMessage.id : undefined,
       attachedFiles: _files.length > 0 ? _files : undefined,
+      postId: undefined,
+      sharedFolderId: undefined,
     };
+
+    if (sharedMessage) {
+      if (sharedMessage.postId) {
+        message.postId = sharedMessage.postId;
+      }
+
+      if (
+        sharedMessage.sharedFolders &&
+        sharedMessage.sharedFolders.length > 0
+      ) {
+        message.sharedFolderId = sharedMessage.sharedFolders[0].id;
+      }
+    }
 
     // console.log("message: ", message);
 
@@ -332,19 +400,31 @@ export default function SingleChatScreen() {
   }
 
   async function getChat() {
+    console.log(".........get chat called...........");
+    if (!params.chatId) {
+      console.log("no chat id: returning...");
+      return;
+    }
     console.log("...getting Chat ...id: ", params.chatId);
+
     if (loading) return;
     setLoading(true);
-
+    setActivePage(1);
     try {
       const URL = `${Config.API_URL}/chats/${params.chatId}`;
       const results = await Utils.makeGetRequest(URL);
-      // console.log(
-      //   "get Chat results: ",
-      //   results.data.messages[results.data.messages.length - 1]
-      // );
+      // console.log("get Chat results: ", results.data.messages);
+
       if (results.success) {
+        if (
+          Platform.select({ web: true }) &&
+          results.data &&
+          results.data.messages
+        ) {
+          results.data.messages.reverse();
+        }
         setChat(results.data);
+
         console.log("successful get single Chat");
       } else {
         setError(results.message);
@@ -352,6 +432,50 @@ export default function SingleChatScreen() {
       setLoading(false);
     } catch (error) {
       setLoading(false);
+      setError("Your are not connected to the internet");
+      console.log("Error getting Chats: ", error);
+    }
+  }
+
+  async function loadMore() {
+    if (!params.chatId) {
+      console.log(" (loading more) no chat id: returning...");
+      return;
+    }
+
+    console.log("...loading more in Chat ...id: ", params.chatId);
+
+    if (loadingMore) return;
+    setLoadingMore(true);
+    try {
+      const URL = `${Config.API_URL}/chats/messages/${params.chatId}?page=${
+        activePage + 1
+      }`;
+      const results = await Utils.makeGetRequest(URL);
+      console.log("laod more in chat results: ", results.data);
+
+      if (results.success) {
+        setActivePage((prevValue) => {
+          return prevValue + 1;
+        });
+        if (Platform.select({ web: true }) && results.data && results.data) {
+          results.data.reverse();
+        }
+
+        setChat((prevValues: any) => {
+          return {
+            ...prevValues,
+            messages: [...prevValues.messages, ...results.data],
+          };
+        });
+
+        console.log("successful get single Chat");
+      } else {
+        setError(results.message);
+      }
+      setLoadingMore(false);
+    } catch (error) {
+      setLoadingMore(false);
       setError("Your are not connected to the internet");
       console.log("Error getting Chats: ", error);
     }
@@ -487,9 +611,16 @@ export default function SingleChatScreen() {
           chat={chat}
         />
       )}
+      {loadingMore && (
+        <ActivityIndicator style={{ padding: 3 }} size={"small"} />
+      )}
 
       {(chatMode === "messages" || chatMode === "search") && (
         <KeyboardAwareFlatList
+          innerRef={(ref) => {
+            setFlatlistRef(ref);
+          }}
+          scrollToOverflowEnabled={true}
           onKeyboardWillShow={(frames: any) => {
             if (Platform.OS == "ios") {
               // setKeyboardHeight(230);
@@ -497,136 +628,42 @@ export default function SingleChatScreen() {
               setKeyboardHeight(frames.endCoordinates.height);
             }
           }}
+          enableOnAndroid={true}
+          enableAutomaticScroll={true}
           onKeyboardWillHide={(frames) => {
             setKeyboardHeight(0);
           }}
           onRefresh={getChat}
           refreshing={loading}
           data={chat?.messages}
-          renderItem={({ item }: { item: Message }) => (
-            <MessageCard setReplyMessage={setReplyMessage} message={item} />
+          renderItem={({ item, index }: { item: Message; index: number }) => (
+            <MessageCard
+              index={index}
+              onGoTO={scrollToAnIndex}
+              setReplyMessage={setReplyMessage}
+              message={item}
+            />
           )}
+          // onEndReached={() => {
+          //   if (Platform.select({ ios: true, android: true })) {
+          //     loadMore();
+          //   }
+          // }}
+          // onScroll={(e: any) => {
+          //   if (
+          //     Platform.select({ web: true }) &&
+          //     e.nativeEvent.contentOffset.y === 0
+          //   ) {
+          //     loadMore();
+          //   }
+          // }}
           keyExtractor={(item) => {
             return item.id.toString();
           }}
           inverted={Platform.OS !== "web" ? true : false}
+          // inverted={true}
           scrollsToTop={false}
           overScrollMode={"always"}
-          ListHeaderComponent={() => {
-            return (
-              <>
-                {sending && (
-                  <View
-                    style={[
-                      styles.flexRow,
-                      styles.padding,
-
-                      {
-                        marginHorizontal: 20,
-
-                        justifyContent: "flex-end",
-                        alignItems: "center",
-                      },
-                    ]}
-                  >
-                    <View
-                      style={[
-                        styles.flexRow,
-                        {
-                          width: "70%",
-                          minWidth: "70%",
-                          justifyContent: "flex-start",
-                          alignItems: "flex-end",
-                          // backgroundColor: "green",
-                          flexDirection: "row-reverse",
-                        },
-                      ]}
-                    >
-                      <Avatar
-                        text={`${user?.firstName?.[0]} ${user?.lastName?.[1]}`}
-                        imageSource={
-                          user?.profileAvatarId
-                            ? `${Config.API_URL}/files?fid=${user?.profileAvatarId}&t=${accessToken}`
-                            : undefined
-                        }
-                        style={{ width: 45, height: 45 }}
-                        textStyles={{ fontSize: 12 }}
-                      />
-                      <View
-                        style={[
-                          styles.flexCols,
-                          styles.padding,
-                          {
-                            marginRight: 10,
-                            flexWrap: "nowrap",
-                            borderTopLeftRadius: 25,
-                            borderTopRightRadius: 25,
-
-                            borderBottomLeftRadius: 12,
-                            backgroundColor: theme.backgroundMuted,
-                            borderColor: theme.border,
-                            borderWidth: 1,
-                          },
-                        ]}
-                      >
-                        <Text
-                          style={[
-                            {
-                              color: theme.foreground,
-                              borderColor: theme.primaryForeground,
-                            },
-                          ]}
-                        >
-                          {newMessage.message}
-                        </Text>
-                        <View
-                          style={[
-                            styles.flexRow,
-                            {
-                              justifyContent: "space-between",
-                              alignItems: "center",
-                              backgroundColor: theme.backgroundMuted,
-                            },
-                          ]}
-                        >
-                          <Text
-                            style={[
-                              {
-                                fontSize: 10,
-                                color: theme.foregroundMuted,
-                                textAlign: "right",
-                                paddingTop: 5,
-                                marginRight: 10,
-                              },
-                            ]}
-                          >
-                            <AntDesign
-                              name="clockcircleo"
-                              size={16}
-                              color={theme.foregroundMuted}
-                            />
-                          </Text>
-                          <Text
-                            style={[
-                              {
-                                fontSize: 10,
-                                color: theme.foregroundMuted,
-                                textAlign: "right",
-                                paddingTop: 5,
-                                marginLeft: 10,
-                              },
-                            ]}
-                          >
-                            {Utils.getTimeDifference(new Date().toISOString())}
-                          </Text>
-                        </View>
-                      </View>
-                    </View>
-                  </View>
-                )}
-              </>
-            );
-          }}
         />
       )}
 
@@ -657,13 +694,162 @@ export default function SingleChatScreen() {
                 },
               ]}
             >
-              <Text style={{ width: 300 }}>
-                {replyMessage.message.length > 80
-                  ? replyMessage.message.substring(0, 80) + "..."
-                  : replyMessage.message}
-              </Text>
+              <View>
+                <Text style={{ width: 300 }}>
+                  {replyMessage.message.length > 80
+                    ? replyMessage.message.substring(0, 80) + "..."
+                    : replyMessage.message}
+                </Text>
+                {replyMessage?.attachedFiles &&
+                  replyMessage?.attachedFiles.length > 0 && (
+                    <View
+                      style={[
+                        styles.flexRow,
+                        {
+                          backgroundColor: "transparent",
+                          justifyContent: "space-between",
+                        },
+                      ]}
+                    >
+                      <AntDesign
+                        name="file1"
+                        style={{ marginRight: 10 }}
+                        color={theme.foregroundMuted}
+                        size={20}
+                      />
+                      <Text
+                        style={{ color: theme.foregroundMuted, width: "50%" }}
+                      >
+                        {replyMessage?.attachedFiles?.[0].name}
+                      </Text>
+                      {replyMessage?.attachedFiles?.length > 1 && (
+                        <Text
+                          style={{
+                            color: theme.foregroundMuted,
+                            marginLeft: 10,
+                          }}
+                        >{`+${
+                          replyMessage?.attachedFiles?.length - 1
+                        } More`}</Text>
+                      )}
+                    </View>
+                  )}
+              </View>
               <Feather
                 onPress={() => setReplyMessage(undefined)}
+                name="x-circle"
+                size={24}
+                color={theme.accent}
+              />
+            </View>
+          )}
+
+          {sharedMessage && (
+            <View
+              style={[
+                styles.flexRow,
+                styles.padding,
+                {
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  borderWidth: 0.5,
+                  borderColor: theme.border,
+                  borderLeftWidth: 5,
+                  borderLeftColor: theme.accent,
+                  borderStartWidth: 5,
+                  borderStartColor: theme.accent,
+                },
+              ]}
+            >
+              <View>
+                <Text style={{ width: 300 }}>
+                  {/* {sharedMessage.message.length > 80
+                    ? sharedMessage.message.substring(0, 80) + "..."
+                    : sharedMessage.message} */}
+                  Send When Ready to Forward
+                </Text>
+                {sharedMessage?.attachedFiles &&
+                  sharedMessage?.attachedFiles.length > 0 && (
+                    <View
+                      style={[
+                        styles.flexRow,
+                        {
+                          backgroundColor: "transparent",
+                          justifyContent: "space-between",
+                        },
+                      ]}
+                    >
+                      <AntDesign
+                        name="file1"
+                        style={{ marginRight: 10 }}
+                        color={theme.foregroundMuted}
+                        size={20}
+                      />
+                      <Text
+                        style={{ color: theme.foregroundMuted, width: "50%" }}
+                      >
+                        {sharedMessage?.attachedFiles?.[0].name}
+                      </Text>
+                      {sharedMessage?.attachedFiles?.length > 1 && (
+                        <Text
+                          style={{
+                            color: theme.foregroundMuted,
+                            marginLeft: 10,
+                          }}
+                        >{`+${
+                          sharedMessage?.attachedFiles?.length - 1
+                        } More`}</Text>
+                      )}
+                    </View>
+                  )}
+
+                {sharedMessage.linkedPost && (
+                  <View
+                    style={{
+                      width: 300,
+                      borderRadius: 10,
+                      padding: 5,
+                      margin: 5,
+                    }}
+                  >
+                    {/* <PostCard
+                      post={sharedMessage.linkedPost}
+                      loading={loading}
+                      setLoading={setLoading}
+                      gallerySize={300}
+                    /> */}
+                    <Text>Post: {sharedMessage.linkedPost.caption}...</Text>
+                  </View>
+                )}
+
+                {sharedMessage.sharedFolders &&
+                  sharedMessage.sharedFolders.length > 0 && (
+                    <View
+                      style={[
+                        styles.flexRow,
+                        {
+                          backgroundColor: "transparent",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                        },
+                      ]}
+                    >
+                      <FolderCard folder={sharedMessage.sharedFolders[0]} />
+                    </View>
+                  )}
+              </View>
+              <Feather
+                onPress={() => {
+                  setSharedMessage(undefined);
+                  AsyncStorage.removeItem("shared_message");
+                  setNewMessage((prevValues: newMessage) => {
+                    return {
+                      ...prevValues,
+                      chatId: chat?.id,
+                      message: "",
+                    };
+                  });
+                }}
                 name="x-circle"
                 size={24}
                 color={theme.accent}
@@ -874,6 +1060,13 @@ export default function SingleChatScreen() {
                   borderWidth: 1,
                   backgroundColor: theme.background,
                   flex: 1,
+                  minHeight: Platform.select({ ios: true, android: true })
+                    ? undefined
+                    : newMessage.message.length > 200 &&
+                      newMessage.message.length < 2000
+                    ? 30 * (newMessage.message.length / 200)
+                    : undefined,
+                  maxHeight: 200,
                 },
               ]}
               value={newMessage.message}
@@ -888,7 +1081,12 @@ export default function SingleChatScreen() {
               }}
             />
 
-            <TouchableOpacity onPress={sendMessage}>
+            <TouchableOpacity
+              onPress={() => {
+                setKeyboardHeight(0);
+                sendMessage();
+              }}
+            >
               <MaterialCommunityIcons
                 name="send-circle"
                 size={40}

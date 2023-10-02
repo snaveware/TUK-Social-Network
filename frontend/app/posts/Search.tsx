@@ -40,6 +40,7 @@ export default function PostsSearchScreen() {
       setUsers(data.users);
       setLoading(false);
     });
+
     socket.on("search_error", (error) => {
       console.log("search error: ", error);
       setLoading(false);
