@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "790835221221",
+    "project_id": "tuk-social",
+    "storage_bucket": "tuk-social.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:790835221221:android:789c5bef6dbfab7cb9fa0c",
+        "android_client_info": {
+          "package_name": "com.snave020.tuksocialnetwork"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB8eW1oXlzOu1G5D-jItlBiDNjd10numfw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -12,11 +12,14 @@
       "resizeMode": "cover",
       "backgroundColor": "#FFFFFF"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true,
       "icon": "./assets/images/icon.png",
-      "usesIcloudStorage": true
+      "usesIcloudStorage": true,
+      "bundleIdentifier": "com.snave020.tuksocialnetwork"
     },
     "android": {
       "icon": "./assets/images/icon.png",
@@ -24,8 +27,11 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#FFFFFF"
       },
-      "permissions": ["android.permission.RECORD_AUDIO"],
-      "package": "com.snave020.tuksocialnetwork"
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ],
+      "package": "com.snave020.tuksocialnetwork",
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "bundler": "metro",

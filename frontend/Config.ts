@@ -19,7 +19,7 @@ let Config: ConfigKeys = {
 
 if (environment == "development") {
   Config = {
-    API_URL: "http://192.168.43.130:5000",
+    API_URL: "http://192.168.1.101:5000",
   };
 }
 

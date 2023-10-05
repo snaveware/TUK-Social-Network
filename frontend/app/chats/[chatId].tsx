@@ -7,6 +7,8 @@ import {
   Keyboard,
   TouchableOpacity,
   ActivityIndicator,
+  Button,
+  AppState,
 } from "react-native";
 import { Text, TextInput, View } from "../../components/Themed";
 import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
@@ -57,6 +59,91 @@ import FileCard from "../../components/files/FileCard";
 import { transform } from "@babel/core";
 import FolderCard from "../../components/files/FolderCard";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+
+import * as Notifications from "expo-notifications";
+
+import * as Device from "expo-device";
+
+import Constants from "expo-constants";
+
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: false,
+    shouldSetBadge: false,
+  }),
+});
+
+// Can use this function below or use Expo's Push Notification Tool from: https://expo.dev/notifications
+export async function sendPushNotification(
+  expoPushToken: any,
+  title: string,
+  notificationMessage: string
+) {
+  console.log(
+    "................sending expo push notification.......",
+    "token: ",
+    expoPushToken
+  );
+
+  const message = {
+    to: expoPushToken,
+    sound: Platform.OS === "android" ? null : "default",
+    title: title,
+    body: notificationMessage,
+  };
+
+  const sendResults = await fetch("https://exp.host/--/api/v2/push/send", {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Accept-encoding": "gzip, deflate",
+      "Content-Type": "application/json",
+      host: "exp.host",
+    },
+    body: JSON.stringify(message),
+  });
+
+  // console.log("send results: ", JSON.stringify(sendResults));
+}
+
+export async function registerForPushNotificationsAsync() {
+  console.log("........registering for push notifications........");
+  let token;
+  if (Device.isDevice) {
+    const { status: existingStatus } =
+      await Notifications.getPermissionsAsync();
+    let finalStatus = existingStatus;
+    if (existingStatus !== "granted") {
+      console.log(".......existing status is granted..........");
+      const { status } = await Notifications.requestPermissionsAsync();
+      finalStatus = status;
+    }
+
+    if (finalStatus !== "granted") {
+      alert("Failed to get push token for push notification!");
+      return;
+    }
+    token = await Notifications.getExpoPushTokenAsync({
+      projectId: Constants?.expoConfig?.extra?.eas?.projectId,
+    });
+
+    console.log("...token in registration....", token, finalStatus);
+  } else {
+    alert("Must use physical device for Push Notifications");
+  }
+
+  if (Platform.OS === "android") {
+    Notifications.setNotificationChannelAsync("default", {
+      name: "default",
+      importance: Notifications.AndroidImportance.MAX,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: "#FF231F7C",
+    });
+  }
+
+  return token;
+}
 
 export enum MessageStatus {
   pending = "pending",
@@ -159,6 +246,11 @@ export default function SingleChatScreen() {
   const [loadingMore, setLoadingMore] = useState<boolean>(false);
   const [activePage, setActivePage] = useState<number>(1);
 
+  const [expoPushToken, setExpoPushToken] = useState<any>("");
+  const [notification, setNotification] = useState<any>(false);
+  const notificationListener: any = useRef();
+  const responseListener: any = useRef();
+
   function scrollToAnIndex(item: any) {
     console.log("In scroll to index: ");
     if (chat?.messages) {
@@ -206,30 +298,6 @@ export default function SingleChatScreen() {
 
   useEffect(() => {
     getChat();
-
-    socket.on("receive_message", (data) => {
-      // console.log("receive chat id: ", data.message.id, "current chat: ", chat);
-
-      setChat((prevValues: any) => {
-        if (data.message.chatId !== prevValues?.id) {
-          return prevValues;
-        } else {
-          if (Platform.select({ web: true })) {
-            return {
-              ...prevValues,
-              messages: [...prevValues.messages, data.message],
-            };
-          } else {
-            return {
-              ...prevValues,
-              messages: [data.message, ...prevValues.messages],
-            };
-          }
-        }
-      });
-
-      // console.log("single chat - receive message: ", data, "chat: ", chat);
-    });
 
     socket.on("send_message_response", (data) => {
       setSending(false);
@@ -285,6 +353,38 @@ export default function SingleChatScreen() {
       console.log("message error: ", data);
     });
   }, []);
+
+  useEffect(() => {
+    socket.on("receive_message", (data) => {
+      console.log("receive chat id: ", data.message.id, "current chat: ", chat);
+      console.log("received new message...........");
+      const name =
+        data.message.sender.firstName + " " + data.message.sender.lastName;
+
+      sendPushNotification(expoPushToken, name, data.message.message);
+      setChat((prevValues: any) => {
+        if (data.message.chatId !== prevValues?.id) {
+          return prevValues;
+        } else {
+          console.log("setting new message.........");
+
+          if (Platform.select({ web: true })) {
+            return {
+              ...prevValues,
+              messages: [...prevValues.messages, data.message],
+            };
+          } else {
+            return {
+              ...prevValues,
+              messages: [data.message, ...prevValues.messages],
+            };
+          }
+        }
+      });
+
+      // console.log("single chat - receive message: ", data, "chat: ", chat);
+    });
+  }, [expoPushToken]);
 
   useEffect(() => {
     console.log("files changed--------", files);
@@ -585,6 +685,30 @@ export default function SingleChatScreen() {
       console.log("pick image error: ", error);
     }
   }
+
+  useEffect(() => {
+    registerForPushNotificationsAsync().then((token) => {
+      console.log(".............token: ", token);
+      setExpoPushToken(token?.data);
+    });
+
+    notificationListener.current =
+      Notifications.addNotificationReceivedListener((notification: any) => {
+        setNotification(notification);
+      });
+
+    responseListener.current =
+      Notifications.addNotificationResponseReceivedListener((response: any) => {
+        console.log(response);
+      });
+
+    return () => {
+      Notifications.removeNotificationSubscription(
+        notificationListener.current
+      );
+      Notifications.removeNotificationSubscription(responseListener.current);
+    };
+  }, []);
 
   return (
     <View
